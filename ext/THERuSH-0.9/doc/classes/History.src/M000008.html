@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html>
+<head>
+  <title>histCmd (History)</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+  <link rel="stylesheet" href="../.././rdoc-style.css" type="text/css" media="screen" />
+</head>
+<body class="standalone-code">
+  <pre><span class="ruby-comment cmt"># File history.rb, line 25</span>
+        <span class="ruby-keyword kw">def</span> <span class="ruby-identifier">histCmd</span>( <span class="ruby-identifier">hist</span> )
+                <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">$DEBUG</span>
+                        <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">hist</span>.<span class="ruby-identifier">nil?</span>
+                                <span class="ruby-identifier">puts</span> <span class="ruby-value str">&quot;DEBUGGING VALUES: hist: nil&quot;</span>
+                        <span class="ruby-keyword kw">else</span>
+                                <span class="ruby-identifier">puts</span> <span class="ruby-value str">&quot;DEBUGGING VALUES: hist: &quot;</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">hist</span>
+                        <span class="ruby-keyword kw">end</span>
+                <span class="ruby-keyword kw">end</span>
+
+                <span class="ruby-keyword kw">if</span> <span class="ruby-identifier">hist</span>.<span class="ruby-identifier">nil?</span> <span class="ruby-comment cmt">## Just entering !h will print out the array</span>
+                        <span class="ruby-constant">HISTORY</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword kw">do</span> <span class="ruby-operator">|</span> <span class="ruby-identifier">entry</span> <span class="ruby-operator">|</span>
+                                <span class="ruby-identifier">puts</span> <span class="ruby-constant">HISTORY</span>.<span class="ruby-identifier">index</span>( <span class="ruby-identifier">entry</span> ).<span class="ruby-identifier">to_s</span> <span class="ruby-operator">+</span> <span class="ruby-value str">&quot;: &quot;</span> <span class="ruby-operator">+</span> <span class="ruby-identifier">entry</span>
+                        <span class="ruby-keyword kw">end</span>
+                <span class="ruby-keyword kw">else</span>
+                        <span class="ruby-identifier">hist</span> = <span class="ruby-identifier">hist</span>.<span class="ruby-identifier">to_i</span>
+                        <span class="ruby-keyword kw">if</span> <span class="ruby-constant">HISTORY</span>.<span class="ruby-identifier">at</span>( <span class="ruby-identifier">hist</span> ).<span class="ruby-identifier">nil?</span>
+                                <span class="ruby-identifier">puts</span> <span class="ruby-value str">&quot;Invalid history reference&quot;</span>
+                        <span class="ruby-keyword kw">else</span>
+                                <span class="ruby-identifier">system</span>( <span class="ruby-node">&quot;#{HISTORY.at( hist )}&quot;</span> )
+                        <span class="ruby-keyword kw">end</span>
+                <span class="ruby-keyword kw">end</span>
+        <span class="ruby-keyword kw">end</span></pre>
+</body>
+</html>
