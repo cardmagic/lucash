@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+$: << File.expand_path('./lib')
+#$:.unshift "lib"
+
+# Stdlib
+require "curses"
+require "breakpoint"
+require "open4"
+require "logger"
+#$logger = Logger.new('logfile.log')
+
+# Base Dependancies
+require "rush/general.rb"         # Needs to be first
+require "rush/parser.rb"
+require "rush/default_config.rb"
+require "rush/exceptions.rb"
+require "rush/metaid.rb"
+require "rush/alias.rb"
+require "rush/history.rb"
+# Commands
+require "rush/commands/commands.rb"
+# Key bindings
+require 'rush/keys/keys.rb'
+# Plugins
+require "rush/plugins/plugins.rb"
+
+# Base engine
+require "rush/combo_box.rb"
+require "rush/buffered_window.rb"
+
+
+# Execute when run directly only
+if __FILE__ == $0
+  begin
+    # Initialize ncurses
+    Rush.curses_start
+
+    maxx = [Curses::stdscr.maxx]
+    maxy = [Curses::lines]
+
+
+    # Load user config if there is one
+    begin
+      Rush.load_script_file "#{ENV["HOME"]}/.rushrc"
+    rescue LoadError
+      # Using default configs
+    end
+
+    # Run environment initializations from ~/.rushrc or the defaults
+    Rush.rush_startup
+
+
+    # Start up curses
+    $bw = Rush::BufferedWindow.new(maxy[0],maxx[0],0,0)
+
+    # Initial display
+    $bw.lines[-1] = eval($env[:prompt])
+    $bw.curx = eval($env[:prompt]).length
+    $bw.display
+
+
+    # Run the buffered window main loop
+    $bw.run do |char|
+
+      # Locate a special keybinding
+      key = Rush::Keys.find_respond_to(char)
+
+      catch(:done) do
+
+        # Can we get rid of this?
+        prompt_string = eval($env[:prompt])
+
+        # Execute the key binding if there was one
+        if key != nil
+          key.execute(char, prompt_string)
+          throw :done
+        end                           # if key != nil
+
+        # No binding, just print the character
+        $bw.type_string("%c" % char)
+        # Show the raw keycode
+        #$bw.type_string(char.to_s)
+
+        # Add it to the history
+        line = $bw.get_current_line[prompt_string.length..-1]
+        Rush::History[-1] = line
+
+        # Moved these to be processed by BufferedWindow#run after the yield
+        # Show the bottom of the screen and draw again
+        $bw.show_bottom
+        $bw.display
+
+      end                             # catch(:done)
+    end                               # $bw.run
+
+  ensure
+    Rush.curses_stop
+    Rush.rush_shutdown
+  end
+end                                   # if __FILE__ == $0

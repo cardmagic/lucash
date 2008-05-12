@@ -1,0 +1,103 @@
+rush BETA
+---------
+
+== Requirements
+* Ruby 1.8.2
+* Updated Curses module (see below)
+* ruby-breakpoint
+* open4 - http://www.codeforpeople.com/lib/ruby/open4/
+* rubygems - optional, remember to set your env, export RUBYOPT=-rubygems
+
+Ruby 1.8.2's curses implementation has a bug which causes
+background colors to be mangled/missing. It also misses some
+methods we needed.
+
+We submitted a patch, download the curses.c at the bottom:
+http://rubyforge.org/tracker/index.php?func=detail&aid=2298&group_id=426&atid=1698
+
+Alternatively you can download a precompiled replacement from:
+http://reyn.co.za/curses.so Remember to backup your old one,
+it might not work.
+
+== Installation
+You can use the provided setup.rb script to
+install rush. To do so, just type the following
+commands:
+
+ $ ruby setup.rb config
+ $ ruby setup.rb setup
+ $ ruby setup.rb install
+
+You may need to be root for the last step. To
+change the default install locations, see:
+
+http://i.loveruby.net/en/man/setup/index.html
+
+Developers: You should either avoid using the setup.rb
+            script altogether or, if necessary, uninstall
+            all of the files it has installed in order to
+            ensure that the correct files are loaded when
+            you test your code.
+
+
+== Usage notes
+- Use export TERM=linux if you have problems with the backspace key
+- To override the default config, make a copy of lib/rush/default_config.rb
+  and place it in ~/.rushrc. The file is loaded and executed as Ruby code.
+
+Examples
+--------
+Do the following in order to see what each command does:
+
+1) Expressions:
+1+2+3
+
+2) Code completion
+"somestring".
+"somestring".som<tab>
+"somestring".somemethod.<tab>
+
+3) Directory completion
+cd /<tab>
+
+4) Internal commands:
+ls
+ls | b
+ls | selector | b
+
+5) External commands
+!ls
+!ls | b
+*ls | b
+*ifconfig | selector | b
+^vi
+
+6) Aliases
+Alias.set("ifconfig","!ifconfig")
+ifconfig
+
+7) Builtin keys
+* ` makes opens the history browser
+
+Extending
+---------
+There is still quite alot to be done/fixed on the API
+Have a look at one of the builtin command in the commands directory
+
+Current Issues
+--------------
+We know about:
+* Cursor not where it's suppose to be sometimes
+* !vi/*vi or any other command that grabs input causes problems/hang
+* The file completion isnt 100% yet, yell if you find something not workin
+* Blocks are broken, need to write a better parser
+* We are not yet sending things like 'puts "hello' to an IO string
+* and some others :)
+
+Contacts
+--------
+http://rush.reyn.co.za
+http://rush.reyn.co.za/wiki
+#rush on freenode
+rubyforge
+

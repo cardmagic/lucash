@@ -1,0 +1,19 @@
+version 1:
+  directory structure                                             (all)
+  lowercase naming                                                (all)
+  sensible order of requires                                      (all)
+  setup.rb                                                        (setup.rb)
+  updated docs                                                    (README)
+  added this file (temporary only)                                (CHANGES)
+  load_script_file to just use load() so it works                 (general.rb)
+  changed rush to have the normal __FILE__ == $0 execution        (bin/rush)
+  moved rush_init_curses to be called directly from rush_startup  (default_config.rb)
+  moved things around a bit in the executable                     (bin/rush)
+  moved show_bottom and display outside of the main loop in run() (buffered_window.rb)
+
+version 2:
+  reverted character conversion                                   (bin/rush)
+  unimplemented key#execute raises an exception                   (keys/key.rb)
+  added KEY_LEFT to the default bindings                          (keys/basic.rb)
+  left a commented-out section to print the raw keycode           (bin/rush)
+  /usr/bin/env ruby is probably safest                            (bin/rush)
