@@ -1,0 +1,501 @@
+% -*- latex -*-
+\chapter{Strings and characters}
+
+Strings are the basic communication medium for {\Unix} processes, so a
+Unix programming environment must have reasonable facilities for manipulating 
+them.
+Scsh provides a powerful set of procedures for processing strings and
+characters.
+Besides the the facilities described in this chapter, scsh also provides
+\begin{itemize}
+\itum{Regular expressions (chapter~\ref{chapt:sre})}
+   A complete regular-expression system.
+
+\itum{Field parsing, delimited record I/O and the awk loop
+        (chapter~\ref{chapt:fr-awk})}
+   These procedures let you read in chunks of text delimited by selected 
+   characters, and
+   parse each record into fields based on regular expressions
+   (for example, splitting a string at every occurrence of colon or
+    white-space).
+   The \ex{awk} form allows you to loop over streams of these records 
+   in a convenient way.
+
+\itum{The SRFI-13 string libraries}
+   This pair of libraries contains procedures that create, fold, iterate over,
+   search, compare, assemble, cut, hash, case-map, and otherwise manipulate 
+   strings. 
+   They are provided by the \ex{string-lib} and \ex{string-lib-internals} 
+   packages, and are also available in the default \ex{scsh} package.
+
+   More documentation on these procedures can be found at URLs
+   \begin{tightinset}
+   % The gratuitous mbox makes xdvi render the hyperlinks better.
+   \texonly
+   \mbox{\url{http://srfi.schemers.org/srfi-13/srfi-13.html}}\\
+   \url{http://srfi.schemers.org/srfi-13/srfi-13.txt}
+   \endtexonly
+   % Changed the \mbox into \urlh for tex2page to avoid problems runing tex2page
+   \htmlonly
+   \urlh{http://srfi.schemers.org/srfi-13/srfi-13.html}{http://srfi.schemers.org/srfi-13/srfi-13.html}\\
+   \urlh{http://srfi.schemers.org/srfi-13/srfi-13.txt}{http://srfi.schemers.org/srfi-13/srfi-13.txt}
+   \endhtmlonly
+   \end{tightinset}
+
+\itum{The SRFI-14 character-set library}
+   This library provides a set-of-characters abstraction, which is frequently
+   useful when searching, parsing, filtering or otherwise operating on
+   strings and character data. The SRFI is provided by the \ex{char-set-lib}
+   package; it's bindings are also available in the default \ex{scsh} package.
+
+   More documentation on this library can be found at URLs
+   \begin{tightinset}
+   % The gratuitous mbox makes xdvi render the hyperlinks better.
+   \texonly
+   \mbox{\url{http://srfi.schemers.org/srfi-14/srfi-14.html}}\\
+   \url{http://srfi.schemers.org/srfi-14/srfi-14.txt}
+   \endtexonly
+   % Changed the \mbox into \urlh for tex2page to avoid problems runing tex2page
+   \htmlonly
+   \urlh{http://srfi.schemers.org/srfi-14/srfi-14.html}{http://srfi.schemers.org/srfi-14/srfi-14.html}\\
+   \urlh{http://srfi.schemers.org/srfi-14/srfi-14.txt}{http://srfi.schemers.org/srfi-14/srfi-14.txt}
+   \endhtmlonly
+   \end{tightinset}
+
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Manipulating file names}
+\label{sec:filenames}
+
+These procedures do not access the file-system at all; they merely operate
+on file-name strings. Much of this structure is patterned after the gnu emacs
+design. Perhaps a more sophisticated system would be better, something
+like the pathname abstractions of {\CommonLisp} or MIT Scheme. However,
+being {\Unix}-specific, we can be a little less general. 
+
+\subsection{Terminology}
+These procedures carefully adhere to the {\Posix} standard for file-name
+resolution, which occasionally entails some slightly odd things.
+This section will describe these rules, and give some basic terminology.
+
+A \emph{file-name} is either the file-system root (``/''), 
+or a series of slash-terminated directory components, followed by
+a a file component.
+Root is the only file-name that may end in slash.
+Some examples:
+\begin{center}
+\begin{tabular}{lll}
+  File name            & Dir components        & File component \\\hline
+  \ex{src/des/main.c}  & \ex{("src" "des")}    & \ex{"main.c"} \\
+  \ex{/src/des/main.c} & \ex{("" "src" "des")} & \ex{"main.c"} \\
+  \ex{main.c}          & \ex{()}               & \ex{"main.c"} \\
+\end{tabular}
+\end{center}
+
+Note that the relative filename \ex{src/des/main.c} and the absolute filename
+\ex{/src/des/main.c} are distinguished by the presence of the root component
+\ex{""} in the absolute path.
+
+Multiple embedded slashes within a path have the same meaning as 
+a single slash.
+More than two leading slashes at the beginning of a path have the same
+meaning as a single leading slash---they indicate that the file-name
+is an absolute one, with the path leading from root.
+However, {\Posix} permits the OS to give special meaning to 
+\emph{two} leading slashes.
+For this reason, the routines in this section do not simplify two leading
+slashes to a single slash.
+
+A file-name in \emph{directory form} is either a file-name terminated by 
+a slash, \eg, ``\ex{/src/des/}'', or the empty string, ``''.
+The empty string corresponds to the current working directory, 
+whose file-name is dot (``\ex{.}'').
+Working backwards from the append-a-slash rule, 
+we extend the syntax of {\Posix} file-names to define the empty string
+to be a file-name form of the root directory ``\ex{/}''.
+(However, ``\ex{/}'' is also acceptable as a file-name form for root.)
+So the empty string has two interpretations: 
+as a file-name form, it is the file-system root;
+as a directory form, it is the current working directory.
+Slash is also an ambiguous form: \ex{/} is both a directory-form and
+a file-name form.
+
+The directory form of a file-name is very rarely used.
+Almost all of the procedures in scsh name directories by giving
+their file-name form (without the trailing slash), not their directory form.
+So, you say ``\ex{/usr/include}'', and ``\ex{.}'', not
+``\ex{/usr/include/}'' and ``''.
+The sole exceptions are
+\ex{file-name-as-directory} and \ex{directory-as-file-name},
+whose jobs are to convert back-and-forth between these forms,
+and \ex{file-name-directory}, whose job it is to split out the
+directory portion of a file-name.
+However, most procedures that expect a directory argument will coerce
+a file-name in directory form to file-name form if it does not have
+a trailing slash.
+Bear in mind that the ambiguous case, empty string, will be
+interpreted in file-name form, \ie, as root.
+
+
+
+\subsection{Procedures}
+
+\defun  {file-name-directory?}     {fname} \boolean
+\defunx {file-name-non-directory?} {fname} \boolean
+\begin{desc}
+These predicates return true if the string is in directory form, or
+file-name form (see the above discussion of these two forms).
+Note that they both return true on the ambiguous case of empty string,
+which is both a directory (current working directory), and a file name 
+(the file-system root).
+\begin{center}
+\begin{tabular}{lll}
+File name & \ex{\ldots-directory?} & \ex{\ldots-non-directory?} \\
+\hline
+\ex{"src/des"}  & \ex{\sharpf} & \ex{\sharpt} \\
+\ex{"src/des/"} & \ex{\sharpt} & \ex{\sharpf} \\
+\ex{"/"}        & \ex{\sharpt} & \ex{\sharpf} \\
+\ex{"."}        & \ex{\sharpf} & \ex{\sharpt} \\
+\ex{""}         & \ex{\sharpt} & \ex{\sharpt}
+\end{tabular}
+\end{center}
+\end{desc}
+
+\begin{defundesc} {file-name-as-directory} {fname} \str
+    Convert a file-name to directory form.
+    Basically, add a trailing slash if needed:
+        \begin{exampletable}
+        \ex{(file-name-as-directory "src/des")}  & \ex{"src/des/"} \\
+        \ex{(file-name-as-directory "src/des/")} & \ex{"src/des/"} \\[2ex]
+        %
+        \header{\ex{.}, \ex{/}, and \ex{""} are special:}
+        \ex{(file-name-as-directory ".")} & \ex{""}  \\
+        \ex{(file-name-as-directory "/")} & \ex{"/"} \\
+        \ex{(file-name-as-directory "")}  & \ex{"/"}
+        \end{exampletable}
+\end{defundesc}
+
+\begin{defundesc} {directory-as-file-name} {fname} \str
+    Convert a directory to a simple file-name.
+    Basically, kill a trailing slash if one is present:
+    \begin{exampletable}
+    \ex{(directory-as-file-name "foo/bar/")} & \ex{"foo/bar"} \\[2ex]
+    %
+    \header{\ex{/} and \ex{""} are special:}
+    \ex{(directory-as-file-name "/")} & \ex{"/"} \\
+    \ex{(directory-as-file-name "")}  & \ex{"."} (\ie, the cwd) \\
+    \end{exampletable}
+\end{defundesc}
+
+\begin{defundesc} {file-name-absolute?} {fname} \boolean
+    Does \var{fname} begin with a root or \ex{\~} component?
+    (Recognising \ex{\~} as a home-directory specification
+    is an extension of {\Posix} rules.)
+%
+    \begin{exampletable}
+    \ex{(file-name-absolute? "/usr/shivers")}        & {\sharpt}  \\
+    \ex{(file-name-absolute? "src/des")}             & {\sharpf}  \\
+    \ex{(file-name-absolute? "\~/src/des")}          & {\sharpt}  \\[2ex]
+    %
+    \header{Non-obvious case:}
+    \ex{(file-name-absolute? "")}                    & {\sharpt} (\ie, root)
+    \end{exampletable}
+\end{defundesc}
+
+
+\begin{defundesc} {file-name-directory} {fname} {{\str} or false}
+    Return the directory component of \var{fname} in directory form.
+    If the file-name is already in directory form, return it as-is.
+%
+    \begin{exampletable}
+    \ex{(file-name-directory "/usr/bdc")}   & \ex{"/usr/"}  \\
+    {\ex{(file-name-directory "/usr/bdc/")}} &
+              {\ex{"/usr/bdc/"}} \\
+    \ex{(file-name-directory "bdc/.login")} & \ex{"bdc/"}       \\
+    \ex{(file-name-directory "main.c")}      & \ex{""} \\[2ex]
+    %
+    \header{Root has no directory component:}
+    \ex{(file-name-directory "/")}           & \ex{""} \\
+    \ex{(file-name-directory "")}            & \ex{""}
+    \end{exampletable}
+\end{defundesc}
+
+
+\begin{defundesc} {file-name-nondirectory} {fname} \str
+    Return non-directory component of fname.
+%
+    \begin{exampletable}
+    {\ex{(file-name-nondirectory "/usr/ian")}} &
+              {\ex{"ian"}} \\
+    \ex{(file-name-nondirectory "/usr/ian/")}  & \ex{""}       \\
+    {\ex{(file-name-nondirectory "ian/.login")}} &
+              {\ex{".login"}} \\
+    \ex{(file-name-nondirectory "main.c")}         & \ex{"main.c"} \\
+    \ex{(file-name-nondirectory "")}               & \ex{""} \\
+    \ex{(file-name-nondirectory "/")}              & \ex{"/"}
+    \end{exampletable}
+\end{defundesc}
+
+
+\begin{defundesc} {split-file-name} {fname} {{\str} list}
+    Split a file-name into its components.
+%
+    \begin{exampletable}
+    \splitline{\ex{(split-file-name "src/des/main.c")}}
+              {\ex{("src" "des" "main.c")}}      \\[1.5ex]
+    %
+    \splitline{\ex{(split-file-name "/src/des/main.c")}}
+              {\ex{("" "src" "des" "main.c")}}   \\[1.5ex]
+    %
+    \splitline{\ex{(split-file-name "main.c")}} {\ex{("main.c")}} \\[1.5ex]
+    %
+    \splitline{\ex{(split-file-name "/")}} {\ex{("")}}
+    \end{exampletable}
+\end{defundesc}
+
+
+\begin{defundesc} {path-list->file-name} {path-list [dir]} \str
+    Inverse of \ex{split-file-name}.
+\begin{code}
+(path-list->file-name '("src" "des" "main.c")) 
+    {\evalto} "src/des/main.c"
+(path-list->file-name '("" "src" "des" "main.c"))
+    {\evalto} "/src/des/main.c"
+\cb
+{\rm{}Optional \var{dir} arg anchors relative path-lists:}
+(path-list->file-name '("src" "des" "main.c")
+                      "/usr/shivers")
+    {\evalto} "/usr/shivers/src/des/main.c"\end{code}
+%
+    The optional \var{dir} argument is usefully \ex{(cwd)}.
+\end{defundesc}
+
+
+\begin{defundesc} {file-name-extension} {fname} \str
+    Return the file-name's extension.
+%
+    \begin{exampletable}
+    \ex{(file-name-extension "main.c")}          & \ex{".c"}    \\
+    \ex{(file-name-extension "main.c.old")}      & \ex{".old"}  \\
+    \ex{(file-name-extension "/usr/shivers")}    & \ex{""}
+    \end{exampletable}
+%
+    \begin{exampletable}
+    \header{Weird cases:}
+    \ex{(file-name-extension "foo.")}            & \ex{"."}     \\
+    \ex{(file-name-extension "foo..")}           & \ex{"."}
+    \end{exampletable}
+%
+    \begin{exampletable}
+    \header{Dot files are not extensions:}
+    \ex{(file-name-extension "/usr/shivers/.login")} & \ex{""}
+    \end{exampletable}
+\end{defundesc}
+
+
+\begin{defundesc} {file-name-sans-extension} {fname} \str
+    Return everything but the extension.
+%
+    \begin{exampletable}
+    \ex{(file-name-sans-extension "main.c")}            & \ex{"main"}   \\
+    \ex{(file-name-sans-extension "main.c.old")}        & \ex{"main.c""} \\
+    \splitline{\ex{(file-name-sans-extension "/usr/shivers")}}
+              {\ex{"/usr/shivers"}}
+    \end{exampletable}
+%
+    \begin{exampletable}
+    \header{Weird cases:}
+    \ex{(file-name-sans-extension "foo.")}      & \ex{"foo"}    \\
+    \ex{(file-name-sans-extension "foo..")}     & \ex{"foo."}   \\[2ex]
+    %
+    \header{Dot files are not extensions:}
+    \splitline{\ex{(file-name-sans-extension "/usr/shivers/.login")}}
+        {\ex{"/usr/shivers/.login}}
+    \end{exampletable}
+
+    Note that appending the results of \ex{file-name-extension} and 
+    {\ttt file\=name\=sans\=extension} in all cases produces the original file-name.
+\end{defundesc}
+
+
+\begin{defundesc} {parse-file-name} {fname} {[dir name extension]}
+    Let $f$ be \ex{(file-name-nondirectory \var{fname})}.
+    This function returns the three values:
+    \begin{itemize}
+    \item \ex{(file-name-directory \var{fname})}
+    \item \ex{(file-name-sans-extension \var{f}))}
+    \item \ex{(file-name-extension \var{f}\/)}
+    \end{itemize}
+    The inverse of \ex{parse-file-name}, in all cases, is \ex{string-append}.
+    The boundary case of \ex{/} was chosen to preserve this inverse.
+\end{defundesc}
+
+\begin{defundesc} {replace-extension} {fname ext} \str
+    This procedure replaces \var{fname}'s extension with \var{ext}.
+    It is exactly equivalent to 
+    \codex{(string-append (file-name-sans-extension \var{fname}) \var{ext})}
+\end{defundesc}
+
+\defun{simplify-file-name}{fname}\str
+\begin{desc}
+    Removes leading and internal occurrences of dot. 
+    A trailing dot is left alone, as the parent could be a symlink.
+    Removes internal and trailing double-slashes.
+    A leading double-slash is left alone, in accordance with {\Posix}.
+    However, triple and more leading slashes are reduced to a single slash,
+    in accordance with {\Posix}.
+    Double-dots (parent directory) are left alone, in case they come after
+    symlinks or appear in a \ex{/../\var{machine}/\ldots} ``super-root'' form
+    (which {\Posix} permits).
+\end{desc}
+
+\defun{resolve-file-name}{fname [dir]}\str
+\begin{desc}
+    \begin{itemize}
+    \item Do \ex{\~} expansion.
+    \item If \var{dir} is given,
+      convert a relative file-name to an absolute file-name,
+      relative to directory \var{dir}.
+    \end{itemize}
+\end{desc}
+
+\begin{defundesc} {expand-file-name} {fname [dir]} \str
+Resolve and simplify the file-name.
+\end{defundesc}
+    
+\begin{defundesc} {absolute-file-name} {fname [dir]} \str
+Convert file-name \var{fname} into an absolute file name,
+relative to directory \var{dir}, which defaults to the current
+working directory. The file name is simplified before being
+returned.
+
+This procedure does not treat a leading tilde character specially.
+\end{defundesc}
+
+\begin{defundesc}  {home-dir} {[user]} \str
+    \ex{home-dir} returns \var{user}'s home directory. 
+        \var{User} defaults to the current user.
+
+    \begin{exampletable}
+    \ex{(home-dir)}          & \ex{"/user1/lecturer/shivers"}  \\
+    \ex{(home-dir "ctkwan")} & \ex{"/user0/research/ctkwan"}
+    \end{exampletable}
+\end{defundesc}
+
+\begin{defundesc} {home-file} {[user] fname} \str
+    Returns file-name \var{fname} relative to \var{user}'s home directory;
+    \var{user} defaults to the current user.
+%    
+    \begin{exampletable}
+    \ex{(home-file "man")}            & \ex{"/usr/shivers/man"}        \\
+    \ex{(home-file "fcmlau" "man")}   & \ex{"/usr/fcmlau/man"}
+    \end{exampletable}
+\end{defundesc}
+
+The general \ex{substitute-env-vars} string procedure, 
+defined in the previous section,
+is also frequently useful for expanding file-names.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Other string manipulation facilities}
+
+\begin{defundesc} {substitute-env-vars} {fname} \str
+    Replace occurrences of environment variables with their values.
+    An environment variable is denoted by a dollar sign followed by
+    alphanumeric chars and underscores, or is surrounded by braces.
+
+    \begin{exampletable}
+    \splitline{\ex{(substitute-env-vars "\$USER/.login")}} 
+              {\ex{"shivers/.login"}}  \\
+    \cd{(substitute-env-vars "$\{USER\}_log")}  & \cd{"shivers_log"}
+    \end{exampletable}
+\end{defundesc}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{ASCII encoding}
+
+\defun  {char->ascii}{\character}    \integer
+\defunx {ascii->char}{\integer} \character
+\begin{desc}
+  These are identical to \ex{char->integer} and \ex{integer->char} except that
+  they use the {\Ascii} encoding.
+\end{desc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Character predicates}
+
+\defun {char-letter?}\character\boolean
+\defunx{char-lower-case?}\character\boolean
+\defunx{char-upper-case?}\character\boolean
+\defunx{char-title-case?}\character\boolean
+\defunx{char-digit?}\character\boolean
+\defunx{char-letter+digit?}\character\boolean
+\defunx{char-graphic?}\character\boolean
+\defunx{char-printing?}\character\boolean
+\defunx{char-whitespace?}\character\boolean
+\defunx{char-blank?}\character\boolean
+\defunx{char-iso-control?}\character\boolean
+\defunx{char-punctuation?}\character\boolean
+\defunx{char-hex-digit?}\character\boolean
+\defunx{char-ascii?}\character\boolean
+\begin{desc}
+Each of these predicates tests for membership in one of the standard
+character sets provided by the SRFI-14 character-set library.
+Additionally, the following redundant bindings are provided for {\RnRS}
+compatibility:
+\begin{inset}
+\begin{tabular}{ll}
+    {\RnRS} name & scsh definition \\ \hline
+    \ex{char-alphabetic?}   & \ex{char-letter+digit?} \\
+    \ex{char-numeric?}      & \ex{char-digit?}        \\
+    \ex{char-alphanumeric?} & \ex{char-letter+digit?}
+\end{tabular}
+\end{inset}
+\end{desc}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Deprecated character-set procedures}
+\label{sec:char-sets}
+
+The SRFI-13 character-set library grew out of an earlier library developed
+for scsh. 
+However, the SRFI standardisation process introduced incompatibilities with 
+the original scsh bindings.
+The current version of scsh provides the library 
+    \ex{obsolete-char-set-lib}, which contains the old bindings found in
+previous releases of scsh.
+The following table lists the members of this library, along with 
+the equivalent SRFI-13 binding. This obsolete library is deprecated and
+\emph{not} open by default in the standard \ex{scsh} environment;
+new code should use the SRFI-13 bindings.
+\begin{inset}
+\begin{tabular}{ll}
+    Old \ex{obsolete-char-set-lib}      & SRFI-13 \ex{char-set-lib} \\ \hline
+
+    \ex{char-set-members}               & \ex{char-set->list} \\
+    \ex{chars->char-set}                & \ex{list->char-set} \\
+    \ex{ascii-range->char-set}          & \ex{ucs-range->char-set} (not exact) \\
+    \ex{predicate->char-set}            & \ex{char-set-filter} (not exact) \\
+    \ex{char-set-every}?                & \ex{char-set-every} \\
+    \ex{char-set-any}?                  & \ex{char-set-any} \\
+    \\
+    \ex{char-set-invert}                & \ex{char-set-complement} \\
+    \ex{char-set-invert}!               & \ex{char-set-complement!} \\
+    \\
+    \ex{char-set:alphabetic}            & \ex{char-set:letter} \\
+    \ex{char-set:numeric}               & \ex{char-set:digit} \\
+    \ex{char-set:alphanumeric}          & \ex{char-set:letter+digit} \\
+    \ex{char-set:control}               & \ex{char-set:iso-control}
+\end{tabular}
+\end{inset}
+Note also that the \ex{->char-set} procedure no longer handles a predicate
+argument.
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "man"
+%%% End: 

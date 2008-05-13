@@ -1,0 +1,95 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-9.html">previous</a></span><span>, <a href="scsh-paper-Z-H-11.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_8"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_8">8&nbsp;&nbsp;Implementation</a></h1><p></p>
+<p>
+Scsh is currently implemented on top of Scheme 48, a freely-available
+Scheme implementation written by Kelsey and Rees [<a href="scsh-paper-Z-H-17.html#node_bib_11">S48</a>].
+Scheme 48 uses a byte-code interpreter for portability, good code density,
+and medium efficiency. It is R4RS-compliant, and includes a module
+system designed by Rees.</p>
+<p>
+The scsh design is not Scheme 48-specific, although the current implementation
+is necessarily so. Scsh is intended to be implementable in other Scheme
+implementations -- although such a port may require some work. (I would
+be very interested to see scsh ported to some of the Scheme systems designed
+to serve as embedded command languages -- <em>e.g.</em>, elk, esh, or any of the other
+C-friendly interpreters.)</p>
+<p>
+Scsh scripts currently have a few problems owing to the current
+Scheme 48 implementation technology. 
+</p>
+<ul>
+<li><p>Before running even the smallest shell script, the Scheme 48 vm must first 
+load in a 1.4Mb heap image.  This i/o load adds a few seconds to the startup
+time of even trivial shell scripts.</p>
+<p>
+</p>
+<li><p>Since the entire Scheme 48 and scsh runtime is in the form of byte-code
+data in the Scheme heap, the heap is fairly large. As the Scheme 48 vm
+uses a non-generational gc, all of this essentially permanent data
+gets copied back and forth by the collector.</p>
+<p>
+</p>
+<li><p>The large heap size is compounded by Unix forking. 
+If you run a
+four-stage pipeline, <em>e.g.</em>,
+</p>
+<blockquote><tt><br>
+(run&nbsp;(|&nbsp;(zcat&nbsp;paper.tex.Z)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(detex)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(spell)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(enscript&nbsp;-2r)))</tt></blockquote>
+then, for a brief instant, you could have up to five copies of scsh 
+forked into existence. This would briefly quintuple the virtual memory
+demand placed by a single scsh heap, which is fairly large to begin with. 
+Since all the code is actually in the data pages of the process, the OS
+can't trivially share pages between the processes. Even if the OS is clever
+enough to do copy-on-write page sharing, it may insist on reserving enough
+backing store on disk for worst-case swapping requirements. If disk space
+is limited, this may overflow the paging area, causing the <tt>fork()</tt>
+operations to fail.
+</ul><p>
+Byte-coded virtual machines are intended to be a technology
+that provides memory savings through improved code density.
+It is ironic that the straightforward implementation of such a byte-code
+interpreter actually has high memory cost through bad interactions with
+Unix <tt>fork()</tt> and the virtual memory system.</p>
+<p>
+The situation is not irretrievable, however.  A recent release of Scheme 48
+allows the pure portion of a heap image to be statically linked with the
+text pages of the vm binary. Putting static data -- such as all the code for
+the runtime -- into the text pages should drastically shorten start-up time,
+move a large amount of data out of the heap, improve paging, 
+and greatly shrink the dynamic size.  This should all lessen
+the impact of <tt>fork()</tt> on the virtual memory system.</p>
+<p>
+Arranging for the garbage collector to communicate with the virtual memory
+system with the near-standard <tt>madvise()</tt> system call would further improve
+the system. Also, breaking the system run-time into separate modules (<em>e.g.</em>,
+bignums, list operations, i/o, string operations, scsh operations, compiler,
+<em>etc.</em>), each of which can be demand-loaded shared-text by the Scheme 48 vm
+(using <tt>mmap()</tt>), will allow for a full-featured system with a surprisingly
+small memory footprint.</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-9.html">previous</a></span><span>, <a href="scsh-paper-Z-H-11.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

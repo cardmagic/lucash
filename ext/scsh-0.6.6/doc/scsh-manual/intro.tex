@@ -1,0 +1,435 @@
+%&latex -*- latex -*-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Introduction}
+
+This is the reference manual for scsh, 
+a {\Unix} shell that is embedded within {\Scheme}.
+Scsh is a Scheme system designed for writing useful standalone Unix
+programs and shell scripts---it spans a wide range of application,
+from ``script'' applications usually handled with perl or sh,
+to more standard systems applications usually written in C.
+
+Scsh comes built on top of {\scm}, and has two components:
+a process notation for running programs and setting up pipelines
+and redirections, 
+and a complete syscall library for low-level access to the operating system.
+This manual gives a complete description of scsh.
+A general discussion of the design principles behind scsh can be found
+in a companion paper, ``A Scheme Shell.''
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Copyright \& source-code license}
+Scsh is open source. The complete sources come with the standard
+distribution, which can be downloaded off the net.
+Scsh has an ideologically hip, BSD-style license.
+
+We note that the code is a rich source for other Scheme implementations
+to mine. Not only the \emph{code}, but the \emph{APIs} are available
+for implementors working on Scheme environments for systems programming.
+These APIs represent years of work, and should provide a big head-start
+on any related effort. (Just don't call it ``scsh,'' unless it's
+\emph{exactly} compliant with the scsh interfaces.)
+
+Take all the code you like; we'll just write more.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Obtaining scsh}
+Scsh is distributed via net publication.
+We place new releases at well-known network sites,
+and allow them to propagate from there.
+We currently release scsh to the following Internet sites:
+\begin{inset}\begin{flushleft}
+\ex{\urlh{ftp://ftp.scsh.net/pub/scsh}{ftp://ftp.scsh.net/pub/scsh}} \\
+\ex{\urlh{http://prdownloads.sourceforge.net/scsh/}{http://prdownloads.sourceforge.net/scsh/}} \\
+\end{flushleft}
+\end{inset}
+%
+Each should have a compressed tar file of the entire scsh release,
+which includes all the source code and the manual, 
+and a separate file containing just this manual in Postscript form,
+for those who simply wish to read about the system.
+
+However, nothing is certain for long on the Net.
+Probably the best way to get a copy of scsh is to use a network 
+resource-discovery tool, such as archie, 
+to find ftp servers storing scsh tar files.
+Take the set of sites storing the most recent release of scsh,
+choose one close to your site, and download the tar file.
+
+\section{Building scsh}
+Scsh currently runs on a fairly large set of Unix systems, including
+Linux, FreeBSD, OpenBSD, NetBSD, MacOS X, SunOS, Solaris, AIX, NeXTSTEP, Irix, and HP-UX.
+We use the Gnu project's autoconfig tool to generate self-configuring
+shell scripts that customise the scsh Makefile for different OS variants.
+This means that if you use one of the common Unix implementations,
+building scsh should require exactly the following steps:
+\begin{inset}
+\begin{tabular}{l@{\qquad}l}
+\ex{gunzip scsh.tar.gz} &       \emph{Uncompress the release tar file.} \\
+\ex{untar xfv scsh.tar} &       \emph{Unpack the source code.}          \\
+\ex{cd scsh-0.6.x} &              \emph{Move to the source directory.}    \\
+\ex{./configure} &              \emph{Examine host; build Makefile.}    \\
+\ex{make} &                     \emph{Build system.}
+\end{tabular}
+\end{inset}
+When you are done, you should have a virtual machine compiled in
+file \ex{scshvm}, and a heap image in file \ex{scsh/scsh.image}.
+Typing
+\begin{code}
+make install
+\end{code}
+will install these programs in your installation directory
+(by default, \ex{/usr/local}), along with a small stub startup
+binary, \ex{scsh}.
+
+If you don't have the patience to do this, you can start up
+a Scheme shell immediately after the initial make by simply
+saying
+\codex{./scshvm -o ./scshvm -i scsh/scsh.image}
+See chapter~\ref{chapt:running} for full details on installation
+locations and startup options.
+
+It is not too difficult to port scsh to another Unix platform if your
+OS is not supported by the current release.
+See the release notes for more details on how to do this.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Caveats}
+
+It is important to note what scsh is \emph{not}, as well as what it is.
+Scsh, in the current release, is primarily designed for the writing of
+shell scripts---programming.
+It is not a very comfortable system for interactive command use: 
+the current release lacks job control, command-line editing, a terse,
+convenient command syntax, and it does not read in an initialisation
+file analogous to \ex{.login} or \ex{.profile}.
+We hope to address all of these issues in future releases;
+we even have designs for several of these features;
+but the system as-released does not currently provide these features.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Naming conventions}
+Scsh follows a general naming scheme that consistently employs a set of
+abbreviations.
+This is intended to make it easier to remember the names of things.
+Some of the common ones are:
+\begin{description}
+\item [\ex{fdes}] 
+        Means ``file descriptor,'' a small integer used in {\Unix}
+        to represent I/O channels.
+
+\item [\ex{\ldots*}]
+        A given bit of functionality sometimes comes in two related forms, 
+        the first being a \emph{special form} that contains a body of 
+        {\Scheme} code to be executed in some context, 
+        and the other being a \emph{procedure} that takes a procedural
+        argument (a ``thunk'') to be called in the same context.
+        The procedure variant is named by taking the name of the special form,
+        and appending an asterisk. For example:
+\begin{code}
+;;; Special form:
+(with-cwd "/etc"
+  (for-each print-file (directory-files))
+  (display "All done"))
+
+;;; Procedure:
+(with-cwd* "/etc"
+  (lambda ()
+    (for-each print-file (directory-files))
+    (display "All done")))\end{code}
+
+\item [\ex{\var{action}/\var{modifier}}]
+    The infix ``\ex{/}'' is pronounced ``with,'' as in 
+    \ex{exec/env}---``exec with environment.''
+
+\item [\ex{call/\ldots}] 
+        Procedures that call their argument on some computed value
+        are usually named ``\ex{call/\ldots},'' \eg,
+        \ex{(call/fdes \var{port} \var{proc})}, which calls \var{proc}
+        on \var{port}'s file descriptor, returning whatever \var{proc}
+        returns. The abbreviated name means ``call with file descriptor.''
+
+\item [\ex{with-\ldots}]
+        Procedures that call their argument, and special forms that execute
+        their bodies in some special dynamic context frequently have
+        names of the form \ex{with-\ldots}. For example, 
+        \ex{(with-env \var{env} \vari{body}1 \ldots)} and 
+        \ex{(with-env* \var{env} \var{thunk})}. These forms set
+        the process environment body, execute their body or thunk,
+        and then return after resetting the environment to its original
+        state. 
+
+\item[\ex{create-}]
+        Procedures that create objects in the file system (files, directories,
+        temp files, fifos, \etc), begin with \ex{create-\ldots}.
+
+\item [\ex{delete-}]
+        Procedures that delete objects from the file system (files, 
+        directories, temp files, fifos, \etc), begin with \ex{delete-\ldots}.
+
+\item[ \ex{\var{record}:\var{field}} ]
+        Procedures that access fields of a record are usually written
+        with a colon between the name of the record and the name of the
+        field, as in \ex{user-info:home-dir}.
+
+\item[\ex{\%\ldots}]
+        A percent sign is used to prefix lower-level scsh primitives
+        that are not commonly used.
+
+\item[\ex{-info}]
+        Data structures packaging up information about various OS
+        entities frequently end in \ldots\ex{-info}. Examples:
+        \ex{user-info}, \ex{file-info}, \ex{group-info}, and \ex{host-info}.
+
+\end{description}
+%
+Enumerated constants from some set \var{s} are usually named
+\ex{\var{s}/\vari{const}1}, \ex{\var{s}/\vari{const}2}, \ldots.
+For example, the various {\Unix} signal integers have the names
+\ex{signal/cont}, \ex{signal/kill}, \ex{signal/int}, \ex{signal/hup}, 
+and so forth.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Lexical issues}
+Scsh's lexical syntax is just {\RnRS} {\Scheme}, with the following
+exceptions.
+
+\subsection{Extended symbol syntax}
+Scsh's symbol syntax differs from {\RnRS} {\Scheme} in the following ways:
+\begin{itemize}
+\item In scsh, symbol case is preserved by \ex{read} and is significant on
+      symbol comparison. This means 
+      \codex{(run (less Readme))}
+      displays the right file.
+
+\item ``\ex{-}'' and ``\ex{+}'' are allowed to begin symbols. 
+      So the following are legitimate symbols:
+      \codex{-O2 -geometry +Wn}
+
+\item ``\ex{|}'' and ``\ex{.}'' are symbol constituents.
+  This allows \ex{|} for the pipe symbol, and \ex{..} for the parent-directory
+  symbol. (Of course, ``\ex{.}'' alone is not a symbol, but a 
+  dotted-pair marker.)
+
+\item A symbol may begin with a digit.
+      So the following are legitimate symbols:
+\codex{9x15 80x36-3+440}
+\end{itemize}
+
+\subsection{Extended string syntax}
+Scsh strings are allowed to contain the {\Ansi} C escape sequences
+      such as \verb|\n| and \verb|\161|.
+        
+\subsection{Block comments and executable interpreter-triggers}
+Scsh allows source files to begin with a header of the form
+\codex{\#!/usr/local/bin/scsh -s}
+The Unix operating system treats source files beginning with the headers
+of this form specially; 
+they can be directly executed by the operating system
+(see chapter~\ref{chapt:running} for information on how to use this feature).
+The scsh interpreter ignores this special header by treating \ex{\#!} as a
+comment marker similar to \ex{;}. 
+When the scsh reader encounters \ex{\#!}, it skips characters until it finds
+the closing sequence
+new\-line/{\ob}ex\-cla\-ma\-tion-{\ob}point/{\ob}sharp-{\ob}sign/{\ob}new\-line.
+
+Although the form of the \ex{\#!} read-macro was chosen to support
+interpreter-triggers for executable Unix scripts,
+it is a general block-comment sequence and can be used as such
+anywhere in a scsh program.
+
+\subsection{Here-strings}
+The read macro  \ex{\#<} is used to introduce ``here-strings''
+in programs, similar to the \ex{<<} ``here document'' redirections
+provided by sh and csh.
+There are two kinds of here-string, character-delimited and line-delimited;
+they are both introduced by the \ex{\#<} sequence.
+
+\subsubsection{Character-delimited here-strings}
+A \emph{character-delimited} here-string has the form 
+\codex{\#<\emph{x}...stuff...\emph{x}}
+where \emph{x} is any single character 
+(except \ex{<}, see below),
+which is used to delimit the string bounds.
+Some examples:
+\begin{inset}
+\begin{tabular}{ll}
+        Here-string syntax              & Ordinary string syntax \\ \hline
+        \verb:#<|Hello, world.|:        & \verb:"Hello, world.":        \\
+        \verb:#<!"Ouch," he said.!:     & \verb:"\"Ouch,\" he said.":
+\end{tabular}
+\end{inset}
+%
+There is no interpretation of characters within the here-string;
+the characters are all copied verbatim.
+
+\subsubsection{Line-delimited here-strings}
+If the sequence begins "\ex{\#<<}" then it introduces a \emph{line-delimited}
+here-string.
+These are similar to the ``here documents'' of sh and csh.
+Line-delimited here-strings are delimited by the rest of the text line that
+follows the "\ex{\#<<}" sequence. 
+For example:
+
+\begin{code}
+#<<FOO
+Hello, there.
+This is read by Scheme as a string,
+terminated by the first occurrence
+of newline-F-O-O-newline or newline-F-O-O-eof.
+FOO\end{code}
+%
+Thus, 
+\begin{code}
+#<<foo
+Hello, world.
+foo\end{code}
+%
+is the same thing as
+\codex{"Hello, world."}
+
+Line-delimited here-strings are useful for writing down long, constant
+strings---such as long, multi-line \ex{format} strings, 
+or arguments to Unix programs, \eg,
+\begin{code}
+;; Free up some disk space for my netnews files.
+(run (csh -c #<<EOF
+cd /urops
+rm -rf *
+echo All done.
+
+EOF
+))\end{code}
+
+The advantage they have over the double-quote syntax 
+(\eg, \ex{"Hello, world."})
+is that there is no need to backslash-quote special characters internal
+to the string, such as the double-quote or backslash characters.
+
+The detailed syntax of line-delimited here-strings is as follows.
+The characters "\ex{\#<<}" begin the here-string.  
+The characters between the "\ex{\#<<}" and the next newline are the
+\emph{delimiter line}. 
+All characters between the "\ex{\#<<}" and the next newline comprise the
+delimiter line---including any white space. 
+The body of the string begins on the following line,
+and is terminated by a line of text which exactly matches the
+delimiter line.  
+This terminating line can be ended by either a newline or end-of-file.
+Absolutely no interpretation is done on the input string.  
+Control characters, white space, quotes, backslash---everything
+is copied as-is.  
+The newline immediately preceding the terminating delimiter line is
+not included in the result string
+(leave an extra blank line if you need to put a final
+newline in the here-string---see the example above).  
+If EOF is encountered before reading the end of the here-string, 
+an error is signalled.
+
+\subsection{Dot}
+It is unfortunate that the single-dot token, ``\ex{.}'', is both
+a fundamental {\Unix} file name and a deep, primitive syntactic token
+in {\Scheme}---it means the following will not parse correctly in scsh:
+\codex{(run/strings (find . -name *.c -print))}
+You must instead quote the dot: 
+\codex{(run/strings (find "." -name *.c -print))}
+
+When you write shell scripts that manipulate the file system,
+keep in mind the special status of the dot token.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Record types and the \texttt{define-record} form}
+\label{sec:defrec}
+\index{define-record@\texttt{define-record}}
+
+Scsh's interfaces occasionally provide data in structured record types;
+an example is the \ex{file-info} record whose various fields describe the size,
+protection, last date of modification, and other pertinent data for a
+particular file.
+These record types are described in this manual using the \ex{define-record}
+notation, which looks like the following:
+%
+\begin{code}
+(define-record ship
+  x
+  y
+  (size 100))\end{code}
+%
+This form defines a \var{ship} record, with three fields: 
+its x and y coordinates, and its size.
+The values of the \var{x} and \var{y} fields are specified as parameters
+to the ship-building procedure, \ex{(make-ship \var{x} \var{y})}, 
+and the \var{size} field is initialised to 100.
+All told, the \ex{define-record} form above defines the following procedures:
+%
+\begin{center}
+\begin{tabular}{|ll|}
+\multicolumn{1}{l}{Procedure} & \multicolumn{1}{l}{Definition} \\
+\hline
+(make-ship \var{x} \var{y}) & Create a new \var{ship} record. \\
+\hline
+(ship:x \var{ship})     & Retrieve the \var{x} field. \\
+(ship:y \var{ship})     & Retrieve the \var{y} field. \\
+(ship:size \var{ship})  & Retrieve the \var{size} field. \\
+\hline
+(set-ship:x \var{ship} \var{new-x}) & Assign the \var{x} field. \\
+(set-ship:y \var{ship} \var{new-y}) & Assign the \var{y} field. \\
+(set-ship:size \var{ship} \var{new-size}) & Assign the \var{size} field. \\
+\hline
+(modify-ship:x \var{ship} \var{xfun}) & Modify \var{x} field with \var{xfun}. \\
+(modify-ship:y \var{ship} \var{yfun}) & Modify \var{y} field with \var{yfun}. \\
+(modify-ship:size \var{ship} \var{sizefun}) & Modify \var{size} field with \var{sizefun}. \\
+\hline
+(ship? \var{object})    & Type predicate. \\
+\hline
+(copy-ship \var{ship}) & Shallow-copy of the record. \\
+\hline
+\end{tabular}
+\end{center}
+%
+
+An implementation of \ex{define-record} is available as a macro for Scheme
+programmers to define their own record types; 
+the syntax is accessed by opening the package \ex{defrec-package}, which
+exports the single syntax form \ex{define-record}. 
+See the source code for the \ex{defrec-package} module 
+for further details of the macro.
+
+You must open this package to access the form.
+Scsh does not export a record-definition package by default as there are
+several from which to choose.
+Besides the \ex{define-record} macro, which Shivers prefers\footnote{He wrote
+it.}, you might instead wish to employ the notationally-distinct
+\ex{define-record-type} macro that Jonathan Rees 
+prefers\footnote{He wrote it.}.
+It can be found in the 
+\ex{define-record-types} structure.
+
+Alternatively, you may define your own, of course.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{A word about {\Unix} standards}
+``The wonderful thing about {\Unix} standards is that there are so many
+to choose from.''
+You may be totally bewildered about the multitude of various standards that
+exist.
+Rest assured that nowhere in this manual will you encounter an attempt
+to spell it all out for you;
+you could not read and internalise such a twisted account without
+bleeding from the nose and ears.
+
+However, you might keep in mind the following simple fact: of all the
+standards, {\Posix} is the least common denominator.
+So when this manual repeatedly refers to {\Posix}, the point is ``the
+thing we are describing should be portable just about anywhere.''
+Scsh sticks to {\Posix} when at all possible; its major departure is
+symbolic links, which aren't in {\Posix} (see---it 
+really \emph{is} a least common denominator).
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "man"
+%%% End: 

@@ -1,0 +1,82 @@
+% -*- latex -*-
+
+% This is the reference manual for the Scheme Shell.
+
+\documentclass[twoside]{report}
+\usepackage{code,boxedminipage,makeidx,palatino,ct,
+            headings,mantitle,array,matter,mysize10,tex2page}
+
+\texonly
+% tex2page defines \url and hyperref loads the package url
+% but setting \url to \relax satisfies \newcommand
+\let\url\relax
+\input{pdfcond}
+\ifpdf
+\usepackage[pdftex,hyperindex,
+     pdftitle={scsh manual, release 0.6.5},
+     pdfauthor={Olin Shivers, Brian D.~Carlstrom, Martin Gasbichler,
+       and Mike Sperber}
+     colorlinks=true,linkcolor=blue,pagecolor=blue,urlcolor=blue,
+     pdfstartview=FitH,pdfview=FitH]{hyperref}
+\usepackage{thumbpdf}
+\usepackage{tocbibind}
+\else
+\usepackage[dvipdfm,hyperindex,hypertex,
+     pdftitle={scsh manual, release 0.6.5},
+     pdfauthor={Olin Shivers, Brian D.~Carlstrom, Martin Gasbichler,
+       and Mike Sperber}
+     colorlinks=true,linkcolor=blue,pagecolor=blue,urlcolor=blue,
+     pdfstartview=FitH,pdfview=FitH]{hyperref}
+\fi
+\endtexonly
+
+% These fonts are good choices for screen-readable pdf, but the man needs
+% a pass over the layout, since the this tt font will blow out the width
+% of some examples, making them wrap and generally screwing them up. Maybe this
+% should also be a LaTeX option, so we can get palatino on the hardcopy
+% runs and these fonts on pdf runs...
+%\renewcommand{\rmdefault}{phv}
+%\renewcommand{\sfdefault}{phv}
+%\renewcommand{\ttdefault}{pcr}
+
+% Style issues
+\parskip = 3pt plus 3pt  
+\sloppy  
+
+%\includeonly{miscprocs}
+
+\input{decls}
+\makeindex   
+%%% End preamble
+
+
+\begin{document}
+
+\frontmatter 
+\include{front} 
+
+\mainmatter
+\include{intro}
+\include{procnotation}
+\include{syscalls}
+\include{network}
+\include{strings}
+\include{sre}
+\include{rdelim}
+\include{awk}
+\include{threads}
+\include{miscprocs}
+\include{running}
+
+\backmatter
+\printindex
+
+\end{document}    
+
+% General things to do when converting ASCII text to LaTeX:
+% Build a set of \breakondash, \breakondot, \breakonslash commands
+% that will enable breaking in \tt. This is better than \=, etc.
+%
+% Check for ..., quote char, double-dashes --
+% Double-word check
+% lambda -> \l

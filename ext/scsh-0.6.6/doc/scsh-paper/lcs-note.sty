@@ -1,0 +1,84 @@
+% LCS note style modification of title -*- latex -*-
+%
+% To use this, you should have the companion postscript file mitlogo.ps
+% somewhere latex can find it. If you can't do it, then just say \nologo
+% and you'll get logo-less alternative.
+
+% This is useful for a little paper or note you're writing that isn't
+% a T.R. or a conference submission, just a paper. Maybe an early draft.
+% Something to hand out to your friends for comments. That kind of thing.
+% An example is the three "Scheme Flow-Analysis Working Notes" I wrote
+% that later got folded into my dissertation.
+%	-Olin
+
+\typeout{LCS Note style option -- 12 August 1994}
+
+\newcount\notenumber
+\newif\if@logo \@logotrue
+
+%
+% Here are the basic parameters and their defaults
+% Note that \author, \title, and \date still work, too.
+% To get the time in the date, try \date{\Time, \today}
+%
+\def\notenum#1{\notenumber=#1}
+\def\project#1{\def\@project{#1}}
+\def\dept#1{\def\@dept{#1}}
+\def\university#1{\def\@univ{#1}}
+
+\def\@project{Personal Information Architecture Project}
+\def\@dept{Laboratory for Computer Science}
+\def\@note{Note}
+% The 'tute:
+\def\@univ{\normalfont\scshape massachusetts institute of technology}
+
+%
+% The following "Time" macro will return the current (24 hour) time.
+%
+\def\Time{{\count1=\time \count2=\count1 \divide\count1 by 60
+\the\count1 :\multiply \count1 by 60 \advance\count2 by -\count1
+\count1=\count2 \divide\count1 by 10 \the\count1
+\multiply \count1 by 10 \advance\count2 by -\count1 \the\count2}}
+
+\def\@logofile{mitlogo.ps}
+\def\nologo{\@logofalse}
+
+
+\def\@maketitle{
+  \newdimen\noteheadwidth
+  \noteheadwidth = \textwidth
+  \def\@headline##1{\hbox to\noteheadwidth{##1}}
+
+  \newpage 
+  \null
+  \vskip -\topmargin \vskip -0.5in
+  \vskip -\headsep
+  \vskip -\headheight
+
+  \if@logo
+  \@headline{\fontsize{11}{11}\selectfont\@univ\hfil}%
+  \kern .72in
+  \@headline{\fontsize{17}{17}\selectfont\special{psfile=\@logofile}
+  		    \hskip 23mm plus 1fil
+  		    {\@dept}
+		    \hskip 23mm plus 1fil minus 23mm}
+  \else
+  \hbox to\textwidth{\hfill {\LARGE {\bf \@univ}} \hfill}
+  \vskip.5em
+  \hbox to\textwidth{\hfill {\Large {\bf \@dept}} \hfill}
+  \fi
+
+  \vskip 1.5em
+  \@headline{\@project\ \@note\ \the\notenumber \hfill \@date}
+  \vskip 0.5em
+  \hrule width \noteheadwidth
+  \bigskip
+  \begin{center} 
+      {\LARGE \@title \par} 
+      \vskip .5em
+      {\lineskip .5em
+       {\em \begin{tabular}[t]{c} \@author \end{tabular}}
+       \par}
+      \vskip 1em 
+  \end{center}
+  \par \vskip 1.5em}

@@ -1,0 +1,543 @@
+%&latex -*- latex -*-
+
+\chapter{Process notation}
+\label{sec:proc-forms}
+Scsh has a notation for controlling {\Unix} processes that takes the
+form of s-expressions; this notation can then be embedded inside of 
+standard {\Scheme} code.
+The basic elements of this notation are \emph{process forms}, 
+\emph{extended process forms}, and \emph{redirections}.
+
+\section{Extended process forms and I/O redirections}
+An \emph{extended process form} is a specification of a {\Unix} process to
+run, in a particular I/O environment:
+        \codex{\var{epf} {\synteq} (\var{pf} $ \var{redir}_1$ {\ldots} $ \var{redir}_n $)}
+where \var{pf} is a process form and the $\var{redir}_i$ are redirection specs.
+A \emph{redirection spec} is one of:
+\begin{inset}
+\begin{tabular}{@{}l@{\qquad{\tt; }}l@{}}
+  \ex{(< \var{[fdes]} \var{file-name})} & \ex{Open file for read.}
+\\\ex{(> \var{[fdes]} \var{file-name})} & \ex{Open file create/truncate.}
+\\\ex{(<< \var{[fdes]} \var{object})}   & \ex{Use \var{object}'s printed rep.}
+\\\ex{(>> \var{[fdes]} \var{file-name})} & \ex{Open file for append.}
+\\\ex{(= \var{fdes} \var{fdes/port})}    & \ex{Dup2}
+\\\ex{(- \var{fdes/port})}               & \ex{Close \var{fdes/port}.}
+\\\ex{stdports}                          & \ex{0,1,2 dup'd from standard ports.}
+\end{tabular}
+\end{inset}
+The input redirections default to file descriptor 0; 
+the output redirections default to file descriptor 1.
+
+The subforms of a redirection are implicitly backquoted, 
+and symbols stand for their print-names. 
+So \ex{(> ,x)} means 
+``output to the file named by {\Scheme} variable \ex{x},'' 
+and \ex{(< /usr/shivers/.login)} means ``read from  \ex{/usr/shivers/.login}.''
+
+\pagebreak
+Here are two more examples of I/O redirection:
+%
+\begin{center}
+\begin{codebox}
+(< ,(vector-ref fv i)) 
+(>> 2 /tmp/buf)\end{codebox}
+\end{center}
+%
+These two redirections cause the file \ex{fv[i]} to be opened on stdin, and
+\ex{/tmp/buf} to be opened for append writes on stderr.
+
+The redirection \ex{(<< \var{object})} causes input to come from the 
+printed representation of \var{object}. 
+For example,
+         \codex{(<< "The quick brown fox jumped over the lazy dog.")}
+causes reads from stdin to produce the characters of the above string.
+The object is converted to its printed representation using the \ex{display}
+procedure, so
+                      \codex{(<< (A five element list))}
+is the same as
+                     \codex{(<< "(A five element list)")}
+is the same as
+                \codex{(<< ,(reverse '(list element five A))){\rm.}}
+(Here we use the implicit backquoting feature to compute the list to 
+be printed.)
+
+The redirection \ex{(= \var{fdes} \var{fdes/port})} causes \var{fdes/port} 
+to be dup'd into file descriptor \var{fdes}.
+For example, the redirection
+                               \codex{(= 2 1)}
+causes stderr to be the same as stdout. 
+\var{fdes/port} can also be a port, for example:
+                     \codex{(= 2 ,(current-output-port))}
+causes stderr to be dup'd from the current output port. 
+In this case,  it is an error if the port is not a file port
+(\eg, a string port).
+More complex redirections can be accomplished using the \ex{begin}
+process form, discussed below, which gives the programmer full control
+of I/O redirection from {\Scheme}.
+
+\subsection{Port and file descriptor sync}
+\begin{sloppypar}
+It's important to remember that rebinding Scheme's current I/O ports
+(\eg, using \ex{call-with-input-file} to rebind the value of 
+\ex{(current-input-port)})
+does \emph{not} automatically ``rebind'' the file referenced by the
+{\Unix} stdio file descriptors 0, 1, and 2.
+This is impossible to do in general, since some {\Scheme} ports are 
+not representable as {\Unix} file descriptors.
+For example, many {\Scheme} implementations provide ``string ports,'' 
+that is, ports that collect characters sent to them into memory buffers.
+The accumulated string can later be retrieved from the port as a string.
+If a user were to bind \ex{(current-output-port)} to such a port, it would
+be impossible to associate file descriptor 1 with this port, as it
+cannot be represented in {\Unix}.
+So, if the user subsequently forked off some other program as a subprocess,
+that program would of course not see the {\Scheme} string port as its standard
+output.
+\end{sloppypar}
+
+To keep stdio synced with the values of {\Scheme}'s current I/O ports,
+use the special redirection \ex{stdports}.
+This causes 0, 1, 2 to be redirected from the current {\Scheme} standard ports.
+It is equivalent to the three redirections:
+\begin{code}
+(= 0 ,(current-input-port))
+(= 1 ,(current-output-port))
+(= 2 ,(error-output-port))\end{code}
+%
+The redirections are done in the indicated order.  This will cause an error if
+one of the current I/O ports isn't a {\Unix} port (\eg, if one is a string
+port).
+This {\Scheme}/{\Unix} I/O synchronisation can also be had in {\Scheme} code 
+(as opposed to a redirection spec) with the \ex{(stdports->stdio)}
+procedure.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Process forms}
+A \emph{process form} specifies a computation to perform as an independent
+{\Unix} process. It can be one of the following:
+%
+\begin{leftinset}
+\begin{codebox}
+(begin . \var{scheme-code})     
+(| \vari{pf}{\!1} {\ldots} \vari{pf}{\!n})          
+(|+ \var{connect-list} \vari{pf}{\!1} {\ldots} \vari{pf}{\!n})      
+(epf . \var{epf})                       
+(\var{prog} \vari{arg}{1} {\ldots} \vari{arg}{n})       
+\end{codebox}
+\qquad
+\begin{codebox}
+; Run \var{scheme-code} in a fork.
+; Simple pipeline
+; Complex pipeline
+; An extended process form.
+; Default: exec the program.
+\end{codebox}
+\end{leftinset}
+%
+The default case \ex{(\var{prog} \vari{arg}1 {\ldots} \vari{arg}n)} 
+is also implicitly backquoted.
+That is, it is equivalent to:
+%
+\codex{(begin (apply exec-path `(\var{prog} \vari{arg}1 {\ldots} \vari{arg}n)))}
+%
+\ex{Exec-path} is the version of the \ex{\urlh{http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html}{exec()}} system call that 
+uses scsh's path list to search for an executable.
+The program and the arguments must be either strings, symbols, or integers.
+Symbols and integers are coerced to strings.
+A symbol's print-name is used.
+Integers are converted to strings in base 10.
+Using symbols instead of strings is convenient, since it suppresses the
+clutter of the surrounding \ex{"\ldots"} quotation marks.
+To aid this purpose, scsh reads symbols in a case-sensitive manner, 
+so that you can say
+\codex{(more Readme)}
+and get the right file.
+
+A \var{connect-list} is a specification of how two processes are to be wired
+together by pipes. 
+It has the form \ex{((\vari{from}1 \vari{from}2 {\ldots} \var{to}) \ldots)}
+and is implicitly backquoted.
+For example,
+%
+\codex{(|+ ((1 2 0) (3 1)) \vari{pf}{\!1} \vari{pf}{\!2})}
+%
+runs \vari{pf}{\!1} and \vari{pf}{\!2}. 
+The first clause \ex{(1 2 0)} causes \vari{pf}{\!1}'s 
+stdout (1) and stderr (2) to be connected via pipe 
+to \vari{pf}{\!2}'s stdin (0). 
+The second clause \ex{(3 1)} causes \vari{pf}{\!1}'s file descriptor 3 to be
+connected to \vari{pf}{\!2}'s file descriptor 1.
+%---this is unusual, and not expected to occur very often.
+
+The \ex{begin} process form does a \ex{stdio->stdports} synchronisation
+in the child process before executing the body of the form.
+This guarantees that the \ex{begin} form, like all other process forms,
+``sees'' the effects of any associated I/O redirections.
+
+Note that {\RnRS} does not specify whether or not \ex{|} and \ex{|+}
+are readable symbols. Scsh does.
+
+\section{Using extended process forms in \Scheme}
+Process forms and extended process forms are \emph{not} {\Scheme}.
+They are a different notation for expressing computation that, like {\Scheme},
+is based upon s-expressions.
+Extended process forms are used in {\Scheme} programs by embedding them inside
+special {\Scheme} forms.
+There are three basic {\Scheme} forms that use extended process forms: 
+\ex{exec-epf}, \cd{&}, and \ex{run}.
+
+\dfn  {exec-epf} {. \var{epf}} {\noreturn} {syntax}
+\dfnx {\&}       {. \var{epf}} {proc}  {syntax}
+\dfnx {run}      {. \var{epf}} {status}  {syntax}
+\begin{desc}
+\index{exec-epf} \index{\&} \index{run}
+The \ex{(exec-epf . \var{epf})} form nukes the current process: it establishes
+the I/O redirections and then overlays the current process with the requested
+computation.
+
+The \ex{(\& . \var{epf})} form is similar, except that the process is forked
+off in background. The form returns the subprocess' process object.
+
+The \ex{(run . \var{epf})} form runs the process in foreground:
+after forking off the computation, it waits for the subprocess to exit,
+and returns its exit status.
+
+These special forms are macros that expand into the equivalent
+series of system calls.
+The definition of the \ex{exec-epf} macro is non-trivial, 
+as it produces the code to handle I/O redirections and set up pipelines.
+However, the definitions of the \cd{&} and \ex{run} macros are very simple:
+\begin{leftinset}
+\begin{tabular}{@{}l@{\quad$\equiv$\quad}l@{}}
+\cd{(& . \var{epf})} & \ex{(fork (\l{} (exec-epf . \var{epf})))} \\
+\ex{(run . \var{epf})} & \cd{(wait (& . \var{epf}))}
+\end{tabular}
+\end{leftinset}
+\end{desc}
+
+\subsection{Procedures and special forms}
+It is a general design principle in scsh that all functionality
+made available through special syntax is also available in a
+straightforward procedural form.
+So there are procedural equivalents for all of the process notation.
+In this way, the programmer is not restricted by the particular details of
+the syntax.
+Here are some of the syntax/procedure equivalents:
+\begin{inset}
+\begin{tabular}{@{}|ll|@{}}
+\hline
+Notation        & Procedure \\ \hline \hline
+\ex{|}          & \ex{fork/pipe} \\
+\ex{|+}         & \ex{fork/pipe+} \\
+\ex{exec-epf}   & \ex{exec-path} \\
+redirection     & \ex{open}, \ex{dup} \\
+\cd{&}          & \ex{fork} \\
+\ex{run}        & $\ex{wait} + \ex{fork}$ \\
+\hline
+\end{tabular}
+\end{inset}
+%
+Having a solid procedural foundation also allows for general notational
+experimentation using {\Scheme}'s macros.
+For example, the programmer can build his own pipeline notation on top of the
+\ex{fork} and \ex{fork/pipe} procedures.
+Chapter~\ref{chapt:syscalls} gives the full story on all the procedures
+in the syscall library.
+
+\subsection{Interfacing process output to {\Scheme}}
+\label{sec:io-interface}
+There is a family of procedures and special forms that can be used
+to capture the output of processes as {\Scheme} data.
+%
+\dfn  {run/port}   {. \var{epf}} {port} {syntax}
+\dfnx{run/file}    {. \var{epf}} {\str} {syntax}
+\dfnx{run/string}  {. \var{epf}} {\str} {syntax}
+\dfnx{run/strings} {. \var{epf}} {{\str} list} {syntax}
+\dfnx{run/sexp}    {. \var{epf}} {object} {syntax}
+\dfnx{run/sexps}   {. \var{epf}} {list}   {syntax}
+\begin{desc}
+These forms all fork off subprocesses, collecting the process' output
+to stdout in some form or another. 
+The subprocess runs with file descriptor 1 and the current output port
+bound to a pipe.
+\begin{desctable}{0.7\linewidth}
+\ex{run/port}   & Value is a port open on process's stdout. 
+                  Returns immediately after forking child. \\
+\ex{run/file}   & Value is name of a temp file containing process's output.
+                  Returns when process exits. \\
+\ex{run/string} & Value is a string containing process' output.
+                  Returns when eof read. \\
+\ex{run/strings}& Splits process' output into a list of 
+                  newline-delimited strings. Returns when eof read. \\
+\ex{run/sexp}   & Reads a single object from process' stdout with \ex{read}.
+                  Returns as soon as the read completes. \\
+\ex{run/sexps}  & Repeatedly reads objects from process' stdout with \ex{read}.
+                  Returns accumulated list upon eof.
+\end{desctable}
+The delimiting newlines are not included in the strings returned by
+\ex{run/strings}.
+
+These special forms just expand into calls to the following analogous
+procedures.
+\end{desc}
+
+\defun  {run/port*}    {thunk} {port}
+\defunx {run/file*}    {thunk} {\str}
+\defunx {run/string*}  {thunk} {\str}
+\defunx {run/strings*} {thunk} {{\str} list}
+\defunx {run/sexp*}    {thunk} {object}
+\defunx {run/sexps*}   {thunk} {object list}
+\begin{desc}
+For example, \ex{(run/port . \var{epf})} expands into
+\codex{(run/port* (\l{} (exec-epf . \var{epf}))).}
+\end{desc}
+
+The following procedures are also of utility for generally parsing 
+input streams in scsh:
+\defun  {port->string}      {port} {\str}
+\defunx {port->sexp-list}   {port} {list}
+\defunx {port->string-list} {port} {{\str} list}
+\defunx {port->list}        {reader port} {list}
+\begin{desc}
+\ex{Port->string} reads the port until eof,
+then returns the accumulated string.
+\ex{Port->sexp-list} repeatedly reads data from the port until eof, 
+then returns the accumulated list of items.  
+\ex{Port->string-list} repeatedly reads newline-terminated strings from the
+port until eof, then returns the accumulated list of strings.
+The delimiting newlines are not part of the returned strings.
+\ex{Port->list} generalises these two procedures.
+It uses \var{reader} to repeatedly read objects from a port.
+It accumulates these objects into a list, which is returned upon eof.
+The \ex{port->string-list} and \ex{port->sexp-list} procedures
+are trivial to define, being merely \ex{port->list} curried with
+the appropriate parsers:
+\begin{code}\cddollar
+(port->string-list \var{port}) $\equiv$ (port->list read-line \var{port})
+(port->sexp-list   \var{port}) $\equiv$ (port->list read \var{port})\end{code}
+%
+The following compositions also hold:
+\begin{code}\cddollar
+run/string*   $\equiv$  port->string      $\circ$ run/port*
+run/strings*  $\equiv$  port->string-list $\circ$ run/port*
+run/sexp*     $\equiv$  read              $\circ$ run/port*
+run/sexps*    $\equiv$  port->sexp-list   $\circ$ run/port*\end{code}
+\end{desc}
+
+\defun{port-fold}{port reader op . seeds} {\object\star}
+\begin{desc}
+This procedure can be used to perform a variety of iterative operations
+over an input stream.
+It repeatedly uses \var{reader} to read an object from \var{port}.
+If the first read returns eof, then the entire \ex{port-fold}
+operation returns the seeds as multiple values.
+If the first read operation returns some other value $v$, then
+\var{op} is applied to $v$ and the seeds:
+\ex{(\var{op} \var{v} . \var{seeds})}.
+This should return a new set of seed values, and the reduction then loops,
+reading a new value from the port, and so forth.
+(If multiple seed values are used, then \var{op} must return multiple values.)
+
+For example, \ex{(port->list \var{reader} \var{port})}
+could be defined as
+        \codex{(reverse (port-fold \var{port} \var{reader} cons '()))}
+
+An imperative way to look at \ex{port-fold} is to say that it
+abstracts the idea of a loop over a stream of values read from
+some port, where the seed values express the loop state.
+
+\remark{This procedure was formerly named \texttt{\indx{reduce-port}}.
+        The old binding is still provided, but is deprecated and will
+        probably vanish in a future release.}
+\end{desc}
+
+
+\section{More complex process operations}
+The procedures and special forms in the previous section provide for the
+common case, where the programmer is only interested in the output of the
+process.
+These special forms and procedures provide more complicated facilities
+for manipulating processes.
+
+
+\subsection{Pids and ports together}
+\dfn {run/port+proc} {. \var{epf}} {[port proc]} {syntax}
+\defunx {run/port+proc*} {thunk}  {[port proc]}
+\begin{desc}
+This special form and its analogous procedure can be used
+if the programmer also wishes access to the process' pid, exit status, 
+or other information.
+They both fork off a subprocess, returning two values:
+a port open on the process' stdout (and current output port), 
+and the subprocess's process object.
+A process object encapsulates the subprocess' process id and exit code;
+it is the value passed to the \ex{wait} system call.
+
+
+For example, to uncompress a tech report, reading the uncompressed
+data into scsh, and also be able to track the exit status of
+the decompression process, use the following:
+\begin{code}
+(receive (port child) (run/port+proc (zcat tr91-145.tex.Z))
+  (let* ((paper (port->string port))
+         (status (wait child)))
+    {\rm\ldots{}use \ex{paper}, \ex{status}, and \ex{child} here\ldots}))\end{code}
+%
+Note that you must \emph{first} do the \ex{port->string} and 
+\emph{then} do the wait---the other way around may lock up when the
+zcat fills up its output pipe buffer.
+\end{desc}
+
+
+\subsection{Multiple stream capture}
+
+Occasionally, the programmer may want to capture multiple distinct output
+streams from a process. For instance, he may wish to read the stdout and
+stderr streams into two distinct strings. This is accomplished with the
+\ex{run/collecting} form and its analogous procedure, \ex{run/collecting*}.
+%
+\dfn {run/collecting}  {fds . epf} {[status port\ldots]} {syntax}
+\defunx {run/collecting*} {fds thunk} {[status port\ldots]}
+\begin{desc}
+\ex{Run/collecting} and \ex{run/collecting*} run processes that produce
+multiple output streams and return ports open on these streams.  To avoid
+issues of deadlock, \ex{run/collecting} doesn't use pipes. Instead, it first
+runs the process with output to temp files, then returns ports open on the
+temp files. For example,
+%
+\codex{(run/collecting (1 2) (ls))}
+%
+runs \ex{ls} with stdout (fd 1) and stderr (fd 2) redirected to temporary
+files.
+When the \ex{ls} is done, \ex{run/collecting} returns three values: the
+\ex{ls} process' exit status, and two ports open on the temporary files. The
+files are deleted before \ex{run/collecting} returns, so when the ports are
+closed, they vanish. The \ex{fds} list of file descriptors is implicitly
+backquoted by the special-form version.
+
+For example, if Kaiming has his mailbox protected, then
+\begin{code}
+(receive (status out err)
+         (run/collecting (1 2) (cat /usr/kmshea/mbox))
+  (list status (port->string out) (port->string err)))\end{code}
+%
+might produce the list
+\codex{(256 "" "cat: /usr/kmshea/mbox: Permission denied")}
+
+What is the deadlock hazard that causes \ex{run/collecting} to use temp files?
+Processes with multiple output streams can lock up if they use pipes
+to communicate with {\Scheme} I/O readers. For example, suppose
+some {\Unix} program \ex{myprog} does the following:
+\begin{enumerate}
+    \item  First, outputs a single ``\ex{(}'' to stderr.
+    \item Then, outputs a megabyte of data to stdout.
+    \item Finally, outputs a single ``\ex{)}'' to stderr, and exits.
+\end{enumerate}
+
+Our scsh programmer decides to run \ex{myprog} with stdout and stderr redirected
+\emph{via {\Unix} pipes} to the ports \ex{port1} and \ex{port2}, respectively. 
+He gets into trouble when he subsequently says \ex{(read port2)}.
+The {\Scheme} \ex{read} routine reads the open paren, and then hangs in a
+\ex{\urlh{http://www.FreeBSD.org/cgi/man.cgi?query=read&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html}{read()}} system call trying to read a matching close paren.
+But before \ex{myprog} sends the close paren down the stderr
+pipe, it first tries to write a megabyte of data to the stdout pipe. 
+However, {\Scheme} is not reading that pipe---it's stuck waiting for input on
+stderr.
+So the stdout pipe quickly fills up, and \ex{myprog} hangs, waiting for the
+pipe to drain.
+The \ex{myprog} child is stuck in a stdout/\ex{port1} write;
+the {\Scheme} parent is stuck in a stderr/\ex{port2} read. 
+Deadlock.
+
+Here's a concrete example that does exactly the above:
+\begin{code}
+(receive (status port1 port2)
+         (run/collecting (1 2) 
+             (begin
+               ;; Write an open paren to stderr.
+               (run (echo "(") (= 1 2))
+               ;; Copy a lot of stuff to stdout.
+               (run (cat /usr/dict/words))
+               ;; Write a close paren to stderr.
+               (run (echo ")") (= 1 2))))
+
+   ;; OK. Here, I have a port PORT1 built over a pipe
+   ;; connected to the BEGIN subproc's stdout, and
+   ;; PORT2 built over a pipe connected to the BEGIN
+   ;; subproc's stderr.
+   (read port2) ; Should return the empty list.
+   (port->string port1)) ; Should return a big string.\end{code}
+%
+In order to avoid this problem, \ex{run/collecting} and \ex{run/collecting*}
+first run the child process to completion, buffering all the output
+streams in temp files (using the \ex{temp-file-channel} procedure, see below).
+When the child process exits, ports open on the buffered output are returned.
+This approach has two disadvantages over using pipes:
+\begin{itemize}
+    \item The total output from the child output is temporarily written
+      to the disk before returning from \ex{run/collecting}. If this output
+      is some large intermediate result, the disk could fill up.
+
+    \item The child producer and {\Scheme} consumer are serialised; there is
+      no concurrency overlap in their execution.
+\end{itemize}
+%
+However, it remains a simple solution that avoids deadlock.  More
+sophisticated solutions can easily be programmed up as 
+needed---\ex{run/collecting*} itself is only 12 lines of simple code.
+    
+See \ex{temp-file-channel} for more information on creating temp files
+as communication channels.
+\end{desc}
+
+\section{Conditional process sequencing forms}
+These forms allow conditional execution of a sequence of processes.
+
+\dfn{||} {\vari{pf}1 \ldots \vari{pf}n} {\boolean} {syntax}
+\begin{desc}    
+    Run each proc until one completes successfully (\ie, exit status zero).
+    Return true if some proc completes successfully; otherwise \sharpf.
+\end{desc}
+
+\dfn{\&\&} {\vari{pf}1 \ldots \vari{pf}n} {\boolean} {syntax}
+\begin{desc}    
+    Run each proc until one fails (\ie, exit status non-zero).
+    Return true if all procs complete successfully; otherwise \sharpf.
+\end{desc}
+
+\section{Process filters}
+
+These procedures are useful for forking off processes to filter
+text streams.
+
+\begin{defundesc}{make-char-port-filter}{filter}{\proc}
+    The \var{filter} argument is a character$\rightarrow$character procedure.
+    Returns a procedure that when called, repeatedly reads a character
+    from the current input port, applies \var{filter} to the character,
+    and writes the result to the current output port.
+    The procedure returns upon reaching eof on the input port.
+
+    For example, to downcase a stream of text in a spell-checking pipeline, 
+    instead of using the {\Unix} \ex{tr A-Z a-z} command, we can say:
+\begin{code}
+(run (| (delatex)
+        (begin ((char-filter char-downcase))) ; tr A-Z a-z
+        (spell)
+        (sort)
+        (uniq))
+     (< scsh.tex)
+     (> spell-errors.txt))\end{code}
+\end{defundesc}
+
+\begin{defundesc}{make-string-port-filter}{filter [buflen]}{\proc}
+    The \var{filter} argument is a string$\rightarrow$string procedure.
+    Returns a procedure that when called, repeatedly reads a string
+    from the current input port, applies \var{filter} to the string,
+    and writes the result to the current output port.
+    The procedure returns upon reaching eof on the input port.
+
+    The optional \var{buflen} argument controls the number of characters
+    each internal read operation requests; this means that \var{filter}
+    will never be applied to a string longer than \var{buflen} chars.
+    The default \var{buflen} value is 1024.
+\end{defundesc}

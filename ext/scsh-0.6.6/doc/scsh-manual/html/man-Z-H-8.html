@@ -1,0 +1,184 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-7.html">previous</a></span><span>, <a href="man-Z-H-9.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_7"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_7">Chapter 7</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_7">Reading delimited strings</a></h1><p></p>
+<p>
+Scsh provides a set of procedures that read delimited strings from
+input ports.
+There are procedures to read a single line of text
+(terminated by a newline character),
+a single paragraph (terminated by a blank line),
+and general delimited strings
+(terminated by a character belonging to an arbitrary character set).</p>
+<p>
+These procedures can be applied to any Scheme input port.
+However, the scsh virtual machine has native-code support for performing
+delimited reads on Unix ports, and these input operations should be 
+particularly fast -- much faster than doing the equivalent character-at-a-time
+operation from Scheme code.</p>
+<p>
+All of the delimited input operations described below take a <tt>handle-delim</tt>
+parameter, which determines what the procedure does with the terminating 
+delimiter character.
+There are four possible choices for a <tt>handle-delim</tt> parameter:
+</p>
+<blockquote>
+<table border=1><tr><td valign=top ><tt>handle-delim</tt>       </td><td valign=top >Meaning </td></tr>
+<tr><td valign=top ><tt>'trim</tt>              </td><td valign=top >Ignore delimiter character. </td></tr>
+<tr><td valign=top ><tt>'peek</tt>              </td><td valign=top >Leave delimiter character in input stream. </td></tr>
+<tr><td valign=top ><tt>'concat</tt>            </td><td valign=top >Append delimiter character to returned value. </td></tr>
+<tr><td valign=top ><tt>'split</tt>             </td><td valign=top >Return delimiter as second value. </td></tr>
+<tr><td valign=top ></td></tr></table>
+</blockquote>
+The first case, <tt>'trim</tt>, is the standard default for all the routines 
+described in this section.
+The last three cases allow the programmer to distinguish between strings
+that are terminated by a delimiter character, and strings that are 
+terminated by an end-of-file.<p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1298"></a><div align=left><tt>(read-line <i>[port handle-newline]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> or eof-object</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Reads and returns one line of text; on eof, returns the eof object. 
+A line is terminated by newline or eof. <p>
+<i>handle-newline</i> determines what <tt>read-line</tt> does with the 
+newline or EOF that terminates the line; it takes the general set
+of values described for the general <tt>handle-delim</tt> case above,
+and defaults to <tt>'trim</tt> (discard the newline).
+Using this argument allows one to tell whether or not the last line of
+input in a file is newline terminated.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1300"></a></p>
+<div align=left><tt>(read-paragraph <i>[port handle-delim]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> or eof</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure skips blank lines,
+then reads text from a port until a blank line or eof is found.
+A ``blank line'' is a (possibly empty) line composed only of white space.
+The <i>handle-delim</i> parameter determines how the terminating
+blank line is handled.
+It is described above, and defaults to <tt>'trim</tt>.
+The <tt>'peek</tt> option is not available.
+</blockquote><p>
+The following procedures read in strings from ports delimited by characters
+belonging to a specific set.
+See section&nbsp;<a href="man-Z-H-6.html#node_sec_5.5">5.5</a> for information on character set manipulation.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1302"></a></p>
+<div align=left><tt>(read-delimited <i>char-set [port handle-delim]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> or eof</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Read until we encounter one of the chars in <i>char-set</i> or eof.
+The <i>handle-delim</i> parameter determines how the terminating character
+is handled. It is described above, and defaults to <tt>'trim</tt>.<p>
+The <i>char-set</i> argument may be a charset, a string, a character, or a
+character predicate; it is coerced to a charset.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1304"></a></p>
+<div align=left><tt>(read-delimited! <i>char-set buf [port handle-delim start end]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>nchars or eof or #f</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+A side-effecting variant of <tt>read-delimited</tt>.<p>
+The data is written into the string <i>buf</i> at the indices in the
+half-open interval [<i>start</i>,<i>end</i>); the default interval is the
+whole string: <i>start</i> = 0 and <i>end</i> = <tt>(string-length
+<i>buf</i>)</tt>.  The values of <i>start</i> and <i>end</i> must specify a
+well-defined interval in <i>str</i>, <em>i.e.</em>, 0 <u>&lt;</u> <i>start</i> <u>&lt;</u> <i>end</i>
+<u>&lt;</u> <tt>(string-length <i>buf</i>)</tt>.  </p>
+<p>
+It returns <i>nbytes</i>, the number of bytes read. If the buffer filled up
+without a delimiter character being found, <tt>#f</tt> is returned. If
+the port is at eof when the read starts, the eof object is returned.</p>
+<p>
+If an integer is returned (<em>i.e.</em>, the read is successfully terminated by
+reading a delimiter character), then the <i>handle-delim</i> parameter
+determines how the terminating character is handled. 
+It is described above, and defaults to <tt>'trim</tt>.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1306"></a></p>
+<div align=left><tt>(%read-delimited! <i>char-set buf gobble? [port start end]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[char-or-eof-or-#f <i>integer</i>]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This low-level delimited reader uses an alternate interface.
+It returns two values: <i>terminator</i> and <i>num-read</i>.
+<dl><dt></dt><dd>
+</dd><dt><b>terminator</b></dt><dd>
+A value describing why the read was terminated:
+<div align=left><table><tr><td>
+
+<table border=0><tr><td valign=top >Character or eof-object </td><td valign=top >Read terminated by this value. </td></tr>
+<tr><td valign=top ><tt>#f</tt>                </td><td valign=top >Filled buffer without finding a delimiter.
+</td></tr></table>
+</td></tr></table></div>
+<p>
+</p>
+</dd><dt><b>num-read</b></dt><dd>
+Number of characters read into <i>buf</i>.
+</dd></dl><p></p>
+<p>
+If the read is successfully terminated by reading a delimiter character,
+then the <i>gobble?</i> parameter determines what to do with the terminating
+character.
+If true, the character is removed from the input stream;
+if false, the character is left in the input stream where a subsequent
+read operation will retrieve it.
+In either case, the character is also the first value returned by
+the procedure call.
+</p>
+</blockquote><p>
+</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1308"></a><div align=left><tt>(skip-char-set <i>skip-chars [port]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>integer</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Skip characters occurring in the set <i>skip-chars</i>;
+return the number of characters skipped.
+The <i>skip-chars</i> argument may be a charset, a string, a character, or a
+character predicate; it is coerced to a charset.
+</blockquote><p>
+
+</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-7.html">previous</a></span><span>, <a href="man-Z-H-9.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

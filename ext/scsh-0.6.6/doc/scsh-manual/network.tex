@@ -1,0 +1,465 @@
+%&latex -*- latex -*-
+
+\chapter{Networking}
+
+The Scheme Shell provides a BSD-style sockets interface. 
+There is not an official standard for a network interface
+for scsh to adopt (this is the subject of the forthcoming Posix.8
+standard).
+However, Berkeley sockets are a \emph{de facto} standard,
+being found on most Unix workstations and PC operating systems.
+
+It is fairly straightforward to add higher-level network protocols
+such as smtp, telnet, or http on top of the the basic socket-level
+support scsh provides.
+The Scheme Underground has also released a network library with
+many of these protocols as a companion to the current release of scsh.
+See this code for examples showing the use of the sockets interface.
+
+\section{High-level interface}
+
+For convenience, and to avoid some of the messy details of the socket
+interface, we provide a high level socket interface. These routines
+attempt to make it easy to write simple clients and servers without
+having to think of many of the details of initiating socket connections.
+We welcome suggested improvements to this interface, including better
+names, which right now are solely descriptions of the procedure's action.
+This might be fine for people who already understand sockets,
+but does not help the new networking programmer.
+
+\defun {socket-connect} {protocol-family socket-type . args} {socket}
+\begin{desc}
+\ex{socket-connect} is intended for creating client applications.
+\var{protocol-family} is specified as either the
+\ex{protocol-family/internet} or \ex{protocol-family/unix}.
+\var{socket-type} is specified as either \ex{socket-type/stream} or
+\ex{socket-type/datagram}. See \ex{socket} for a more complete
+description of these terms. 
+
+The variable \var{args} list is meant to specify protocol family
+specific information. For Internet sockets, this consists of two
+arguments: a host name and a port number. For {\Unix} sockets, this
+consists of a pathname.
+
+\ex{socket-connect} returns a \ex{socket} which can be used for input
+and output from a remote server. See \ex{socket} for a description of
+the \emph{socket record}.
+\end{desc}
+
+\defun {bind-listen-accept-loop} {protocol-family proc arg} {does-not-return}
+\begin{desc}
+\ex{bind-listen-accept-loop} is intended for creating server
+applications. \var{protocol-family} is specified as either the
+\ex{protocol-family/internet} or \ex{protocol-family/unix}.
+\var{proc} is a procedure of two arguments: a \ex{socket} and a
+{socket-address}. \var{arg} specifies a port number for Internet sockets
+or a pathname for {\Unix} sockets. See \ex{socket} for a more complete
+description of these terms.
+
+\var{proc} is called with a socket and a socket address each time there
+is a connection from a client application. The socket allows
+communications with the client.  The socket address specifies the
+address of the remote client.
+
+This procedure does not return, but loops indefinitely accepting
+connections from client programs.
+\end{desc}
+
+\defun {bind-prepare-listen-accept-loop} {protocol-family prepare proc arg} {does-not-return}
+\begin{desc}
+  Same as \ex{bind-listen-accept-loop} but runs the thunk
+  \var{prepare} after binding the address and before entering the
+  loop. The typical task of the \var{prepare} procedure is to change
+  the user id from the superuser to some unprivileged id once the
+  address has been bound.
+\end{desc}
+
+\section{Sockets}
+
+\defun  {create-socket} {protocol-family type [protocol]} {socket}
+\defunx {create-socket-pair} {type} {[socket$_{1}$ socket$_{2}$]}
+\defunx {close-socket}   {socket} \undefined
+\begin{desc}
+
+A socket is one end of a network connection. Three specific properties
+of sockets are specified at creation time: the protocol-family, type,
+and protocol.
+
+The \var{protocol-family} specifies the protocol family to be used with
+the socket. This also determines the address family of socket addresses,
+which are described in more detail below. Scsh currently supports the
+{\Unix} internal protocols and the Internet protocols using the
+following constants:
+\begin{code}\codeallowbreaks
+protocol-family/unspecified
+protocol-family/unix
+protocol-family/internet\end{code}
+
+The \var{type} specifies the style of communication. Examples that your
+operating system probably provides are stream and datagram sockets.
+Others maybe available depending on your system. Typical values are:
+\begin{code}\codeallowbreaks
+socket-type/stream
+socket-type/datagram
+socket-type/raw\end{code}
+
+The \var{protocol} specifies a particular protocol to use within a
+protocol family and type. Usually only one choice exists, but it's
+probably safest to set this explicitly. See the protocol database
+routines for information on looking up protocol constants.
+
+New sockets are typically created with \ex{create-socket}. However,
+\ex{create-socket-pair} can also be used to create a pair of connected
+sockets in the \ex{protocol-family/unix} protocol-family. The value of a
+returned socket is a \emph{socket record}, defined to have the following
+structure:
+\begin{code}
+(define-record socket
+  family                                ; protocol family
+  inport                                ; input-port
+  outport)                              ; output-port\end{code}
+
+The \ex{family} specifies the protocol family of the socket. The
+\ex{inport} and \ex{outport} fields are ports that can be used for input
+and output, respectively. For a stream socket, they are only usable
+after a connection has been established via \ex{connect-socket} or
+\ex{accept-connection}. For a datagram socket, \var{outport} can be
+immediately using \ex{send-message}, and \var{inport} can be used after
+\ex{bind} has created a local address.
+
+\ex{close-socket} provides a convenient way to close a socket's port. It
+is preferred to explicitly closing the inport and outport because using
+\ex{close} on sockets is not currently portable across operating systems.
+
+\end{desc}
+
+\defun  {port->socket} {port protocol-family} {socket}
+\begin{desc}
+  This procedure turns \var{port} into a socket object. The port's
+  underlying file descriptor must be a socket with protocol family
+  \var{protocol-family}. \ex{port->socket} applies \ex{dup->inport}
+  and \ex{dup->outport} to \var{port} to create the ports of the
+  socket object.
+  
+  \ex{port->socket} comes in handy for writing
+  servers which run as children of \texttt{inetd}: after receiving a
+  connection \texttt{inetd} creates a socket and passes it as
+  standard input to its child.
+\end{desc}
+
+\section{Socket addresses}
+
+The format of a socket-address depends on the address family of the
+socket. Address-family-specific routines are provided to convert
+protocol-specific addresses to socket addresses. The value returned by
+these routines is a \emph{socket-address record}, defined to have the
+following visible structure:
+\begin{code}
+(define-record socket-address
+  family)                               ; address family\end{code}
+
+The \ex{family} is one of the following constants:
+\begin{code}\codeallowbreaks
+address-family/unspecified
+address-family/unix
+address-family/internet\end{code}
+
+\defun  {unix-address->socket-address} {pathname} {socket-address}
+\begin{desc}
+\ex{unix-address->socket-address} returns a \var{socket-address} based
+on the string \var{pathname}. There is a system dependent limit on the
+length of \var{pathname}.
+\end{desc}
+
+\defun  {internet-address->socket-address} {host-address service-port} {socket-address}
+\begin{desc}
+\ex{internet-address->socket-address} returns a \var{socket-address} based
+on an integer \var{host-address} and an integer \var{service-port}.
+Besides being a 32-bit host address, an Internet host address can also
+be one of the following constants:
+\begin{code}\codeallowbreaks
+internet-address/any
+internet-address/loopback
+internet-address/broadcast\end{code}
+
+The use of \ex{internet-address/any} is described below in
+\ex{bind-socket}. \ex{internet-address/loopback} is an address that
+always specifies the local machine. \ex{internet-address/broadcast} is
+used for network broadcast communications.
+
+For information on obtaining a host's address, see the \ex{host-info}
+function. 
+\end{desc}
+
+\defun  {socket-address->unix-address} {socket-address} {pathname}
+\defunx {socket-address->internet-address} {socket-address} {[host-address service-port]}
+\begin{desc}
+
+The routines \ex{socket-address->internet-address} and
+\ex{socket-address->unix-address} return the address-family-specific addresses.
+Be aware that most implementations don't correctly return anything more
+than an empty string for addresses in the {\Unix} address-family.
+\end{desc}
+
+\section{Socket primitives}
+
+The procedures in this section are presented in the order in which a
+typical program will use them. Consult a text on network systems
+programming for more information on sockets.\footnote{
+Some recommended ones are: 
+
+\begin{itemize}
+
+\item ``Unix Network Programming'' by W. Richard Stevens
+
+\item ``An Introductory 4.3BSD Interprocess Communication Tutorial.''
+(reprinted in UNIX Programmer's Supplementary Documents Volume 1, PS1:7)
+
+\item ``An Advanced 4.3BSD Interprocess Communication Tutorial.''
+(reprinted in UNIX Programmer's Supplementary Documents Volume 1, PS1:8)
+
+\end{itemize}
+}
+The last two tutorials are freely available as part of BSD. In the
+absence of these, your {\Unix} manual pages for socket might be a good
+starting point for information.
+
+\defun {connect-socket} {socket socket-address} \undefined
+\begin{desc}
+\ex{connect-socket} sets up a connection from a \var{socket}
+to a remote \var{socket-address}. A connection has different meanings
+depending on the socket type. A stream socket must be connected before
+use. A datagram socket can be connected multiple times, but need not be
+connected at all if the remote address is specified with each
+\ex{send-message}, described below. Also, datagram sockets
+may be disassociated from a remote address by connecting to a null
+remote address.
+\end{desc}
+\defun {connect-socket-no-wait} {socket socket-address} \boolean
+\defunx {connect-socket-successful?} {socket} \boolean
+\begin{desc}
+  Just like \ex{connect-socket}, \ex{connect-socket-no-wait} sets up a
+  connection from a \var{socket} to a remote \var{socket-address}.
+  Unlike \ex{connect-socket}, \ex{connect-socket-no-wait} does not
+  block if it cannot establish the connection immediately. Instead it
+  will return \sharpf{} at once. In this case a subsequent \ex{select} on
+  the output port of the socket will report the output port as ready
+  as soon as the operation system has established the connection or as
+  soon as setting up the connection led to an error. Afterwards, the
+  procedure \ex{connect-socket-successful?} can be used to test
+  whether the connection has been established successfully or not.
+\end{desc}
+\defun {bind-socket} {socket socket-address} \undefined
+\begin{desc}
+\ex{bind-socket} assigns a certain local \var{socket-address} to a
+\var{socket}. Binding a socket reserves the local address. To receive
+connections after binding the socket, use \ex{listen-socket} for stream
+sockets and \ex{receive-message} for datagram sockets.
+
+Binding an Internet socket with a host address of
+\ex{internet-address/any} indicates that the caller does
+not care to specify from which local network interface connections are
+received. Binding an Internet socket with a service port number of zero
+indicates that the caller has no preference as to the port number
+assigned.
+
+Binding a socket in the {\Unix} address family creates a socket special
+file in the file system that must be deleted before the address can be
+reused. See \ex{delete-file}.
+\end{desc}
+
+\defun {listen-socket} {socket backlog} \undefined
+\begin{desc}
+\ex{listen-socket} allows a stream \var{socket} to start receiving connections,
+allowing a queue of up to \var{backlog} connection requests. Queued
+connections may be accepted by \ex{accept-connection}.
+\end{desc}
+
+\defun {accept-connection} {socket} {[new-socket socket-address]}
+\begin{desc}
+\ex{accept-connection} receives a connection on a \var{socket}, returning
+a new socket that can be used for this connection and the remote socket
+address associated with the connection.
+\end{desc}
+
+\defun  {socket-local-address} {socket} {socket-address}
+\defunx {socket-remote-address} {socket} {socket-address}
+\begin{desc}
+Sockets can be associated with a local address or a remote address or
+both. \ex{socket-local-address} returns the local \var{socket-address}
+record associated with \var{socket}. \ex{socket-remote-address} returns
+the remote \var{socket-address} record associated with \var{socket}.
+\end{desc}
+
+\defun {shutdown-socket} {socket how-to} \undefined
+\begin{desc}
+
+\ex{shutdown-socket} shuts down part of a full-duplex socket.
+The method of shutting done is specified by the \var{how-to} argument,
+one of:
+\begin{code}\codeallowbreaks
+shutdown/receives
+shutdown/sends
+shutdown/sends+receives\end{code}
+\end{desc}
+
+\section{Performing input and output on sockets}
+
+\defun  {receive-message} {socket length [flags]} {[string-or-\sharpf{} socket-address]}
+\dfnix  {receive-message!} {socket string [start] [end] [flags]}
+        {[count-or-\sharpf{}  socket-address]}{procedure}
+        {receive-message"!@\texttt{receive-message"!}}
+\defunx {receive-message/partial} {socket length [flags]}
+         {[string-or-\sharpf{} socket-address]}
+\dfnix {receive-message!/partial} {socket string [start] [end] [flags]}
+        {[count-or-\sharpf{} socket-address]}{procedure}
+        {receive-message"!/partial@\texttt{receive-message"!/partial}}
+\defun  {send-message} {socket string [start] [end] [flags] [socket-address]}
+        \undefined
+\defunx {send-message/partial} 
+        {socket string [start] [end] [flags] [socket-address]} {count}
+
+\begin{desc}
+For most uses, standard input and output routines such as
+\ex{read-string} and \ex{write-string} should suffice.  However, in some
+cases an extended interface is required. The \ex{receive-message} and
+\ex{send-message} calls parallel the \ex{read-string} and
+\ex{write-string} calls with a similar naming scheme.
+
+One additional feature of these routines is that \ex{receive-message}
+returns the remote \var{socket-address} and \var{send-message} takes an
+optional remote
+\ex{socket-address}. This allows a program to know the source of input
+from a datagram socket and to use a datagram socket for output without
+first connecting it.
+
+All of these procedures take an optional \var{flags} field. This
+argument is an integer bit-mask, composed by or'ing together the
+following constants:
+\begin{code}\codeallowbreaks
+message/out-of-band
+message/peek
+message/dont-route\end{code}
+
+See \ex{read-string} and \ex{write-string} for a more detailed
+description of the arguments and return values.
+\end{desc}
+
+\section{Socket options}
+
+\defun  {socket-option} {socket level option} {value}
+\defunx {set-socket-option} {socket level option value} \undefined
+
+\begin{desc}
+\ex{socket-option} and \ex{set-socket-option} allow the inspection and
+modification, respectively, of several options available on sockets. The
+\var{level} argument specifies what protocol level is to be examined or
+affected. A level of \ex{level/socket} specifies the highest possible
+level that is available on all socket types. A specific protocol number
+can also be used as provided by \ex{protocol-info}, described below.
+
+There are several different classes of socket options. The first class
+consists of boolean options which can be either true or false. Examples
+of this option type are:
+\begin{code}\codeallowbreaks
+socket/debug
+socket/accept-connect
+socket/reuse-address
+socket/keep-alive
+socket/dont-route
+socket/broadcast
+socket/use-loop-back
+socket/oob-inline
+socket/use-privileged
+socket/cant-signal
+tcp/no-delay\end{code}
+
+Value options are another category of socket options. Options of this
+type are an integer value. Examples of this option type are:
+\begin{code}\codeallowbreaks
+socket/send-buffer
+socket/receive-buffer
+socket/send-low-water
+socket/receive-low-water
+socket/error
+socket/type
+ip/time-to-live
+tcp/max-segment\end{code}
+
+A third option type specifies how long for data to linger after a socket
+has been closed. There is only one option of this type:
+\ex{socket/linger}. It is set with either \sharpf to disable it or an
+integer number of seconds to linger and returns a value of the same type
+upon inspection.
+
+The fourth and final option type of this time is a timeout option. There
+are two examples of this option type: \ex{socket/send-timeout} and
+\ex{socket/receive-timeout}. These are set with a real number of
+microseconds resolution and returns a value of the same type upon
+inspection.
+
+\end{desc}
+
+\section{Database-information entries}
+
+\defun  {host-info} {name-or-socket-address} {host-info}
+\defunx {network-info} {name-or-socket-address} {network-info or \sharpf}
+\defunx {service-info} {name-or-number [protocol-name]} {service-info or \sharpf}
+\defunx {protocol-info} {name-or-number} {protocol-info or \sharpf}
+
+\begin{desc}
+
+\ex{host-info} allows a program to look up a host entry based on either
+its string \var{name} or \var{socket-address}. The value returned by this
+routine is a \emph{host-info record}, defined to have the following
+structure:
+\begin{code}
+(define-record host-info
+  name                                  ; Host name
+  aliases                               ; Alternative names
+  addresses)                            ; Host addresses\end{code}
+
+\ex{host-info} could fail and raise an error for one of the following
+reasons: 
+\begin{code}\codeallowbreaks
+herror/host-not-found
+herror/try-again
+herror/no-recovery
+herror/no-data
+herror/no-address\end{code}
+
+\ex{network-info} allows a program to look up a network entry based on either
+its string \var{name} or \var{socket-address}. The value returned by this
+routine is a \emph{network-info record}, defined to have the following
+structure:
+\begin{code}
+(define-record network-info
+  name                                  ; Network name
+  aliases                               ; Alternative names
+  net)                                  ; Network number\end{code}
+
+\ex{service-info} allows a program to look up a service entry based
+on either its string \var{name} or integer \var{port}. The value returned
+by this routine is a \emph{service-info record}, defined to have the
+following structure:
+\begin{code}
+(define-record service-info
+  name                                  ; Service name
+  aliases                               ; Alternative names
+  port                                  ; Port number
+  protocol)                             ; Protocol name\end{code}
+
+\ex{protocol-info} allows a program to look up a protocol entry based
+on either its string \var{name} or integer \var{number}. The value returned
+by this routine is a \emph{protocol-info record}, defined to have the
+following structure:
+\begin{code}
+(define-record protocol-info
+  name                                  ; Protocol name
+  aliases                               ; Alternative names
+  number)                               ; Protocol number)\end{code}
+
+\ex{network-info}, \ex{service-info} and \ex{protocol-info} return
+\sharpf if the specified entity was not found.
+
+\end{desc}

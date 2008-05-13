@@ -1,0 +1,942 @@
+# Scsh Makefile
+# Documentation in files INSTALL and doc/install.txt
+
+SHELL = /bin/sh
+
+### Filled in by `configure' ###
+srcdir = @srcdir@
+VPATH = @srcdir@
+CC = @CC@
+DEFS = @DEFS@
+LIBS = @LIBS@
+CFLAGS = @CFLAGS@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+LDFLAGS = @LDFLAGS@
+LIBOBJS = @LIBOBJS@
+
+RM	= rm -f
+
+AR	= @AR@
+RANLIB	= @RANLIB@
+
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+libdir = @libdir@
+incdir = @includedir@
+manext = 1
+mandir = @mandir@/man$(manext)
+lib_dirs_list = @lib_dirs_list@
+host = @host@
+### End of `configure' section###
+
+htmldir = $(libdir)/scsh/doc/scsh-manual/html
+
+# HP 9000 series, if you don't have gcc
+#   CC = cc
+#   CFLAGS = -Aa -O +Obb1800
+#   DEFS = -D_HPUX_SOURCE -Dhpux
+
+# Ultrix
+#   LDFLAGS = -N
+
+.c.o:
+	$(CC) -c $(DEFS) -I$(srcdir)/c -I$(srcdir)/cig $(CPPFLAGS) $(CFLAGS) -o $@ $<
+
+# BUILD_RUNNABLE has to be Scheme 48 0.53. This is used for builds directly 
+# out of the CVS repository.
+# We cannot use Scsh here since -i is not understood.
+BUILD_RUNNABLE = /afs/wsi/i386_fbsd32/bin/scheme48
+RUNNABLE = scsh
+MANPAGE = $(RUNNABLE).$(manext)
+LIB = $(libdir)/$(RUNNABLE)
+
+distdir = /tmp
+
+# If make barfs on this include line, just comment it out.  It's only
+# really needed if you want to build the linker or rebuild initial.image.
+include $(srcdir)/build/filenames.make
+#
+#NetBSD make wants to see this instead:
+#.include "$(srcdir)/build/filenames.make"
+
+
+# Static linker:
+#
+# You only need the linker if you're going to make changes to the
+# things that go into the initial.image, which in general means the
+# files in rts/.  If you decide you need to use the linker, then you
+# gots your choice; it can run in just about any version of Scheme 48
+# or Pseudoscheme.  (It has also been made to run in Scheme->C.)  It
+# doesn't matter a whole lot which Scheme you use as long as it's not
+# broken or unavailable.  The two best choices are:
+# 1. As below: build the linker on the scheme48vm and scheme48.image
+#    that are in the current directory.
+# 2. LINKER_VM = $(RUNNABLE) $(BIG_HEAP)
+#    LINKER_RUNNABLE = $(RUNNABLE)
+#    These settings requires you to already have a $(RUNNABLE)
+#    command.  This is desirable if you are making changes to the
+#    system that might break scshvm and/or scsh/scsh.image.  But it
+#    requires you to have squirreled away a previous working version
+#    of scsh.
+
+BIG_HEAP = -h 5500000
+# 1. is broken if you build from CVS
+# LINKER_VM = ./$(VM) $(BIG_HEAP)
+# LINKER_RUNNABLE = $(LINKER_VM) -i $(IMAGE)
+
+# therefore according to 2. but we cannot use scsh since -i is not understood
+LINKER_VM = $(BUILD_RUNNABLE) $(BIG_HEAP)
+LINKER_RUNNABLE = $(BUILD_RUNNABLE)
+
+LINKER_IMAGE = build/linker.image
+LINKER = $(LINKER_VM) -i $(LINKER_IMAGE)
+START_LINKER = echo ',batch' && echo ',bench on'
+
+# --------------------
+# You shouldn't have to change anything below this point, except for possibly
+# the external code rules.
+
+# Targets:
+
+IMAGE = scheme48.image
+INITIAL = build/initial.image
+VM = scshvm
+LIBCIG = cig/lib$(VM).a
+CIG = cig/cig
+CIGOBJS = cig/libcig.o cig/libcig1.o
+
+#scsh-lib
+LIBSCSHVM = scsh/lib$(VM).a
+LIBSCSH = scsh/libscsh.a
+SCSHVMHACKS = scsh/proc2.o
+
+# 	
+# 	
+SCSHOBJS = \
+	scsh/cstuff.o \
+	scsh/dirstuff1.o \
+	scsh/fdports1.o \
+	scsh/flock1.o \
+	scsh/machine/time_dep1.o \
+	scsh/signals1.o \
+	scsh/machine/libansi.o \
+	scsh/network1.o \
+	scsh/putenv.o \
+	scsh/rx/regexp1.o \
+	scsh/sleep1.o \
+	scsh/syscalls1.o \
+	scsh/syslog1.o \
+	scsh/time1.o \
+	scsh/tty1.o \
+	scsh/userinfo1.o \
+	scsh/sighandlers1.o \
+	scsh/libscsh.o \
+	scsh/md5.o
+
+SCSH_INITIALIZERS = s48_init_syslog s48_init_posix_regexp \
+	s48_init_userinfo s48_init_sighandlers \
+	s48_init_syscalls s48_init_network s48_init_flock \
+	s48_init_dirstuff s48_init_time s48_init_tty \
+	s48_init_cig s48_init_libscsh s48_init_md5
+
+UNIX_OBJS = c/unix/misc.o c/unix/io.o c/unix/fd-io.o c/unix/event.o
+
+SRFI_OBJS = c/srfi/srfi-27.o
+
+SRFI_INITIALIZERS = s48_init_srfi_27
+
+S48OBJS = c/scheme48vm.o c/scheme48heap.o c/extension.o c/external.o 
+OBJS = scsh/process_args.o c/init.o $(S48OBJS) $(CIGOBJS) $(SCSHOBJS) \
+	$(SCSHVMHACKS) $(SRFI_OBJS)
+
+FAKEHS	= c/fake/dlfcn.h c/fake/sigact.h c/fake/strerror.h \
+		c/fake/sys-select.h
+
+# Sources:
+
+CONFIG_FILES = scheme/interfaces.scm scheme/low-packages.scm \
+	       scheme/rts-packages.scm scheme/comp-packages.scm
+
+# Rules:
+
+# The following is the first rule and therefore the "make" command's
+# default target.
+enough: $(VM) $(IMAGE) go $(LIBCIG) scsh $(LIBSCSH) $(LIBSCSHVM) 
+
+# --------------------
+# External code to include in the VM
+# After changing any of these you should delete `scheme48vm' and remake it.
+
+EXTERNAL_OBJECTS = $(SOCKET_OBJECTS) $(LOOKUP_OBJECTS)
+EXTERNAL_FLAGS = $(SOCKET_FLAGS)
+EXTERNAL_INITIALIZERS = $(ADDITIONAL_INITIALIZER) $(SOCKET_INITIALIZERS) 	\
+	$(LOOKUP_INITIALIZERS) 							\
+	$(SCSH_INITIALIZERS) $(SRFI_INITIALIZERS)				\
+	s48_init_cig
+
+
+# Rules for any external code.
+
+# Socket rules
+
+c/unix/socket.o: c/scheme48.h c/fd-io.h c/event.h
+
+SOCKET_OBJECTS = c/unix/socket.o
+SOCKET_LD_FLAGS =
+SOCKET_INITIALIZERS = 	s48_init_socket
+
+# End of socket rules
+
+# Lookup rules (this is just for compatibility with old code)
+
+c/unix/dynamo.o: c/scheme48.h
+
+LOOKUP_OBJECTS = c/unix/dynamo.o
+LOOKUP_INITIALIZERS = 	s48_init_external_lookup
+
+# End of lookup rules
+
+# Initializer for s48_add_external_init
+
+ADDITIONAL_INITIALIZER = s48_init_additional_inits
+
+# End of external rules
+# --------------------
+
+# The developers are curious to know.  Don't be concerned if this fails.
+.notify: build/minor-version-number
+	touch .notify
+	-echo SCSH 0.`cat $(srcdir)/scsh/minor-version-number` \
+	   Scheme48 0.`cat $(srcdir)/minor-version-number` infestation. \
+	   | mail scheme-48-notifications@zurich.ai.mit.edu 
+	-echo Another scsh 0.`cat $(srcdir)/scsh/minor-version-number` \
+	infestation. | mail scsh-notifications@zurich.ai.mit.edu 
+
+
+# This says how to process .scm files with cig to make .c stubs.
+#.SUFFIXES: .scm
+#.scm.c:
+#	$(srcdir)/$(VM) -o $(srcdir)/$(VM) -i $(CIG) < $< > $*.c
+
+# These .h files mediate between the code exported from foo1.c
+# and imported into foo.scm's stub foo.c.
+
+scsh/dirstuff1.o: scsh/dirstuff1.h
+scsh/userinfo1.o: scsh/userinfo1.h
+scsh/network1o:	  scsh/network1.h
+scsh/flock1.o:	   scsh/flock1.h
+
+scsh/fdports1.o	  scsh/fdports.o:  scsh/fdports1.h
+
+scsh/rx/regexp1.o:    c/scheme48.h
+
+scsh/sighandlers1.o: scsh/sighandlers1.h
+
+scsh/syslog1.o:	c/scheme48.h
+
+include $(srcdir)/scsh/machine/Makefile.inc
+# Berkeley make wants to see this instead: (or use GNU make on BSD. -bri)
+#.include "$(srcdir)/scsh/machine/Makefile.inc"
+
+$(VM): c/main.o $(OBJS) $(UNIX_OBJS) $(LIBOBJS) $(EXTERNAL_OBJECTS)
+	rm -f /tmp/s48_external_$$$$.c &&					\
+	build/build-external-modules /tmp/s48_external_$$$$.c			\
+		$(EXTERNAL_INITIALIZERS) &&					\
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ c/main.o $(OBJS) $(UNIX_OBJS)		\
+		/tmp/s48_external_$$$$.c					\
+		$(EXTERNAL_OBJECTS) $(EXTERNAL_LD_FLAGS)			\
+		$(LIBOBJS) $(LIBS) &&						\
+	rm -f /tmp/s48_external_$$$$.c
+
+
+
+
+#JMG: again cig and scsh-lib
+$(LIBCIG): c/main.o $(OBJS)
+#	$(CC) -r -o $@ main.o $(OBJS)
+	$(RM) $@
+	$(AR) $@ c/main.o  $(OBJS)
+	$(RANLIB) $@
+
+$(LIBSCSHVM): c/smain.o $(OBJS)
+	$(RM) $@
+	$(AR) $@ c/smain.o $(OBJS)
+	$(RANLIB) $@
+
+$(LIBSCSH): $(OBJS) $(UNIX_OBJS) $(LIBOBJS) $(EXTERNAL_OBJECTS)
+	$(RM) $@								\
+	rm -f /tmp/s48_external_$$$$.c &&					\
+	build/build-external-modules /tmp/s48_external_$$$$.c			\
+		$(EXTERNAL_INITIALIZERS) &&					\
+	$(CC) -c $(CFLAGS) -o  /tmp/s48_external_$$$$.o				\
+			/tmp/s48_external_$$$$.c &&				\
+	$(AR) $@ $(OBJS) $(UNIX_OBJS) $(LIBOBJS) $(EXTERNAL_OBJECTS)	\
+		/tmp/s48_external_$$$$.o &&					\
+	$(RANLIB) $@ &&								\
+	rm -f /tmp/s48_external_$$$$.c /tmp/s48_external_$$$$.o	
+
+c/main.o: c/main.c
+	$(CC) -c $(CFLAGS) -o $@ \
+		-DDEFAULT_IMAGE_NAME=\"$(LIB)/$(IMAGE)\" \
+		$(CPPFLAGS) $(DEFS) c/main.c
+
+c/init.o: c/init.c c/scheme48vm.h c/scheme48heap.h
+	$(CC) -c $(CFLAGS) -o $@ \
+		-DDEFAULT_IMAGE_NAME=\"$(LIB)/$(IMAGE)\" \
+		$(CPPFLAGS) $(DEFS) c/init.c
+
+c/scheme48vm.o: c/prescheme.h c/scheme48vm.h c/scheme48heap.h c/event.h \
+			c/io.h c/fd-io.h c/scheme48vm-prelude.h
+c/scheme48heap.o: c/prescheme.h c/scheme48vm.h c/scheme48heap.h c/event.h \
+			c/io.h c/fd-io.h
+c/extension.o: c/sysdep.h $(FAKEHS) c/scheme48.h c/scheme48vm.h
+c/external.o: c/sysdep.h $(FAKEHS) c/scheme48.h
+c/unix/event.o: c/sysdep.h $(FAKEHS) c/scheme48vm.h c/scheme48heap.h \
+			c/event.h c/fd-io.h
+c/unix/fd-io.o: c/sysdep.h $(FAKEHS) c/scheme48vm.h c/scheme48heap.h \
+			c/event.h c/fd-io.h
+c/unix/misc.o: c/sysdep.h $(FAKEHS)
+c/unix/io.o: c/io.h
+c/fake/libdl1.o: c/fake/dlfcn.h
+c/fake/libdl2.o: c/fake/dlfcn.h
+c/fake/strerror.o: c/fake/strerror.h
+
+# --------------------
+# Make scheme48.image from initial.image and library .scm files.
+#
+# For bootstrap reasons, initial.image is *not* listed as a source,
+# even though it really is.
+
+$(IMAGE): $(VM) scheme/env/init-defpackage.scm scheme/more-interfaces.scm \
+		scheme/link-packages.scm scheme/more-packages.scm \
+		$(usual-files) build/initial.debug build/build-usual-image
+	build/build-usual-image . "`pwd`/scheme" '$(IMAGE)' './$(VM)' \
+		'$(INITIAL)'
+
+### Fake targets:  all clean install man dist
+
+install: enough dirs inst-script inst-vm inst-misc inst-man inst-inc 	\
+	 inst-doc install-scsh
+
+inst-vm: $(VM)
+	$(INSTALL_PROGRAM) $(VM) $(DESTDIR)$(LIB)
+
+inst-man:
+	if [ -d $(DESTDIR)$(mandir) -a -w $(DESTDIR)$(mandir) ]; then	   \
+		sed 's=LBIN=$(bindir)=g' doc/scsh.man |		   \
+			sed 's=LLIB=$(LIB)=g' |				   \
+			sed 's=LSCSH=$(RUNNABLE)=g' >$(MANPAGE) &&	   \
+		$(INSTALL_DATA) $(MANPAGE) $(DESTDIR)$(mandir) &&	   \
+		$(RM) $(MANPAGE);					   \
+	else								   \
+		echo "$(mandir) not writable dir, not installing man page" \
+			>&2;						   \
+	fi
+
+inst-inc:
+	$(INSTALL_DATA) $(srcdir)/c/scheme48.h $(DESTDIR)$(incdir)	
+	$(INSTALL_DATA) $(srcdir)/c/write-barrier.h $(DESTDIR)$(incdir)
+
+install-cig: cig
+	$(INSTALL_PROGRAM) $(srcdir)/$(CIG) $(DESTDIR)$(LIB)/cig
+	$(INSTALL_PROGRAM) $(srcdir)/$(CIG).image $(DESTDIR)$(LIB)/cig
+	$(INSTALL_DATA) $(srcdir)/$(LIBCIG) $(DESTDIR)$(LIB)/cig
+	$(INSTALL_DATA) $(srcdir)/cig/libcig.h $(DESTDIR)$(LIB)/cig
+
+inst-misc:
+	for stub in env big opt misc link srfi; do				\
+		for f in scheme/$$stub/*.scm; do			\
+			$(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/$$stub || exit 1;	\
+		done;							\
+	done &&								\
+	for f in scheme/rts/*num.scm scheme/rts/jar-defrecord.scm; do	\
+		$(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/rts || exit 1;	\
+	done 
+
+inst-doc:
+	for f in $(srcdir)/doc/*.txt $(srcdir)/doc/*.ps; do \
+		$(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/doc/; 			\
+	done &&									\
+	for f in $(srcdir)/doc/src/*.tex 					\
+		$(srcdir)/doc/src/*.dvi						\
+		$(srcdir)/doc/src/*.ps;						\
+		do $(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/doc/s48-manual/;	\
+	done &&									\
+	for f in $(srcdir)/doc/src/manual/*.html;				\
+		do $(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/doc/s48-manual/html/;	\
+	done &&									\
+	for f in $(srcdir)/doc/scsh-manual/*.tex 				\
+		$(srcdir)/doc/scsh-manual/*.sty 				\
+		$(srcdir)/doc/scsh-manual/*.dvi					\
+		$(srcdir)/doc/scsh-manual/*.ps					\
+		$(srcdir)/doc/scsh-manual/*.pdf;				\
+		do $(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/doc/scsh-manual/;	\
+	done &&									\
+	for f in $(srcdir)/doc/scsh-manual/html/*.html 				\
+		$(srcdir)/doc/scsh-manual/html/*.gif 				\
+		$(srcdir)/doc/scsh-manual/html/*.css;				\
+		do $(INSTALL_DATA) $$f $(DESTDIR)$(htmldir)/;			\
+	done &&									\
+	for f in $(srcdir)/doc/scsh-paper/*.tex 				\
+		$(srcdir)/doc/scsh-paper/*.sty 					\
+		$(srcdir)/doc/scsh-paper/*.dvi					\
+		$(srcdir)/doc/scsh-paper/*.ps;					\
+		do $(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/doc/scsh-paper/;	\
+	done &&									\
+	for f in $(srcdir)/doc/scsh-paper/html/*.html 				\
+		$(srcdir)/doc/scsh-paper/html/*.css;				\
+		do $(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/doc/scsh-paper/html;	\
+	done
+
+
+inst-script:
+	script=$(DESTDIR)$(bindir)/$(RUNNABLE) &&			\
+	echo '#!/bin/sh'	>$$script &&				\
+	echo			>>$$script &&				\
+	echo 'lib=$(LIB)'	>>$$script &&				\
+	echo 'exec $$lib/$(VM) -o $$lib/$(VM) -i $$lib/$(IMAGE) "$$@"'	\
+				>>$$script &&				\
+	chmod +x $$script
+
+# Script to run scsh in this directory.
+go:
+	echo '#!/bin/sh'	>$@ &&					\
+	echo			>>$@ &&					\
+	echo "lib=`pwd`"	>>$@ &&					\
+	echo 'exec $$lib/$(VM) -o $$lib/$(VM) -i $$lib/scsh/scsh.image "$$@"'	\
+				>>$@ &&					\
+	chmod +x $@
+
+dirs:
+	for dir in $(libdir) $(bindir) $(incdir) $(LIB) $(mandir) $(htmldir); do\
+		{ mkdir -p $(DESTDIR)$$dir && [ -w $(DESTDIR)$$dir ]; } || {	\
+			echo "$(DESTDIR)$$dir not a writable directory" >&2;	\
+			exit 1;						\
+	}								\
+	done &&								\
+	for dir in								\
+		rts env big opt misc link srfi scsh doc/scsh-manual			\
+		doc/s48-manual/html doc/scsh-paper/html cig; do			\
+		{ mkdir -p $(DESTDIR)$(LIB)/$$dir && [ -w $(DESTDIR)$(LIB)/$$dir ]; } || {	\
+			echo "$(DESTDIR)$(LIB)/$$dir not a writable directory" >&2; 	\
+		exit 1;						  		\
+		};							  	\
+	done
+
+configure: configure.in
+	autoheader && autoconf
+
+clean: clean-cig clean-scsh
+	-rm -f $(VM) *.o c/*/*.o c/*.o 					\
+		$(IMAGE)						\
+		build/*.tmp $(MANPAGE) build/linker.image		\
+		scheme/debug/*.image scheme/debug/*.debug		\
+		scheme/vm/scheme48vm.c scheme/vm/scheme48heap.c		\
+		go $(distname)
+
+clean-cig:
+	-rm -f cig/*.o $(CIG) $(CIG).image $(LIBCIG)
+
+distclean: clean
+	rm -f Makefile config.log config.status c/sysdep.h config.cache \
+		scsh/machine \
+		scsh/endian.scm \
+		exportlist.aix scsh-config
+	$(RM) a.exe $(VM).base $(VM).def $(VM).exp 
+	-find . -name '*~' -o -name '#*'  -o -name core -exec rm {} \;
+
+check:	$(VM) $(IMAGE) scheme/debug/check.scm
+	(								\
+		echo ',batch';						\
+		echo ',translate =scheme48 scheme';			\
+		echo ',config ,load scheme/debug/test.scm';		\
+		echo ',exec ,load scheme/debug/check.scm';		\
+		echo ',exec (done)'					\
+	) | ./$(VM) -i $(IMAGE)
+
+# --------------------
+# Rules from here on down are not essential for the basic installation
+# procedure, and are not expected to work when srcdir is not the
+# distribution directory.
+
+all: vm linker
+	$(MAKE) image
+vm: $(VM)
+linker: $(LINKER_IMAGE)
+image: $(INITIAL)
+	$(MAKE) $(IMAGE)
+
+tags:
+	find . -name "*.scm" -o -name "*.c" -o -name "*.h" | etags -
+
+# --------------------
+# Distribution...
+
+# DISTFILES should include all sources.
+DISTFILES = README COPYING INSTALL RELEASE configure config.sub config.guess \
+		scsh-config.in configure.in Makefile.in install-sh	\
+		doc/*.ps doc/*.txt					\
+		doc/src/*.tex doc/src/*.sty doc/src/manual.dvi 		\
+		doc/src/manual.ps					\
+		emacs/README build/*-version-number build/*.exec	\
+		build/*.lisp build/build-usual-image build/filenames.make \
+		build/filenames.scm build/initial.debug			\
+		build/initial.image build/initial.scm			\
+		build/build-external-modules				\
+		c/*.[ch] c/*/*.[ch] c/scheme48.h.in			\
+		emacs/*.el gdbinit					\
+		scheme/*.scm scheme/*/*.scm				\
+		ps-compiler/*.scm ps-compiler/minor-version-number	\
+		ps-compiler/doc/*.txt ps-compiler/*/*.scm		\
+		ps-compiler/*/*/*.scm					\
+		ps-compiler/prescheme/test/fact.cps			\
+		ps-compiler/prescheme/test/prescheme.h			\
+		ps-compiler/prescheme/c-stuff				\
+		c/sysdep.h.in						\
+		scsh/*.scm scsh/*/*.scm					\
+		scsh/*.[ch] scsh/*/*.[ch]				\
+		scsh/*.scm.in scsh/*/Makefile.inc			\
+		cig/*.scm cig/*.[ch]					\
+		doc/scsh.man						\
+		doc/scsh-manual/*.tex doc/scsh-manual/*.sty		\
+		doc/scsh-manual/man.ps doc/scsh-manual/man.pdf		\
+		doc/scsh-manual/man.dvi	doc/scsh-manual/Makefile 	\
+		doc/scsh-manual/THANKS doc/scsh-manual/html/*.html 	\
+		doc/scsh-manual/html/*.gif doc/scsh-manual/html/*.css	\
+		doc/src/manual/*.html					\
+		doc/scsh-paper/*.sty doc/scsh-paper/*.tex		\
+		doc/scsh-paper/mitlogo.ps doc/scsh-paper/scsh-paper.ps  \
+		doc/scsh-paper/scsh-paper.dvi				\
+		doc/scsh-paper/html/*.html doc/scsh-paper/html/*.css
+
+
+distname = $(RUNNABLE)-0.`cat build/minor-version-number`
+
+dist: build/initial.image distclean
+	(cd doc/src && latex manual.tex && latex manual.tex && 		\
+	dvips manual -o manual.ps && hyperlatex manual.tex) &&		\
+	(cd doc/scsh-manual && makeindex man && make man.ps && 		\
+	make man.pdf && make html) && 					\
+	(cd doc/scsh-paper && make scsh-paper.ps && make html) && 	\
+	distname=$(distname) &&						\
+	distfile=$(distdir)/$$distname.tar.gz &&			\
+	if [ -d $(distdir) ] &&						\
+	   [ -w $$distfile -o -w $(distdir) ]; then			\
+		rm -f $$distname &&					\
+		ln -s . $$distname &&					\
+		files='' &&						\
+		for i in $(DISTFILES); do				\
+			if [ "$$i" != "c/sysdep.h" ]; then		\
+				files="$$files $$distname/$$i";		\
+			fi						\
+		done &&							\
+		tar -cf - $$files |					\
+			gzip --best >$$distfile &&			\
+		rm $$distname;						\
+	else								\
+		echo "Can't write $$distfile" >&2;			\
+		exit 1;							\
+	fi
+
+# Increment the minor version number
+inc:
+	f=build/minor-version-number &&					\
+	expr `cat $$f` + 1 >$$f.tmp &&					\
+	mv $$f.tmp $$f &&						\
+	echo '(define version-info "0.'`cat $$f`'")'			\
+		>scheme/env/version-info.scm
+
+
+# --------------------
+# Generate build/filenames.make from *packages.scm
+#
+# This hack traces the module dependencies described in the
+# various configuration files and converts them into dependency lists
+# that "make" can use for its purposes.
+#
+# Since the distribution comes with a filenames.make, this rule
+# shouldn't be invoked for simple installations.  But it will be used
+# if you change any of the *-packages.scm files.
+#
+# You can actually run the forms in filenames.scm in any Scheme
+# implementation that has syntax-rules and explicit-renaming low-level
+# macros (e.g., most versions of Scheme 48 and Pseudoscheme).
+# If there are errors running this script, and you need to debug,
+# don't use the initial.image, use something that has a reasonable
+# environment.
+#
+# If this fails and you don't feel like debugging or fixing the problem,
+# try "touch filenames.make" and hope for the best.
+
+PACKAGES=scheme/packages.scm scheme/rts-packages.scm scheme/alt-packages.scm \
+	 scheme/comp-packages.scm scheme/initial-packages.scm \
+	 scheme/link-packages.scm scheme/more-packages.scm \
+	 build/filenames.scm
+
+build/filenames.make: $(PACKAGES)
+	$(BUILD_RUNNABLE) -a batch <build/filenames.scm
+
+# --------------------
+# Static linker
+#
+# The linker is capable of rebuilding an image from sources, even
+# across an incompatible change in VM data representations.
+
+build/linker.image: $(linker-files) scheme/alt/init-defpackage.scm
+	(echo ',batch';						\
+		echo ',bench on';				\
+		echo ',open signals handle features';		\
+		echo ',open bitwise ascii code-vectors record';	\
+		echo ',load $(linker-files)';			\
+		echo ',load scheme/alt/init-defpackage.scm';	\
+		echo ',dump build/linker.image'			\
+	) | $(LINKER_RUNNABLE)
+
+# Or, to bootstrap from Lucid Common Lisp: (last tested with
+# Pseudoscheme 2.9 and Scheme 48 version 0.19)
+
+PSEUDODIR = ../pseudo
+
+link/linker-in-lucid: build/lucid-script.lisp $(linker-files) \
+	    scheme/alt/pseudoscheme-features.scm \
+	    scheme/alt/pseudoscheme-record.scm
+	(echo \(defvar pseudoscheme-directory \"$(PSEUDODIR)/\"\); \
+	 cat build/lucid-script.lisp; \
+	 echo \(dump-linker\) \(lcl:quit\)) \
+	| lisp
+
+# --------------------
+# Initial image
+#
+# The initial.image is built by the static linker.  The image contains
+# Scheme, the byte-code compiler, and a minimal command processor, but
+# no debugging environment to speak of.
+
+$(INITIAL): $(LINKER_IMAGE) $(CONFIG_FILES) build/initial.scm $(initial-files) \
+	 scsh/here.scm # gross and Olin hates it -bri	
+	($(START_LINKER);						\
+		echo '(load-configuration "scheme/interfaces.scm")';	\
+		echo '(load-configuration "scheme/packages.scm")';	\
+		echo '(flatload initial-structures)';			\
+		echo '(load "build/initial.scm")';			\
+		echo '(link-initial-system)'				\
+	) | $(LINKER)
+
+# --------------------
+# Various small images for debugging low-level changes
+
+LOAD_DEBUG = \
+	 $(START_LINKER); \
+	 echo \(load-configuration \"scheme/interfaces.scm\"\); \
+	 echo \(load-configuration \"scheme/packages.scm\"\); \
+	 echo \(flatload debug-structures\)
+
+scheme/debug/tiny.image: $(LINKER_IMAGE) scheme/debug/tiny-packages.scm \
+		  scheme/debug/tiny.scm
+	($(START_LINKER); \
+	 echo \(load-configuration \"scheme/debug/tiny-packages.scm\"\); \
+	 echo \(link-simple-system \'\(scheme/debug tiny\) \'start tiny-system\)) \
+	| $(LINKER)
+
+scheme/debug/low-test.image: $(LINKER_IMAGE) scheme/debug/low-test-packages.scm \
+		  scheme/debug/low-test.scm
+	($(START_LINKER); \
+	 echo \(load-configuration \"scheme/debug/low-test-packages.scm\"\); \
+	 echo \(link-simple-system \'\(scheme/debug low-test\) \'start low-test-system\)) \
+	| $(LINKER)
+
+scheme/debug/little.image: $(LINKER_IMAGE) $(CONFIG_FILES) scheme/debug-packages.scm
+	($(LOAD_DEBUG); echo \(link-little-system\)) \
+	| time $(LINKER)
+
+scheme/debug/mini.image: $(LINKER_IMAGE) $(CONFIG_FILES)
+	($(LOAD_DEBUG); echo \(link-mini-system\)) \
+	| $(LINKER)
+
+scheme/debug/medium.image: $(LINKER_IMAGE) $(CONFIG_FILES)
+	($(LOAD_DEBUG); echo \(flatload compiler-structures\); \
+	 echo \(link-medium-system\)) \
+	| $(LINKER)
+
+# The following have not been updated for the new directory organization
+
+c/smain.o: c/main.c
+	$(CC) -c $(CPPFLAGS) $(DEFS) $(CFLAGS) -DSTATIC_AREAS -o $@ $(srcdir)/c/main.c
+
+mini: mini-heap.o c/smain.o
+	$(CC) $(LDFLAGS) $(CFLAGS) -o $@ c/smain.o mini-heap.o $(OBJS) $(LIBS)
+
+mini-heap.o: mini-heap.c
+	$(CC) -c $(CPPFLAGS) $(DEFS) $(CFLAGS) -o $@ $(srcdir)/mini-heap.c
+
+mini-heap.c: scheme/debug/mini1.image
+	(echo ,exec ,load misc/load-static.scm; \
+	 echo \(do-it 150000 \"$(srcdir)/scheme/debug/mini1.image\" \"$@\"\)) \
+	| $(BUILD_RUNNABLE) -h 3000000 -a batch
+
+scheme/debug/mini1.image: $(VM) scheme/debug/mini.image
+	echo "(write-image \"scheme/debug/mini1.image\" \
+			   (usual-resumer (lambda (args) \
+					    (command-processor #f args))) \
+			   \"foo\")" \
+	| ./$(VM) -i scheme/debug/mini.image -a batch
+
+
+# --------------------
+# Generate scheme48.h from VM sources
+
+c/scheme48.h: c/scheme48.h.in scheme/vm/arch.scm scheme/vm/data.scm \
+	    scheme/link/generate-c-header.scm
+	(echo ',bench';								\
+		echo ',batch';							\
+		echo ',load-package big-scheme';				\
+		echo ',open big-scheme';					\
+		echo ',load $(srcdir)/scheme/link/generate-c-header.scm';	\
+		echo "(make-c-header-file \"$@\"				\
+					  \"$(srcdir)/c/scheme48.h.in\"		\
+					  \"$(srcdir)/scheme/vm/arch.scm\"	\
+					  \"$(srcdir)/scheme/vm/data.scm\"   	\
+					  \"$(srcdir)/scheme/rts/record.scm\")"	\
+	) | $(BUILD_RUNNABLE)
+
+# An old version of the above for legacy code.
+
+c/old-scheme48.h: scheme/vm/arch.scm scheme/vm/data.scm \
+	    scheme/link/generate-old-c-header.scm
+	(echo ',bench';								\
+		echo ',batch';							\
+		echo ',load-package big-scheme';				\
+		echo ',open big-scheme';					\
+		echo ',load scheme/link/generate-old-c-header.scm';		\
+		echo "(make-c-header-file \"$@\"				\
+					  \"$(srcdir)/scheme/vm/arch.scm\"	\
+					  \"$(srcdir)/scheme/vm/data.scm\")"   	\
+	) | $(BUILD_RUNNABLE)
+
+# Generate vm (scheme48vm.c and scheme48heap.c) from VM sources.
+# Never called automatically.  Do not use unless you are sure you
+# know what you are doing.
+# Afterwards, you should probably make c/scheme48.h.
+i-know-what-i-am-doing:
+	cd ps-compiler &&						     \
+	(echo ',batch';							     \
+		echo ',config ,load ../scheme/prescheme/interface.scm';	     \
+		echo ',config ,load ../scheme/prescheme/package-defs.scm';   \
+		echo ',exec ,load load-ps-compiler.scm';		     \
+		echo ',exec ,load compile-vm-no-gc.scm';		     \
+		echo ',exec ,load compile-gc.scm';			     \
+		echo ',exit'						     \
+	) | $(BUILD_RUNNABLE) -h 5000000 &&					     \
+		mv ../scheme/vm/scheme48vm.c ../scheme/vm/scheme48heap.c ../c
+
+cig: $(CIG) $(CIG).image $(LIBCIG)
+
+
+$(CIG): $(VM) $(IMAGE) $(srcdir)/cig/cig.scm $(srcdir)/cig/libcig.scm
+	(echo ",batch"; \
+	 echo ",translate =scheme48/ $(srcdir)/scheme/"; \
+	 echo ",config ,load $(srcdir)/cig/cig.scm"; \
+	 echo ",config ,load $(srcdir)/cig/libcig.scm"; \
+	 echo ",load-package cig-standalone"; \
+	 echo ",in cig-standalone"; \
+	 echo ",translate =scheme48/ $(LIB)/"; \
+	 echo ",build cig-standalone-toplevel /tmp/cig") \
+	| ./$(VM) -i ./$(IMAGE)
+	$(srcdir)/cig/image2script $(LIB)/$(VM) </tmp/cig > $(CIG)
+	-chmod +x $(CIG)
+	mv /tmp/cig $(srcdir)/cig/cig_bootstrap	
+	$(RM) /tmp/cig
+
+$(CIG).image: $(IMAGE) $(VM) $(srcdir)/cig/cig.scm $(srcdir)/cig/libcig.scm
+	(echo ",batch"; \
+	 echo ",translate =scheme48/ $(srcdir)/scheme/"; \
+	 echo ",config ,load $(srcdir)/cig/cig.scm"; \
+	 echo ",config ,load $(srcdir)/cig/libcig.scm"; \
+	 echo ",load-package cig-aux"; \
+	 echo ",open define-foreign-syntax"; \
+	 echo ",translate =scheme48/ $(LIB)/"; \
+	 echo ",dump /tmp/cig \"(CIG Preloaded -bri)\"") \
+	| ./$(VM) -o ./$(VM) -i ./$(IMAGE)
+	$(srcdir)/cig/image2script $(LIB)/$(VM) \
+			-o $(LIB)/$(VM) \
+			</tmp/cig > $(CIG).image
+	-chmod +x $(CIG).image
+	$(RM) /tmp/cig
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# SCSH Specifics
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+scsh: scsh/scsh scsh/scsh.image
+
+SCHEME =scsh/awk.scm \
+	scsh/configure.scm \
+	scsh/defrec.scm \
+	scsh/endian.scm \
+	scsh/enumconst.scm \
+	scsh/event.scm \
+	scsh/low-interrupt.scm \
+	scsh/fdports.scm \
+	scsh/fileinfo.scm \
+	scsh/filemtch.scm \
+	scsh/filesys.scm \
+	scsh/flock.scm \
+	scsh/fname.scm \
+	scsh/fr.scm \
+	scsh/glob.scm \
+	scsh/dot-locking.scm \
+	scsh/here.scm \
+	scsh/lib-dirs.scm \
+	scsh/libscsh.scm \
+	scsh/machine/bufpol.scm \
+	scsh/machine/errno.scm \
+	scsh/machine/fdflags.scm \
+	scsh/machine/netconst.scm \
+	scsh/machine/packages.scm \
+	scsh/machine/signals.scm \
+	scsh/machine/time_dep.scm \
+	scsh/machine/tty-consts.scm \
+	scsh/machine/waitcodes.scm \
+	scsh/md5.scm \
+	scsh/meta-arg.scm \
+	scsh/network.scm \
+	scsh/newports.scm \
+	scsh/procobj.scm \
+	scsh/pty.scm \
+	scsh/rdelim.scm \
+	scsh/rw.scm \
+	scsh/scsh-condition.scm \
+	scsh/scsh-interfaces.scm \
+	scsh/scsh-package.scm \
+	scsh/scsh-read.scm \
+	scsh/scsh-version.scm \
+	scsh/scsh.scm \
+	scsh/sighandlers.scm \
+	scsh/startup.scm \
+	scsh/stringcoll.scm \
+	scsh/syntax-helpers.scm \
+	scsh/syntax.scm \
+	scsh/syscalls.scm \
+	scsh/time.scm \
+	scsh/top.scm \
+	scsh/tty.scm \
+	scsh/utilities.scm \
+	scsh/weaktables.scm \
+	scsh/rx/packages.scm \
+	scsh/rx/re-match-syntax.scm \
+	scsh/rx/rx-lib.scm \
+	scsh/rx/parse.scm \
+	scsh/rx/re-subst.scm \
+	scsh/rx/simp.scm \
+	scsh/rx/posixstr.scm \
+	scsh/rx/re-syntax.scm \
+	scsh/rx/spencer.scm \
+	scsh/rx/oldfuns.scm \
+	scsh/rx/re-fold.scm \
+	scsh/rx/re.scm \
+	scsh/rx/test.scm \
+	scsh/rx/re-high.scm \
+	scsh/rx/regexp.scm \
+	scsh/rx/re-low.scm \
+	scsh/rx/regress.scm
+#    	scsh/dbm.scm db.scm ndbm.scm
+#	jcontrol
+
+# Bogus, but it makes the scm->c->o two-ply dependency work.
+# Explicitly giving the .o/.c dependency also makes it go.
+############################################################
+cig/libcig.c:		cig/libcig.scm
+
+scsh/scsh: scsh/scsh-tramp.c
+	$(CC) -o $@ $(CPPFLAGS) $(CFLAGS) \
+	-DVM=\"$(LIB)/$(VM)\" \
+	-DIMAGE=\"$(LIB)/scsh.image\" \
+	scsh/scsh-tramp.c
+
+bs:	 build/build-scsh-image
+	sh $(srcdir)/build/build-scsh-image "$(srcdir)" "$(LIB)" "$(IMAGE)" \
+	   "$(VM)" cig/cig.image 
+
+loads = $(srcdir)/scsh/let-opt.scm $(srcdir)/scsh/scsh-interfaces.scm \
+         $(srcdir)/scsh/machine/packages.scm \
+	 $(srcdir)/scsh/rx/packages.scm \
+	 $(srcdir)/scsh/scsh-package.scm \
+	 $(srcdir)/scsh/lib/ccp-pack.scm \
+	 $(srcdir)/scsh/lib/char-package.scm
+
+opens = floatnums scsh ccp-lib scsh-top-package scsh-here-string-hax \
+	srfi-1 srfi-13 srfi-14 # srfi-14 is also exported by scsh
+
+# Doing ,load-package scheme-with-scsh here gives us much better start-up times
+scsh/scsh.image: $(VM) $(SCHEME) $(IMAGE)
+	(echo ",translate =scheme48/ `pwd`/scheme/"; \
+	 echo ",batch on"; \
+	 echo ",config ,load $(loads)"; \
+	 echo ",open $(opens)"; \
+	 echo ",load-package scheme-with-scsh"; \
+	 echo "(dump-scsh \"$@\")"; \
+	 ) \
+	| ./$(VM) -o ./$(VM) -i $(IMAGE) -h 10000000
+
+# ,flush files => 0k
+# ,flush names => -= 17k
+# ,flush maps => -= 350K
+# ,flush source => -= 1117k
+# ,flush => 550k
+scsh/stripped-scsh.image: $(VM) $(SCHEME) $(IMAGE)
+	(echo ",flush maps source";\
+	 echo ",translate =scheme48/ `pwd`/scheme/"; \
+	 echo ",batch on"; \
+	 echo ",config ,load $(loads)"; \
+	 echo ",open $(opens)"; \
+	 echo ",load-package scheme-with-scsh"; \
+	 echo ",flush"; \
+	 echo "(dump-scsh \"$@\")";) \
+	| ./$(VM) -o ./$(VM) -i $(IMAGE) -h 10000000
+
+install-scsh: scsh install-scsh-image install-stripped-scsh-image
+	$(RM) $(DESTDIR)$(bindir)/$(RUNNABLE)
+	$(INSTALL_PROGRAM) $(srcdir)/scsh/scsh $(DESTDIR)$(bindir)/$(RUNNABLE)
+	$(INSTALL_PROGRAM) $(srcdir)/$(LIBSCSHVM) $(DESTDIR)$(libdir)/$(LIBSCSHVM)
+	$(INSTALL_PROGRAM) $(srcdir)/$(LIBSCSH) $(DESTDIR)$(libdir)/$(LIBSCSH)
+	$(RANLIB) $(DESTDIR)$(libdir)/$(LIBSCSH)
+	for f in $(srcdir)/scsh/*.scm $(srcdir)/scsh/*/*.scm; \
+	    do $(INSTALL_DATA) $$f $(DESTDIR)$(LIB)/scsh/; done
+
+install-scsh-image: $(VM) scsh/scsh.image
+	(	echo ',translate =scheme48 $(LIB)';			\
+		echo ',in lib-dirs (set-default-lib-dirs! (quote $(lib_dirs_list)))'; \
+		echo '(dump-scsh "$(DESTDIR)$(LIB)/scsh.image")';	\
+		echo ',exit';						\
+	) | ./$(VM) -i scsh/scsh.image	
+
+install-stripped-scsh-image: $(VM) scsh/stripped-scsh.image
+	(	echo ',translate =scheme48 $(LIB)';			\
+		echo ',in lib-dirs (set-default-lib-dirs! (quote $(lib_dirs_list)))'; \
+		echo '(dump-scsh "$(DESTDIR)$(LIB)/stripped-scsh.image")';	\
+		echo ',exit';						\
+	) | ./$(VM) -i scsh/stripped-scsh.image
+
+clean-scsh:
+	$(RM) scsh/*.o scsh/rx/*.o scsh/machine/*.o 
+	$(RM) scsh/*.image 
+	$(RM) scsh/configure.scm
+	$(RM) $(LIBSCSHVM) $(LIBSCSH) scsh/scsh$(EXEEXT)
+
+scsh/configure.scm: scsh/configure.scm.in
+	sed -e 's|@scsh_host@|$(host)|g' \
+            -e 's|@scsh_prefix@|$(prefix)|g' \
+            -e 's|@scsh_exec_prefix@|$(exec_prefix)|g' \
+            -e 's|@scsh_bindir@|$(bindir)|g' \
+            -e 's|@scsh_libdir@|$(libdir)|g' \
+            -e 's|@scsh_includedir@|$(incdir)|g' \
+            -e 's|@scsh_mandir@|$(mandir)|g' \
+            -e 's|@scsh_lib_dirs_list@|$(lib_dirs_list)|g' \
+            -e 's|@scsh_LIBS@|$(LIBS)|g' \
+            -e 's|@scsh_DEFS@|$(DEFS)|g' \
+            -e 's|@scsh_CFLAGS@|$(CFLAGS)|g' \
+            -e 's|@scsh_CPPFLAGS@|$(CPPFLAGS)|g' \
+            -e 's|@scsh_LDFLAGS@|$(LDFLAGS)|g'  $< > $@

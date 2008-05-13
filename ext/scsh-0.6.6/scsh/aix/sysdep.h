@@ -1,0 +1,4 @@
+#undef HAVE_DLOPEN
+
+#undef HAVE_TZNAME
+#define HAVE_TZNAME

@@ -1,0 +1,169 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-17.html">previous</a></span><span class=disable>, next</span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_Temp_15"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_15">Notes</a></h1><p>
+</p>
+<p>
+</p>
+<a name="node_sec_Temp_16"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_16">{Note Agenda}</a></h2><p>In fact, I have an additional hidden agenda.
+I do believe that computational agents should be expressed as procedures
+or procedure libraries, not as programs.
+Scsh is intended to be an incremental step in this direction, one that
+is integrated with Unix.
+Writing a program as a Scheme 48 module should allow the user to make it
+available as a both a subroutine library callable from other Scheme 48
+programs or the interactive read-eval-print loop, and, by adding a small
+top-level, as a standalone Unix program.
+So Unix programs written this way will also be useable as linkable
+subroutine libraries -- giving the programmer module interfaces superior
+to Unix's ``least common denominator'' of A<small>S</small><small>C</small><small>I</small><small>I</small> byte streams 
+sent over pipes.</p>
+<p>
+</p>
+<a name="node_sec_Temp_17"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_17">{Note No port sync}</a></h2><p></p>
+
+In scsh, Unix' stdio file descriptors and Scheme's standard i/o ports
+(<em>i.e.</em>, the values of <tt>(current-input-port)</tt>, <tt>(current-output-port)</tt> and
+<tt>(error-output-port)</tt>) are not necessarily synchronised. 
+This is impossible to do in general, since some Scheme ports are 
+not representable as Unix file descriptors.
+For example, many Scheme implementations provide ``string ports,'' 
+that is, ports that collect characters sent to them into memory buffers.
+The accumulated string can later be retrieved from the port as a string.
+If a user were to bind <tt>(current-output-port)</tt> to such a port, it would
+be impossible to associate file descriptor 1 with this port, as it
+cannot be represented in Unix.
+So, if the user subsequently forked off some other program as a subprocess,
+that program would of course not see the Scheme string port as its standard
+output.
+<p>
+To keep stdio synced with the values of Scheme's current i/o ports,
+use the special redirection <tt>stdports</tt>.
+This causes 0, 1, 2 to be redirected from the current Scheme standard ports.
+It is equivalent to the three redirections:
+</p>
+<blockquote><tt><br>
+(=&nbsp;0&nbsp;,(current-input-port))<br>
+(=&nbsp;1&nbsp;,(current-output-port))<br>
+(=&nbsp;2&nbsp;,(error-output-port))</tt></blockquote>
+The redirections are done in the indicated order.  This will cause an error if
+the one of current i/o ports isn't a Unix port (<em>e.g.</em>, if one is a string
+port).
+This Scheme/Unix i/o synchronisation can also be had in Scheme code 
+(as opposed to a redirection spec) with the <tt>(stdports-&gt;stdio)</tt>
+procedure.<p>
+</p>
+<a name="node_sec_Temp_18"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_18">{Note Normal order}</a></h2><p>Having to explicitly shift between processes and functions in scsh is in part
+due to the arbitrary-size nature of a Unix stream.
+A better, more integrated approach might be to use a lazy, normal-order
+language as the glue or shell language.
+Then files and process output streams could be regarded as first-class values,
+and treated like any other sequence in the language.
+However, I suspect that the realities of Unix, such as side-effects, will
+interfere with this simple model.</p>
+<p>
+</p>
+<a name="node_sec_Temp_19"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_19">{Note On-line streams}</a></h2><p>The <tt>(port-&gt;list <i>reader</i> <i>port</i>)</tt> procedure is a batch processor:
+it reads the port all the way to eof before returning a value.
+As an alternative, we might write a procedure to take a port and a reader,
+and return a lazily-evaluated list of values,
+so that I/O can be interleaved with element processing.
+A nice example of the power of Scheme's abstraction facilities is the
+ease with which we can write this procedure:
+it can be done with five lines of code.
+</p>
+<blockquote><tt><br>
+;;;&nbsp;A&nbsp;&lt;lazy-list&gt;&nbsp;is&nbsp;either&nbsp;<br>
+;;;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(delay&nbsp;'())&nbsp;or<br>
+;;;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(delay&nbsp;(cons&nbsp;data&nbsp;&lt;lazy-list&gt;)).<br>
+<br>
+(define&nbsp;(port-&gt;lazy-list&nbsp;reader&nbsp;port)<br>
+&nbsp;&nbsp;(let&nbsp;collector&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(delay&nbsp;(let&nbsp;((x&nbsp;(reader&nbsp;port)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(eof-object?&nbsp;x)&nbsp;'()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cons&nbsp;x&nbsp;(collector)))))))</tt></blockquote><p>
+</p>
+<a name="node_sec_Temp_20"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_20">{Note Tempfile example}</a></h2><p>For a more detailed example showing the advantages of higher-order procedures
+in Unix systems programming, consider the task of making random temporary
+objects (files, directories, fifos, <em>etc.</em>) in the file system.
+Most Unix's simply provide a function such as <tt>tmpnam()</tt> that creates a
+file with an unusual name, and hope for the best.
+Other Unix's provide functions that avoid the race condition between
+determining the temporary file's name and creating it, but they do not
+provide equivalent features for non-file objects, such as directories or
+symbolic links.
+This functionality is easily generalised with the procedure
+</p>
+<blockquote><tt>(temp-file-iterate <i>maker</i> <i>[template]</i>)</tt></blockquote>This procedure can be used to perform atomic transactions on
+the file system involving filenames, <em>e.g.</em>:
+<ul>
+<li><p>Linking a file to a fresh backup temporary name.
+</p>
+<li><p>Creating and opening an unused, secure temporary file.
+</p>
+<li><p>Creating an unused temporary directory.</p>
+</ul><p>
+The string <i>template</i> is a <tt>format</tt> control string used to generate
+a series of trial filenames; it defaults to
+</p>
+<blockquote><code class=verbatim>&quot;/usr/tmp/&lt;pid&gt;.~a&quot;</code></blockquote>where <tt>&lt;pid&gt;</tt> is the current process' process id.
+Filenames are generated by calling <tt>format</tt> to instantiate the 
+template's <code class=verbatim>~a</code> field with a varying string.
+(It is not necessary for the process' pid to be a part of the filename
+for the uniqueness guarantees to hold. The pid component of the default
+prefix simply serves to scatter the name searches into sparse regions, so
+that collisions are less likely to occur. This speeds things up, but does
+not affect correctness.)<p>
+The <tt>maker</tt> procedure is serially called on each filename generated.
+It must return at least one value; it may return multiple values. If
+the first return value is <tt>#f</tt> or if <tt>maker</tt> raises the ``file already
+exists'' syscall error exception, <tt>temp-file-iterate</tt> will loop,
+generating a new filename and calling <tt>maker</tt> again.
+If the first return value is true, the loop is terminated, 
+returning whatever <tt>maker</tt> returned.</p>
+<p>
+After a number of unsuccessful trials, <tt>temp-file-iterate</tt> may give up
+and signal an error.</p>
+<p>
+To rename a file to a temporary name, we write:
+</p>
+<blockquote><tt><br>
+(temp-file-iterate&nbsp;(lambda&nbsp;(backup-name)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(create-hard-link&nbsp;old-file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;backup-name)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;backup-name)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;.#temp.&nbsp;a&quot;)&nbsp;;&nbsp;Keep&nbsp;link&nbsp;in&nbsp;cwd.<br>
+(delete-file&nbsp;old-file)</tt></blockquote>
+Note the guarantee: if <tt>temp-file-iterate</tt> returns successfully,
+then the hard link was definitely created, so we can safely delete the
+old link with the following <tt>delete-file</tt>.<p>
+To create a unique temporary directory, we write:
+</p>
+<blockquote><tt>(temp-file-iterate (lambda (dir) (create-directory dir) dir))</tt></blockquote>Similar operations can be used to generate unique symlinks and fifos,
+or to return values other than the new filename (<em>e.g.</em>, an open file
+descriptor or port).
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-17.html">previous</a></span><span class=disable>, next</span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

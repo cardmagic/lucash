@@ -1,0 +1,35 @@
+Michel.Schinz@studi.epfl.ch
+    Documentation error in STRING-OUTPUT-PORT-OUTPUT.
+    Reported 12/19.
+
+Victor Zandy
+    character-gobbling in (record-reader) caused by 'trim / 'peek
+    default misunderstanding in delimited readers. Fixed 4/5/96
+
+Michael Becker
+    reap-policy = early can still lose if you loop and fork.
+    fork now reaps & retries if it loses and the policy is early reap.
+    This is a kludge until I have sigchld handlers.
+    Fixed 4/5/96
+
+Tod Olson
+    Reported painfully slow delimited-reader I/O in November.
+
+Michel.Schinz@studi.epfl.ch
+    Reported some picky little typos in the manual.
+
+Shriram
+    Doc bugs in defrec.scm
+
+euler@lavielle.COM (Lutz Euler) 2/24/97
+    Manual bugs and a bug in stdio->stdports.
+
+Alan Bawden 4/97
+    Lots of good bug reports and fixes.
+
+Jim Blandy 4/97
+    Fixes for meta.scm
+
+Kevin Esler 4/97
+    Updated Irix port
+ 

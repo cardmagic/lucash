@@ -1,0 +1,81 @@
+.TH LS48 1
+.\" File scsh.man:  Manual page template for scsh.
+.\" Replace LSCSH with the name of your default image and LLIB with the
+.\" directory containing scshvm and default image.
+.SH NAME
+LSCSH \- a Scheme shell
+
+.SH SYNOPSIS
+.B LSCSH
+[switch arg1 ... argn]
+
+.SH DESCRIPTION
+.B LSCSH
+is an implementation of the Scheme shell.
+It is implemented as
+a heap image which is interpreted by the Scheme 48 virtual machine.
+.B LSCSH
+is a stub program that starts the virtual machine on the scsh heap image.
+.PP
+The
+.B LSCSH
+command loop reads Scheme expressions, 
+evaluates them, and prints their results.
+The Scheme 48 system is an R5RS system with many additional features.
+It also executes commands, which are identified by an initial comma character.
+Type the command
+.I ,help
+to receive a list of available commands, or see the documentation for
+Scheme 48.
+.PP
+Scsh's
+.I switch
+argument can be one of
+.LP
+.B \-s
+.BI script
+.LP
+.B \-\-
+.LP
+Either of these switches terminates argument parsing; following arguments
+are available from scsh as the string list produced by
+.nf
+    (command-line-arguments)
+.fi
+The
+.B \-s
+.BI script
+switch causes scsh to run in batch mode,
+first loading the script and then exiting.
+The default error exception handler terminates the process.
+
+If the
+.B \-s
+switch is not specified, scsh operates in interactive mode.
+It invokes the Scheme 48 top-level read-eval-print loop,
+from which the user can enter forms to be evaluated.
+In interactive mode, the default error handler invokes an interactive
+debugging breakpoint.
+
+The
+.B \-\-
+switch is used to pass arguments to an interactive scsh.
+It simply terminates argument parsing, causing following
+arguments to be bound to 
+.nf
+    (command-line-arguments)
+
+.SH FILES
+.TP
+.B LLIB/doc/
+The detailed documentation for scsh. Contains much more information
+than this broken manpage.
+
+.TP
+.B LLIB/scshvm
+the virtual machine.
+.TP
+.B LLIB/LSCSH.image
+the default image.
+.SH BUGS
+Too big; starts up too slowly.

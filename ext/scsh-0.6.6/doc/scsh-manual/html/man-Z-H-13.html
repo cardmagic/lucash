@@ -1,0 +1,884 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-12.html">previous</a></span><span class=disable>, next</span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span class=disable><span>; &nbsp;&nbsp;</span>index</span>]</i></div><p></p>
+<a name="node_chap_Temp_51"></a>
+<h1 class=chapter>
+<div class=chapterheading>&nbsp;</div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_Temp_51">Index</a></h1><p>
+<a name="node_index_start"></a></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_364">*temp-file-template*</a><br>
+<a href="man-Z-H-4.html#node_idx_500"><tt>-&gt;uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_502"><tt>-&gt;username</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_376"><tt>%exec</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_382"><tt>%exit</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_390"><tt>%fork</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_394"><tt>%fork/pipe</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_398"><tt>%fork/pipe+</tt></a><br>
+<a href="man-Z-H-8.html#node_idx_1306"><tt>%read-delimited!</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_12">&amp;</a><br>
+<a href="man-Z-H-3.html#node_idx_6"><tt>&amp;</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_62"><tt>&amp;&amp;</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-3.html#node_idx_50">reduce-port </a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-6.html#node_idx_1088"><tt>absolute-file-name</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1024"><tt>accept-connection</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_718"><tt>add-after</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_716"><tt>add-before</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_700"><tt>alist-&gt;env</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_706"><tt>alist-compress</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_702"><tt>alist-delete</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_704"><tt>alist-update</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_518"><tt>arg</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_520"><tt>arg*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_522"><tt>argv</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1378"><tt>arithmetic-shift</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1098"><tt>ascii-&gt;char</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_408"><tt>autoreap-policy</tt></a><br>
+<a href="man-Z-H-9.html#node_idx_1324">awk</a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_784"><tt>become-session-leader</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1472"><tt>bin-dir</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_994"><tt>bind-listen-accept-loop</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_996"><tt>bind-prepare-listen-accept-loop</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1020"><tt>bind-socket</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1380"><tt>bitwise-and</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1382"><tt>bitwise-ior</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1384"><tt>bitwise-not</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1386"><tt>bitwise-xor</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1392"><tt>break-dot-lock</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_180"><tt>bufpol/block</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_182"><tt>bufpol/line</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_184"><tt>bufpol/none</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_384"><tt>call-terminally</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_112"><tt>call-with-string-output-port</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_124"><tt>call/fdes</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1486"><tt>cflags</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1096"><tt>char-&gt;ascii</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1126"><tt>char-ascii?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1118"><tt>char-blank?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1108"><tt>char-digit?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1112"><tt>char-graphic?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1124"><tt>char-hex-digit?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1120"><tt>char-iso-control?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1110"><tt>char-letter+digit?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1100"><tt>char-letter?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1102"><tt>char-lower-case?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1114"><tt>char-printing?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1122"><tt>char-punctuation?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1106"><tt>char-title-case?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1104"><tt>char-upper-case?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1116"><tt>char-whitespace?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_432"><tt>chdir</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1284"><tt>clean-up-cres</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_96"><tt>close</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_74"><tt>close-after</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_352"><tt>close-directory-stream</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1002"><tt>close-socket</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1438"><tt>close-syslog-channel</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_516"><tt>command-line</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_514">command-line-arguments</a><br>
+<a href="man-Z-H-11.html#node_idx_1492"><tt>compiler-flags</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1014"><tt>connect-socket</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1016"><tt>connect-socket-no-wait</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1018"><tt>connect-socket-successful?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_790"><tt>control-tty-file-name</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_754"><tt>copy-tty-info</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1488"><tt>cppflags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_484"><tt>cpu-ticks/sec</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_218"><tt>create-directory</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_220"><tt>create-fifo</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_222"><tt>create-hard-link</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_998"><tt>create-socket</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1000"><tt>create-socket-pair</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_224"><tt>create-symlink</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_360"><tt>create-temp-file</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1388"><tt>crypt</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1334"><tt>current-thread</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_434"><tt>cwd</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_670">date</a>, <a href="man-Z-H-4.html#node_idx_672">[2]</a><br>
+<a href="man-Z-H-4.html#node_idx_680"><tt>date</tt></a>, <a href="man-Z-H-4.html#node_idx_682">[2]</a><br>
+<a href="man-Z-H-4.html#node_idx_688"><tt>date-&gt;string</tt></a><br>
+<a href="man-Z-H-12.html#node_idx_1496">default-lib-dirs</a><br>
+<a href="man-Z-H-2.html#node_idx_2"><tt>define-record</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1484"><tt>defs</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_226"><tt>delete-directory</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_228"><tt>delete-file</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_230"><tt>delete-filesys-object</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1062"><tt>directory-as-file-name</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_346"><tt>directory-files</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_750"><tt>disable-tty-char</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_766"><tt>drain-tty</tt></a><br>
+<a href="man-Z-H-12.html#node_idx_1516"><tt>dump-scsh</tt></a><br>
+<a href="man-Z-H-12.html#node_idx_1514"><tt>dump-scsh-program</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_128"><tt>dup</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_134"><tt>dup-&gt;fdes</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_130"><tt>dup-&gt;inport</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_132"><tt>dup-&gt;outport</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_656"><tt>enabled-interrupts</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_698"><tt>env-&gt;alist</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_68"><tt>errno-error</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_76"><tt>error-output-port</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_368"><tt>exec</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_10">exec-epf</a><br>
+<a href="man-Z-H-3.html#node_idx_4"><tt>exec-epf</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_370"><tt>exec-path</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_722">exec-path-list</a><br>
+<a href="man-Z-H-4.html#node_idx_378"><tt>exec-path-search</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_374"><tt>exec-path/env</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1470"><tt>exec-prefix</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_372"><tt>exec/env</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_380"><tt>exit</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1086"><tt>expand-file-name</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_114"><tt>fdes-&gt;inport</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_116"><tt>fdes-&gt;outport</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_148"><tt>fdes-flags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_152"><tt>fdes-status</tt></a><br>
+<a href="man-Z-H-9.html#node_idx_1322"><tt>field-reader</tt></a><br>
+<a href="man-Z-H-9.html#node_idx_1312"><tt>field-splitter</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_294"><tt>file-directory?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_328"><tt>file-executable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_344"><tt>file-exists?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_296"><tt>file-fifo?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_284"><tt>file-group</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_250"><tt>file-info</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_306"><tt>file-info-directory?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_340"><tt>file-info-executable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_308"><tt>file-info-fifo?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_334"><tt>file-info-not-executable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_330"><tt>file-info-not-readable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_332"><tt>file-info-not-writable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_336"><tt>file-info-readable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_310"><tt>file-info-regular?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_312"><tt>file-info-socket?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_314"><tt>file-info-special?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_316"><tt>file-info-symlink?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_338"><tt>file-info-writable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_268"><tt>file-info:atime</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_272"><tt>file-info:ctime</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_254"><tt>file-info:device</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_264"><tt>file-info:gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_256"><tt>file-info:inode</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_258"><tt>file-info:mode</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_270"><tt>file-info:mtime</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_260"><tt>file-info:nlinks</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_266"><tt>file-info:size</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_252"><tt>file-info:type</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_262"><tt>file-info:uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_276"><tt>file-inode</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_288"><tt>file-last-access</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_290"><tt>file-last-mod</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_292"><tt>file-last-status-change</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_358"><tt>file-match</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_278"><tt>file-mode</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1064"><tt>file-name-absolute?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1060"><tt>file-name-as-directory</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1066"><tt>file-name-directory</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1056"><tt>file-name-directory?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1074"><tt>file-name-extension</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1058"><tt>file-name-non-directory?</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1068"><tt>file-name-nondirectory</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1076"><tt>file-name-sans-extension</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_280"><tt>file-nlinks</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_322"><tt>file-not-executable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_342"><tt>file-not-exists?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_318"><tt>file-not-readable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_320"><tt>file-not-writable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_282"><tt>file-owner</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_324"><tt>file-readable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_298"><tt>file-regular?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_286"><tt>file-size</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_300"><tt>file-socket?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_302"><tt>file-special?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_304"><tt>file-symlink?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_274"><tt>file-type</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_326"><tt>file-writable?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_692"><tt>fill-in-date!</tt></a><br>
+<a href="man-Z-H-12.html#node_idx_1498"><tt>find-library-file</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_188"><tt>flush-all-ports</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1162"><tt>flush-submatches</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_772"><tt>flush-tty/both</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_768"><tt>flush-tty/input</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_770"><tt>flush-tty/output</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_186"><tt>force-output</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_388"><tt>fork</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_792"><tt>fork-pty-session</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1374"><tt>fork-thread</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_392"><tt>fork/pipe</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_396"><tt>fork/pipe+</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_690"><tt>format-date</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_210"><tt>get-lock-region</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_696"><tt>getenv</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_354"><tt>glob</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_356"><tt>glob-quote</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_504"><tt>group-info</tt></a>, 
+<a href="man-Z-H-4.html#node_idx_506">[2]</a><br>
+<a href="man-Z-H-4.html#node_idx_510"><tt>group-info:gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_512"><tt>group-info:members</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_508"><tt>group-info:name</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-6.html#node_idx_1090"><tt>home-dir</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_720">home-directory</a><br>
+<a href="man-Z-H-6.html#node_idx_1092"><tt>home-file</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1460"><tt>host</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1048"><tt>host-info</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-7.html#node_idx_1158"><tt>if-match</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1286"><tt>if-sre-form</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1476"><tt>include-dir</tt></a><br>
+<a href="man-Z-H-9.html#node_idx_1314"><tt>infix-splitter</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1008"><tt>internet-address-&gt;socket-address</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_666"><tt>interrupt-handler</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_654"><tt>interrupt-set</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_540"><tt>interrupt/alarm</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_538"><tt>interrupt/alrm</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_552"><tt>interrupt/chld</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_556"><tt>interrupt/cont</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_560"><tt>interrupt/hup</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_584"><tt>interrupt/info</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_544"><tt>interrupt/int</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_588"><tt>interrupt/io</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_546"><tt>interrupt/keyboard</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_550"><tt>interrupt/memory-shortage</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_592"><tt>interrupt/poll</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_596"><tt>interrupt/prof</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_600"><tt>interrupt/pwr</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_564"><tt>interrupt/quit</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_568"><tt>interrupt/term</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_572"><tt>interrupt/tstp</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_604"><tt>interrupt/urg</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_576"><tt>interrupt/usr1</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_580"><tt>interrupt/usr2</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_608"><tt>interrupt/vtalrm</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_612"><tt>interrupt/winch</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_616"><tt>interrupt/xcpu</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_620"><tt>interrupt/xfsz</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_532"><tt>itimer</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-9.html#node_idx_1320"><tt>join-strings</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-11.html#node_idx_1490"><tt>ldflags</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1156"><tt>let-match</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1474"><tt>lib-dir</tt></a><br>
+<a href="man-Z-H-12.html#node_idx_1500"><tt>lib-dirs</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1480"><tt>lib-dirs-list</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1482"><tt>libs</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1494"><tt>linker-flags</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1022"><tt>listen-socket</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1352"><tt>lock-owner-uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_206"><tt>lock-region</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_208"><tt>lock-region/no-block</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_198"><tt>lock-region:end</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_192"><tt>lock-region:exclusive?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_200"><tt>lock-region:len</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_202"><tt>lock-region:proc</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_196"><tt>lock-region:start</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_194"><tt>lock-region:whence</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_190"><tt>lock-region?</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1344"><tt>lock?</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-11.html#node_idx_1462"><tt>machine</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_64"><tt>make-char-port-filter</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_674"><tt>make-date</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1342"><tt>make-lock</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_204"><tt>make-lock-region</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1452"><tt>make-md5-context</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1354"><tt>make-placeholder</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_800"><tt>make-pty-generator</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1230"><tt>make-re-char-set</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1192"><tt>make-re-choice</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1238"><tt>make-re-dsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1202"><tt>make-re-repeat</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1182"><tt>make-re-seq</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1222"><tt>make-re-string</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1212"><tt>make-re-submatch</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1130"><tt>make-regexp</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_106"><tt>make-string-input-port</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_108"><tt>make-string-output-port</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_66"><tt>make-string-port-filter</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1418"><tt>make-syslog-mask</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1404"><tt>make-syslog-options</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_752"><tt>make-tty-info</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1478"><tt>man-dir</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1160"><tt>match-cond</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1142"><tt>match:end</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1140"><tt>match:start</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1144"><tt>match:substring</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1348"><tt>maybe-obtain-lock</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1458"><tt>md5-context-&gt;md5-digest</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1454"><tt>md5-context?</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1448"><tt>md5-digest-&gt;number</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1444"><tt>md5-digest-for-port</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1442"><tt>md5-digest-for-string</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1446"><tt>md5-digest?</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1362"><tt>most-recent-sigevent</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_126"><tt>move-&gt;fdes</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-5.html#node_idx_1050"><tt>network-info</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1366"><tt>next-sigevent</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1368"><tt>next-sigevent-set</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1372"><tt>next-sigevent-set/no-wait</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1370"><tt>next-sigevent/no-wait</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_452"><tt>nice</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1450"><tt>number-&gt;md5-digest</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-11.html#node_idx_1390"><tt>obtain-dot-lock</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1346"><tt>obtain-lock</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_782"><tt>open-control-tty</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_348"><tt>open-directory-stream</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_146"><tt>open-fdes</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_140"><tt>open-file</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_142"><tt>open-input-file</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_144"><tt>open-output-file</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_794"><tt>open-pty</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1436"><tt>open-syslog-channel</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1466"><tt>os</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_442"><tt>parent-pid</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1078"><tt>parse-file-name</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1290"><tt>parse-sre</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1292"><tt>parse-sres</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1072"><tt>path-list-&gt;file-name</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_440"><tt>pid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_406"><tt>pid-&gt;proc</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_156"><tt>pipe</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1360"><tt>placeholder-value</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1356"><tt>placeholder?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_118"><tt>port-&gt;fdes</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_46"><tt>port-&gt;list</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_42"><tt>port-&gt;sexp-list</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1004"><tt>port-&gt;socket</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_40"><tt>port-&gt;string</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_44"><tt>port-&gt;string-list</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_48"><tt>port-fold</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_120"><tt>port-revealed</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1176"><tt>posix-string-&gt;regexp</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1468"><tt>prefix</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_450"><tt>priority</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_400">proc</a><br>
+<a href="man-Z-H-4.html#node_idx_404">proc:pid</a><br>
+<a href="man-Z-H-4.html#node_idx_402">proc?</a><br>
+<a href="man-Z-H-4.html#node_idx_444"><tt>process-group</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_534"><tt>process-sleep</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_536"><tt>process-sleep-until</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_482"><tt>process-times</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1054"><tt>protocol-info</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_796"><tt>pty-name-&gt;tty-name</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-7.html#node_idx_1274">re-any</a><br>
+<a href="man-Z-H-7.html#node_idx_1276"><tt>re-any?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1254">re-bol</a><br>
+<a href="man-Z-H-7.html#node_idx_1262"><tt>re-bol?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1250">re-bos</a><br>
+<a href="man-Z-H-7.html#node_idx_1258"><tt>re-bos?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1232"><tt>re-char-set</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1234"><tt>re-char-set:cset</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1228"><tt>re-char-set?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1194"><tt>re-choice</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1196"><tt>re-choice:elts</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1198"><tt>re-choice:tsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1190"><tt>re-choice?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1240"><tt>re-dsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1242"><tt>re-dsm:body</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1246"><tt>re-dsm:post-dsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1244"><tt>re-dsm:pre-dsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1248"><tt>re-dsm:tsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1236"><tt>re-dsm?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1270">re-empty</a><br>
+<a href="man-Z-H-7.html#node_idx_1272"><tt>re-empty?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1256">re-eol</a><br>
+<a href="man-Z-H-7.html#node_idx_1264"><tt>re-eol?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1252">re-eos</a><br>
+<a href="man-Z-H-7.html#node_idx_1260"><tt>re-eos?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1278">re-nonl</a><br>
+<a href="man-Z-H-7.html#node_idx_1204"><tt>re-repeat:from</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1206"><tt>re-repeat:to</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1208"><tt>re-repeat:tsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1200"><tt>re-repeat?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1184"><tt>re-seq</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1186"><tt>re-seq:elts</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1188"><tt>re-seq:tsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1180"><tt>re-seq?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1224"><tt>re-string</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1226"><tt>re-string:chars</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1220"><tt>re-string?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1216"><tt>re-submatch:post-dsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1214"><tt>re-submatch:pre-dsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1218"><tt>re-submatch:tsm</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1210"><tt>re-submatch?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1266">re-trivial</a><br>
+<a href="man-Z-H-7.html#node_idx_1268"><tt>re-trivial?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1282"><tt>re-tsm</tt></a><br>
+<a href="man-Z-H-8.html#node_idx_1302"><tt>read-delimited</tt></a><br>
+<a href="man-Z-H-8.html#node_idx_1304"><tt>read-delimited!</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_350"><tt>read-directory-stream</tt></a><br>
+<a href="man-Z-H-8.html#node_idx_1298"><tt>read-line</tt></a><br>
+<a href="man-Z-H-8.html#node_idx_1300"><tt>read-paragraph</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_158"><tt>read-string</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_160"><tt>read-string!</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_164"><tt>read-string!/partial</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_162"><tt>read-string/partial</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_232"><tt>read-symlink</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_410"><tt>reap-zombies</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1032"><tt>receive-message</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1034"><tt>receive-message!</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1038"><tt>receive-message!/partial</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1036"><tt>receive-message/partial</tt></a><br>
+<a href="man-Z-H-9.html#node_idx_1310"><tt>record-reader</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1178"><tt>regexp-&gt;posix-string</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1294"><tt>regexp-&gt;scheme</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1174"><tt>regexp-&gt;sre</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1150"><tt>regexp-fold</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1152"><tt>regexp-fold-right</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1154"><tt>regexp-for-each</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1136"><tt>regexp-search</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1138"><tt>regexp-search?</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1146"><tt>regexp-substitute</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1148"><tt>regexp-substitute/global</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1134"><tt>regexp?</tt></a>, 
+<a href="man-Z-H-7.html#node_idx_1280">[2]</a><br>
+<a href="man-Z-H-11.html#node_idx_1394"><tt>release-dot-lock</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1350"><tt>release-lock</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_122"><tt>release-port-handle</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1328"><tt>relinquish-timeslice</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_234"><tt>rename-file</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1080"><tt>replace-extension</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1084"><tt>resolve-file-name</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_14">run</a><br>
+<a href="man-Z-H-3.html#node_idx_8"><tt>run</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_56"><tt>run/collecting</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_58"><tt>run/collecting*</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_18"><tt>run/file</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_30"><tt>run/file*</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_16"><tt>run/port</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_28"><tt>run/port*</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_52"><tt>run/port+proc</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_54"><tt>run/port+proc*</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_24"><tt>run/sexp</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_36"><tt>run/sexp*</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_26"><tt>run/sexps</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_38"><tt>run/sexps*</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_20"><tt>run/string</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_32"><tt>run/string*</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_22"><tt>run/strings</tt></a><br>
+<a href="man-Z-H-3.html#node_idx_34"><tt>run/strings*</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1132"><tt>rx</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_136"><tt>seek</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_166"><tt>select </tt></a><br>
+<a href="man-Z-H-4.html#node_idx_172"><tt>select-port-channels</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_170"><tt>select-ports</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1040"><tt>send-message</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1042"><tt>send-message/partial</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_764"><tt>send-tty-break</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1052"><tt>service-info</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_658"><tt>set-enabled-interrupts</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_150"><tt>set-fdes-flags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_154"><tt>set-fdes-status</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_240"><tt>set-file-group</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_236"><tt>set-file-mode</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_238"><tt>set-file-owner</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_242"><tt>set-file-times</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_464"><tt>set-gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_664"><tt>set-interrupt-handler</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_178"><tt>set-port-buffering</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_448"><tt>set-priority</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_446"><tt>set-process-group</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1046"><tt>set-socket-option</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_760"><tt>set-tty-info/drain</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_762"><tt>set-tty-info/flush</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_758"><tt>set-tty-info/now</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_788"><tt>set-tty-process-group</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_462"><tt>set-uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_426"><tt>set-umask</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_476"><tt>set-user-effective-gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_468"><tt>set-user-effective-uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_694"><tt>setenv</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1030"><tt>shutdown-socket</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1364"><tt>sigevent?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_652"><tt>signal-&gt;interrupt</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_528"><tt>signal-process</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_530"><tt>signal-process-group</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_628"><tt>signal/abrt</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_542"><tt>signal/alrm</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_642"><tt>signal/bus</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_554"><tt>signal/chld</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_558"><tt>signal/cont</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_644"><tt>signal/emt</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_630"><tt>signal/fpe</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_562"><tt>signal/hup</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_632"><tt>signal/ill</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_586"><tt>signal/info</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_548"><tt>signal/int</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_590"><tt>signal/io</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_646"><tt>signal/iot</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_626"><tt>signal/kill</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_634"><tt>signal/pipe</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_594"><tt>signal/poll</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_598"><tt>signal/prof</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_602"><tt>signal/pwr</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_566"><tt>signal/quit</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_636"><tt>signal/segv</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_624"><tt>signal/stop</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_648"><tt>signal/sys</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_570"><tt>signal/term</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_650"><tt>signal/trap</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_574"><tt>signal/tstp</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_638"><tt>signal/ttin</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_640"><tt>signal/ttou</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_606"><tt>signal/urg</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_578"><tt>signal/usr1</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_582"><tt>signal/usr2</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_610"><tt>signal/vtalrm</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_614"><tt>signal/winch</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_618"><tt>signal/xcpu</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_622"><tt>signal/xfsz</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1082"><tt>simplify-file-name</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1166"><tt>simplify-regexp</tt></a><br>
+<a href="man-Z-H-8.html#node_idx_1308"><tt>skip-char-set</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1330"><tt>sleep</tt></a><br>
+<a href="man-Z-H-9.html#node_idx_1318"><tt>sloppy-suffix-splitter</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1012"><tt>socket-address-&gt;internet-address</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1010"><tt>socket-address-&gt;unix-address</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_992"><tt>socket-connect</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1026"><tt>socket-local-address</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1044"><tt>socket-option</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1028"><tt>socket-remote-address</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1326"><tt>spawn</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1070"><tt>split-file-name</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1376"><tt>spoon</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1172"><tt>sre-&gt;regexp</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1288"><tt>sre-form?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_778"><tt>start-tty-input</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_774"><tt>start-tty-output</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1296"><tt>static-regexp?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_418"><tt>status:exit-val</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_420"><tt>status:stop-sig</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_422"><tt>status:term-sig</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_100"><tt>stdio-&gt;stdports</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_98"><tt>stdports-&gt;stdio</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_780"><tt>stop-tty-input</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_776"><tt>stop-tty-output</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1128"><tt>string-match</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_110"><tt>string-output-port-output</tt></a><br>
+<a href="man-Z-H-6.html#node_idx_1094"><tt>substitute-env-vars</tt></a><br>
+<a href="man-Z-H-9.html#node_idx_1316"><tt>suffix-splitter</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_386"><tt>suspend</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_244"><tt>sync-file</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_246"><tt>sync-file-system</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1432"><tt>syslog</tt></a>, <a href="man-Z-H-11.html#node_idx_1434">[2]</a>, 
+<a href="man-Z-H-11.html#node_idx_1440">[3]</a><br>
+<a href="man-Z-H-11.html#node_idx_1410"><tt>syslog-facility</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1412"><tt>syslog-facility?</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1414"><tt>syslog-level</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1416"><tt>syslog-level?</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1420"><tt>syslog-mask</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1422">syslog-mask-all</a><br>
+<a href="man-Z-H-11.html#node_idx_1424"><tt>syslog-mask-upto</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1426"><tt>syslog-mask?</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1400"><tt>syslog-option</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1402"><tt>syslog-option?</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1406"><tt>syslog-options</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1408"><tt>syslog-options?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_524"><tt>system-name</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_138"><tt>tell</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_366"><tt>temp-file-channel</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_362"><tt>temp-file-iterate</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1332"><tt>terminate-current-thread</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1338"><tt>thread-name</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1340"><tt>thread-uid</tt></a><br>
+<a href="man-Z-H-10.html#node_idx_1336"><tt>thread?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_678"><tt>ticks/sec</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_668">time</a><br>
+<a href="man-Z-H-4.html#node_idx_684"><tt>time</tt></a>, <a href="man-Z-H-4.html#node_idx_686">[2]</a><br>
+<a href="man-Z-H-4.html#node_idx_676"><tt>time+ticks</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_248"><tt>truncate-file</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_726"><tt>tty-file-name</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_756"><tt>tty-info</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_728">tty-info record type</a><br>
+<a href="man-Z-H-4.html#node_idx_730"><tt>tty-info:control-chars</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_736"><tt>tty-info:control-flags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_732"><tt>tty-info:input-flags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_740"><tt>tty-info:input-speed</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_738"><tt>tty-info:local-flags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_744"><tt>tty-info:min</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_734"><tt>tty-info:output-flags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_742"><tt>tty-info:output-speed</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_746"><tt>tty-info:time</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_748"><tt>tty-info?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_798"><tt>tty-name-&gt;pty-name</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_786"><tt>tty-process-group</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_724"><tt>tty?</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_948"><tt>ttyc/2-stop-bits</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_956"><tt>ttyc/carrier-flow-ctl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_928"><tt>ttyc/char-size</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_930"><tt>ttyc/char-size5</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_932"><tt>ttyc/char-size6</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_934"><tt>ttyc/char-size7</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_936"><tt>ttyc/char-size8</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_952"><tt>ttyc/CTS-output-flow-ctl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_938"><tt>ttyc/enable-parity</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_942"><tt>ttyc/enable-read</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_944"><tt>ttyc/hup-on-close</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_950"><tt>ttyc/ignore-flags</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_946"><tt>ttyc/no-modem-sync</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_940"><tt>ttyc/odd-parity</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_954"><tt>ttyc/RTS-input-flow-ctl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_820"><tt>ttychar/delayed-suspend</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_802"><tt>ttychar/delete-char</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_804"><tt>ttychar/delete-line</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_822"><tt>ttychar/delete-word</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_824"><tt>ttychar/discard</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_806"><tt>ttychar/eof</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_808"><tt>ttychar/eol</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_826"><tt>ttychar/eol2</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_810"><tt>ttychar/interrupt</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_828"><tt>ttychar/literal-next</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_812"><tt>ttychar/quit</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_830"><tt>ttychar/reprint</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_816"><tt>ttychar/start</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_832"><tt>ttychar/status</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_818"><tt>ttychar/stop</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_814"><tt>ttychar/suspend</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_844"><tt>ttyin/7bits</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_858"><tt>ttyin/beep-on-overflow</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_834"><tt>ttyin/check-parity</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_846"><tt>ttyin/cr-&gt;nl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_836"><tt>ttyin/ignore-bad-parity-chars</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_840"><tt>ttyin/ignore-break</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_848"><tt>ttyin/ignore-cr</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_852"><tt>ttyin/input-flow-ctl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_842"><tt>ttyin/interrupt-on-break</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_860"><tt>ttyin/lowercase</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_838"><tt>ttyin/mark-parity-errors</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_850"><tt>ttyin/nl-&gt;cr</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_854"><tt>ttyin/output-flow-ctl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_856"><tt>ttyin/xon-any</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_986"><tt>ttyl/alt-delete-word</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_958"><tt>ttyl/canonical</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_990"><tt>ttyl/case-map</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_960"><tt>ttyl/echo</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_976"><tt>ttyl/echo-ctl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_962"><tt>ttyl/echo-delete-line</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_964"><tt>ttyl/echo-nl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_968"><tt>ttyl/enable-signals</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_970"><tt>ttyl/extended</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_978"><tt>ttyl/flush-output</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_980"><tt>ttyl/hardcopy-delete</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_972"><tt>ttyl/no-flush-on-interrupt</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_988"><tt>ttyl/no-kernel-status</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_982"><tt>ttyl/reprint-unread-chars</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_974"><tt>ttyl/ttou-signal</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_966"><tt>ttyl/visual-delete</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_984"><tt>ttyl/visual-delete-line</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_926"><tt>ttyout/all-delay</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_882"><tt>ttyout/bs-delay</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_884"><tt>ttyout/bs-delay0</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_886"><tt>ttyout/bs-delay1</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_870"><tt>ttyout/cr-&gt;nl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_888"><tt>ttyout/cr-delay</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_890"><tt>ttyout/cr-delay0</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_892"><tt>ttyout/cr-delay1</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_894"><tt>ttyout/cr-delay2</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_896"><tt>ttyout/cr-delay3</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_876"><tt>ttyout/delay-w/fill-char</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_866"><tt>ttyout/discard-eot</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_862"><tt>ttyout/enable</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_868"><tt>ttyout/expand-tabs</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_898"><tt>ttyout/ff-delay</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_900"><tt>ttyout/ff-delay0</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_902"><tt>ttyout/ff-delay1</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_878"><tt>ttyout/fill-w/del</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_864"><tt>ttyout/nl-&gt;crnl</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_914"><tt>ttyout/nl-delay</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_916"><tt>ttyout/nl-delay0</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_918"><tt>ttyout/nl-delay1</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_872"><tt>ttyout/nl-does-cr</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_874"><tt>ttyout/no-col0-cr</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_904"><tt>ttyout/tab-delay</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_906"><tt>ttyout/tab-delay0</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_908"><tt>ttyout/tab-delay1</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_910"><tt>ttyout/tab-delay2</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_912"><tt>ttyout/tab-delayx</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_880"><tt>ttyout/uppercase</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_920"><tt>ttyout/vtab-delay</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_922"><tt>ttyout/vtab-delay0</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_924"><tt>ttyout/vtab-delay1</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_424"><tt>umask</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_526"><tt>uname</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1164"><tt>uncase</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1168"><tt>uncase-char-set</tt></a><br>
+<a href="man-Z-H-7.html#node_idx_1170"><tt>uncase-string</tt></a><br>
+<a href="man-Z-H-5.html#node_idx_1006"><tt>unix-address-&gt;socket-address</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_212"><tt>unlock-region</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_474"><tt>user-effective-gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_466"><tt>user-effective-uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_458"><tt>user-gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_486"><tt>user-info</tt></a>, 
+<a href="man-Z-H-4.html#node_idx_488">[2]</a><br>
+<a href="man-Z-H-4.html#node_idx_494"><tt>user-info:gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_496"><tt>user-info:home-dir</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_490"><tt>user-info:name</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_498"><tt>user-info:shell</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_492"><tt>user-info:uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_454"><tt>user-login-name</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_460"><tt>user-supplementary-gids</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_456"><tt>user-uid</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-11.html#node_idx_1464"><tt>vendor</tt></a></p>
+<p>
+</p>
+<p></p>
+<p>
+<br>
+<a href="man-Z-H-4.html#node_idx_412"><tt>wait</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_414"><tt>wait-any</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_416"><tt>wait-process-group</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_84"><tt>with-current-input-port</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_78"><tt>with-current-input-port*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_86"><tt>with-current-output-port</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_80"><tt>with-current-output-port*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_438"><tt>with-cwd</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_436"><tt>with-cwd*</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1398"><tt>with-dot-lock</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1396"><tt>with-dot-lock*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_660"><tt>with-enabled-interrupts</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_662"><tt>with-enabled-interrupts*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_712"><tt>with-env</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_708"><tt>with-env*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_72"><tt>with-errno-handler</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_70"><tt>with-errno-handler*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_88"><tt>with-error-output-port</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_82"><tt>with-error-output-port*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_216"><tt>with-region-lock</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_214"><tt>with-region-lock*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_104"><tt>with-stdio-ports</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_102"><tt>with-stdio-ports*</tt></a><br>
+<a href="man-Z-H-11.html#node_idx_1428"><tt>with-syslog-destination</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_714"><tt>with-total-env</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_710"><tt>with-total-env*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_430"><tt>with-umask</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_428"><tt>with-umask*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_480"><tt>with-user-effective-gid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_478"><tt>with-user-effective-gid*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_472"><tt>with-user-effective-uid</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_470"><tt>with-user-effective-uid*</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_174"><tt>write-string</tt></a><br>
+<a href="man-Z-H-4.html#node_idx_176"><tt>write-string/partial</tt></a></p>
+<p>
+</p>
+
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-12.html">previous</a></span><span class=disable>, next</span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span class=disable><span>; &nbsp;&nbsp;</span>index</span>]</i></div><p></p>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man.html">previous</a></span><span>, <a href="man-Z-H-2.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span class=disable>contents</span><span><span class=disable>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_Temp_1"></a>
+<h1 class=chapter>
+<div class=chapterheading>&nbsp;</div><br>
+Contents</h1><p><a name="node_toc_start"></a></p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_1"></a><a href="man-Z-H-2.html#node_chap_1">1&nbsp;&nbsp;Introduction</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.1"></a><a href="man-Z-H-2.html#node_sec_1.1">1.1&nbsp;&nbsp;Copyright &amp; source-code license</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.2"></a><a href="man-Z-H-2.html#node_sec_1.2">1.2&nbsp;&nbsp;Obtaining scsh</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.3"></a><a href="man-Z-H-2.html#node_sec_1.3">1.3&nbsp;&nbsp;Building scsh</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.4"></a><a href="man-Z-H-2.html#node_sec_1.4">1.4&nbsp;&nbsp;Caveats</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.5"></a><a href="man-Z-H-2.html#node_sec_1.5">1.5&nbsp;&nbsp;Naming conventions</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6"></a><a href="man-Z-H-2.html#node_sec_1.6">1.6&nbsp;&nbsp;Lexical issues</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6.1"></a><a href="man-Z-H-2.html#node_sec_1.6.1">1.6.1&nbsp;&nbsp;Extended symbol syntax</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6.2"></a><a href="man-Z-H-2.html#node_sec_1.6.2">1.6.2&nbsp;&nbsp;Extended string syntax</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6.3"></a><a href="man-Z-H-2.html#node_sec_1.6.3">1.6.3&nbsp;&nbsp;Block comments and executable interpreter-triggers</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6.4"></a><a href="man-Z-H-2.html#node_sec_1.6.4">1.6.4&nbsp;&nbsp;Here-strings</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6.4.1"></a><a href="man-Z-H-2.html#node_sec_1.6.4.1">1.6.4.1&nbsp;&nbsp;Character-delimited here-strings</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6.4.2"></a><a href="man-Z-H-2.html#node_sec_1.6.4.2">1.6.4.2&nbsp;&nbsp;Line-delimited here-strings</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.6.5"></a><a href="man-Z-H-2.html#node_sec_1.6.5">1.6.5&nbsp;&nbsp;Dot</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.7"></a><a href="man-Z-H-2.html#node_sec_1.7">1.7&nbsp;&nbsp;Record types and the <tt>define-record</tt> form</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_1.8"></a><a href="man-Z-H-2.html#node_sec_1.8">1.8&nbsp;&nbsp;A word about Unix standards</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_2"></a><a href="man-Z-H-3.html#node_chap_2">2&nbsp;&nbsp;Process notation</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.1"></a><a href="man-Z-H-3.html#node_sec_2.1">2.1&nbsp;&nbsp;Extended process forms and I/O redirections</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.1.1"></a><a href="man-Z-H-3.html#node_sec_2.1.1">2.1.1&nbsp;&nbsp;Port and file descriptor sync</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.2"></a><a href="man-Z-H-3.html#node_sec_2.2">2.2&nbsp;&nbsp;Process forms</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.3"></a><a href="man-Z-H-3.html#node_sec_2.3">2.3&nbsp;&nbsp;Using extended process forms in Scheme</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.3.1"></a><a href="man-Z-H-3.html#node_sec_2.3.1">2.3.1&nbsp;&nbsp;Procedures and special forms</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.3.2"></a><a href="man-Z-H-3.html#node_sec_2.3.2">2.3.2&nbsp;&nbsp;Interfacing process output to Scheme</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.4"></a><a href="man-Z-H-3.html#node_sec_2.4">2.4&nbsp;&nbsp;More complex process operations</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.4.1"></a><a href="man-Z-H-3.html#node_sec_2.4.1">2.4.1&nbsp;&nbsp;Pids and ports together</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.4.2"></a><a href="man-Z-H-3.html#node_sec_2.4.2">2.4.2&nbsp;&nbsp;Multiple stream capture</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.5"></a><a href="man-Z-H-3.html#node_sec_2.5">2.5&nbsp;&nbsp;Conditional process sequencing forms</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_2.6"></a><a href="man-Z-H-3.html#node_sec_2.6">2.6&nbsp;&nbsp;Process filters</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_3"></a><a href="man-Z-H-4.html#node_chap_3">3&nbsp;&nbsp;System Calls</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.1"></a><a href="man-Z-H-4.html#node_sec_3.1">3.1&nbsp;&nbsp;Errors</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.1.1"></a><a href="man-Z-H-4.html#node_sec_3.1.1">3.1.1&nbsp;&nbsp;Interactive mode and error handling</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2"></a><a href="man-Z-H-4.html#node_sec_3.2">3.2&nbsp;&nbsp;I/O</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.1"></a><a href="man-Z-H-4.html#node_sec_3.2.1">3.2.1&nbsp;&nbsp;Standard R5RS I/O procedures</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.2"></a><a href="man-Z-H-4.html#node_sec_3.2.2">3.2.2&nbsp;&nbsp;Port manipulation and standard ports</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.3"></a><a href="man-Z-H-4.html#node_sec_3.2.3">3.2.3&nbsp;&nbsp;String ports</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.4"></a><a href="man-Z-H-4.html#node_sec_3.2.4">3.2.4&nbsp;&nbsp;Revealed ports and file descriptors</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.5"></a><a href="man-Z-H-4.html#node_sec_3.2.5">3.2.5&nbsp;&nbsp;Port-mapping machinery</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.6"></a><a href="man-Z-H-4.html#node_sec_3.2.6">3.2.6&nbsp;&nbsp;Unix I/O</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.7"></a><a href="man-Z-H-4.html#node_sec_3.2.7">3.2.7&nbsp;&nbsp;Buffered I/O</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.2.8"></a><a href="man-Z-H-4.html#node_sec_3.2.8">3.2.8&nbsp;&nbsp;File locking</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.3"></a><a href="man-Z-H-4.html#node_sec_3.3">3.3&nbsp;&nbsp;File system</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.4"></a><a href="man-Z-H-4.html#node_sec_3.4">3.4&nbsp;&nbsp;Processes</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.4.1"></a><a href="man-Z-H-4.html#node_sec_3.4.1">3.4.1&nbsp;&nbsp;Process objects and process reaping</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.4.1.1"></a><a href="man-Z-H-4.html#node_sec_3.4.1.1">3.4.1.1&nbsp;&nbsp;Issues with process reaping</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.4.2"></a><a href="man-Z-H-4.html#node_sec_3.4.2">3.4.2&nbsp;&nbsp;Process waiting</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.4.3"></a><a href="man-Z-H-4.html#node_sec_3.4.3">3.4.3&nbsp;&nbsp;Analysing process status codes</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.5"></a><a href="man-Z-H-4.html#node_sec_3.5">3.5&nbsp;&nbsp;Process state</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.6"></a><a href="man-Z-H-4.html#node_sec_3.6">3.6&nbsp;&nbsp;User and group database access</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.7"></a><a href="man-Z-H-4.html#node_sec_3.7">3.7&nbsp;&nbsp;Accessing command-line arguments</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.8"></a><a href="man-Z-H-4.html#node_sec_3.8">3.8&nbsp;&nbsp;System parameters</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.9"></a><a href="man-Z-H-4.html#node_sec_3.9">3.9&nbsp;&nbsp;Signal system</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.9.0.1"></a><a href="man-Z-H-4.html#node_sec_3.9.0.1">3.9.0.1&nbsp;&nbsp;Interrupt handlers</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.10"></a><a href="man-Z-H-4.html#node_sec_3.10">3.10&nbsp;&nbsp;Time</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.10.1"></a><a href="man-Z-H-4.html#node_sec_3.10.1">3.10.1&nbsp;&nbsp;Terminology</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.10.2"></a><a href="man-Z-H-4.html#node_sec_3.10.2">3.10.2&nbsp;&nbsp;Basic data types</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.10.3"></a><a href="man-Z-H-4.html#node_sec_3.10.3">3.10.3&nbsp;&nbsp;Time zones</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.10.4"></a><a href="man-Z-H-4.html#node_sec_3.10.4">3.10.4&nbsp;&nbsp;Procedures</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.11"></a><a href="man-Z-H-4.html#node_sec_3.11">3.11&nbsp;&nbsp;Environment variables</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.11.1"></a><a href="man-Z-H-4.html#node_sec_3.11.1">3.11.1&nbsp;&nbsp;Path lists and colon lists</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.11.2"></a><a href="man-Z-H-4.html#node_sec_3.11.2">3.11.2&nbsp;&nbsp;<tt>$USER</tt>, <tt>$HOME</tt>, and <tt>$PATH</tt></a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12"></a><a href="man-Z-H-4.html#node_sec_3.12">3.12&nbsp;&nbsp;Terminal device control</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.1"></a><a href="man-Z-H-4.html#node_sec_3.12.1">3.12.1&nbsp;&nbsp;Portability across OS variants</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.2"></a><a href="man-Z-H-4.html#node_sec_3.12.2">3.12.2&nbsp;&nbsp;Miscellaneous procedures</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.3"></a><a href="man-Z-H-4.html#node_sec_3.12.3">3.12.3&nbsp;&nbsp;The tty-info record type</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.3.1"></a><a href="man-Z-H-4.html#node_sec_3.12.3.1">3.12.3.1&nbsp;&nbsp;The control-characters string</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.3.2"></a><a href="man-Z-H-4.html#node_sec_3.12.3.2">3.12.3.2&nbsp;&nbsp;The flag fields</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.3.3"></a><a href="man-Z-H-4.html#node_sec_3.12.3.3">3.12.3.3&nbsp;&nbsp;The speed fields</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.3.4"></a><a href="man-Z-H-4.html#node_sec_3.12.3.4">3.12.3.4&nbsp;&nbsp;The min and time fields</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.4"></a><a href="man-Z-H-4.html#node_sec_3.12.4">3.12.4&nbsp;&nbsp;Using tty-info records</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.5"></a><a href="man-Z-H-4.html#node_sec_3.12.5">3.12.5&nbsp;&nbsp;Other terminal-device procedures</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.6"></a><a href="man-Z-H-4.html#node_sec_3.12.6">3.12.6&nbsp;&nbsp;Control terminals, sessions, and terminal process groups</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_3.12.7"></a><a href="man-Z-H-4.html#node_sec_3.12.7">3.12.7&nbsp;&nbsp;Pseudo-terminals</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_4"></a><a href="man-Z-H-5.html#node_chap_4">4&nbsp;&nbsp;Networking</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_4.1"></a><a href="man-Z-H-5.html#node_sec_4.1">4.1&nbsp;&nbsp;High-level interface</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_4.2"></a><a href="man-Z-H-5.html#node_sec_4.2">4.2&nbsp;&nbsp;Sockets</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_4.3"></a><a href="man-Z-H-5.html#node_sec_4.3">4.3&nbsp;&nbsp;Socket addresses</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_4.4"></a><a href="man-Z-H-5.html#node_sec_4.4">4.4&nbsp;&nbsp;Socket primitives</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_4.5"></a><a href="man-Z-H-5.html#node_sec_4.5">4.5&nbsp;&nbsp;Performing input and output on sockets</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_4.6"></a><a href="man-Z-H-5.html#node_sec_4.6">4.6&nbsp;&nbsp;Socket options</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_4.7"></a><a href="man-Z-H-5.html#node_sec_4.7">4.7&nbsp;&nbsp;Database-information entries</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_5"></a><a href="man-Z-H-6.html#node_chap_5">5&nbsp;&nbsp;Strings and characters</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_5.1"></a><a href="man-Z-H-6.html#node_sec_5.1">5.1&nbsp;&nbsp;Manipulating file names</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_5.1.1"></a><a href="man-Z-H-6.html#node_sec_5.1.1">5.1.1&nbsp;&nbsp;Terminology</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_5.1.2"></a><a href="man-Z-H-6.html#node_sec_5.1.2">5.1.2&nbsp;&nbsp;Procedures</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_5.2"></a><a href="man-Z-H-6.html#node_sec_5.2">5.2&nbsp;&nbsp;Other string manipulation facilities</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_5.3"></a><a href="man-Z-H-6.html#node_sec_5.3">5.3&nbsp;&nbsp;ASCII encoding</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_5.4"></a><a href="man-Z-H-6.html#node_sec_5.4">5.4&nbsp;&nbsp;Character predicates</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_5.5"></a><a href="man-Z-H-6.html#node_sec_5.5">5.5&nbsp;&nbsp;Deprecated character-set procedures</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_6"></a><a href="man-Z-H-7.html#node_chap_6">6&nbsp;&nbsp;Pattern-matching strings with regular expressions</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.1"></a><a href="man-Z-H-7.html#node_sec_6.1">6.1&nbsp;&nbsp;Summary SRE syntax</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.2"></a><a href="man-Z-H-7.html#node_sec_6.2">6.2&nbsp;&nbsp;Examples</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.3"></a><a href="man-Z-H-7.html#node_sec_6.3">6.3&nbsp;&nbsp;A short tutorial</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_28"></a><a href="man-Z-H-7.html#node_sec_Temp_28">Constant strings</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_29"></a><a href="man-Z-H-7.html#node_sec_Temp_29">Simple character sets</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_30"></a><a href="man-Z-H-7.html#node_sec_Temp_30">Wild card</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_31"></a><a href="man-Z-H-7.html#node_sec_Temp_31">Sequences</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.4"></a><a href="man-Z-H-7.html#node_sec_6.4">6.4&nbsp;&nbsp;Choices</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_33"></a><a href="man-Z-H-7.html#node_sec_Temp_33">Repetition</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_34"></a><a href="man-Z-H-7.html#node_sec_Temp_34">Character classes</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_35"></a><a href="man-Z-H-7.html#node_sec_Temp_35">Case sensitivity</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_36"></a><a href="man-Z-H-7.html#node_sec_Temp_36">Dynamic regexps</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_37"></a><a href="man-Z-H-7.html#node_sec_Temp_37">String and line units</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_38"></a><a href="man-Z-H-7.html#node_sec_Temp_38">Posix string notation</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_Temp_39"></a><a href="man-Z-H-7.html#node_sec_Temp_39">Deleted submatches</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.4.1"></a><a href="man-Z-H-7.html#node_sec_6.4.1">6.4.1&nbsp;&nbsp;Embedding regexps within Scheme programs</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.4.1.1"></a><a href="man-Z-H-7.html#node_sec_6.4.1.1">6.4.1.1&nbsp;&nbsp;Static and dynamic regexps</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.5"></a><a href="man-Z-H-7.html#node_sec_6.5">6.5&nbsp;&nbsp;Regexp functions</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.5.1"></a><a href="man-Z-H-7.html#node_sec_6.5.1">6.5.1&nbsp;&nbsp;Obsolete, deprecated procedures</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.5.2"></a><a href="man-Z-H-7.html#node_sec_6.5.2">6.5.2&nbsp;&nbsp;Standard procedures and syntax</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.6"></a><a href="man-Z-H-7.html#node_sec_6.6">6.6&nbsp;&nbsp;The regexp ADT</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_6.7"></a><a href="man-Z-H-7.html#node_sec_6.7">6.7&nbsp;&nbsp;Syntax-hacking tools</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_7"></a><a href="man-Z-H-8.html#node_chap_7">7&nbsp;&nbsp;Reading delimited strings</a></b><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_8"></a><a href="man-Z-H-9.html#node_chap_8">8&nbsp;&nbsp;Awk, record I/O, and field parsing</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.1"></a><a href="man-Z-H-9.html#node_sec_8.1">8.1&nbsp;&nbsp;Record I/O and field parsing</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.1.1"></a><a href="man-Z-H-9.html#node_sec_8.1.1">8.1.1&nbsp;&nbsp;Reading records</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.1.2"></a><a href="man-Z-H-9.html#node_sec_8.1.2">8.1.2&nbsp;&nbsp;Parsing fields</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.1.3"></a><a href="man-Z-H-9.html#node_sec_8.1.3">8.1.3&nbsp;&nbsp;Field readers</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.1.4"></a><a href="man-Z-H-9.html#node_sec_8.1.4">8.1.4&nbsp;&nbsp;Forward-progress guarantees and empty-string matches</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.1.5"></a><a href="man-Z-H-9.html#node_sec_8.1.5">8.1.5&nbsp;&nbsp;Reader limitations</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.2"></a><a href="man-Z-H-9.html#node_sec_8.2">8.2&nbsp;&nbsp;Awk</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.2.1"></a><a href="man-Z-H-9.html#node_sec_8.2.1">8.2.1&nbsp;&nbsp;Examples</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_8.3"></a><a href="man-Z-H-9.html#node_sec_8.3">8.3&nbsp;&nbsp;Backwards compatibility</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_9"></a><a href="man-Z-H-10.html#node_chap_9">9&nbsp;&nbsp;Concurrent system programming</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_9.1"></a><a href="man-Z-H-10.html#node_sec_9.1">9.1&nbsp;&nbsp;Threads</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_9.2"></a><a href="man-Z-H-10.html#node_sec_9.2">9.2&nbsp;&nbsp;Locks</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_9.3"></a><a href="man-Z-H-10.html#node_sec_9.3">9.3&nbsp;&nbsp;Placeholders</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_9.4"></a><a href="man-Z-H-10.html#node_sec_9.4">9.4&nbsp;&nbsp;The event interface to interrupts</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_9.5"></a><a href="man-Z-H-10.html#node_sec_9.5">9.5&nbsp;&nbsp;Interaction between threads and process state</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_10"></a><a href="man-Z-H-11.html#node_chap_10">10&nbsp;&nbsp;Miscellaneous routines</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_10.1"></a><a href="man-Z-H-11.html#node_sec_10.1">10.1&nbsp;&nbsp;Integer bitwise ops</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_10.2"></a><a href="man-Z-H-11.html#node_sec_10.2">10.2&nbsp;&nbsp;Password encryption</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_10.3"></a><a href="man-Z-H-11.html#node_sec_10.3">10.3&nbsp;&nbsp;Dot-Locking</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_10.4"></a><a href="man-Z-H-11.html#node_sec_10.4">10.4&nbsp;&nbsp;Syslog facility</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_10.5"></a><a href="man-Z-H-11.html#node_sec_10.5">10.5&nbsp;&nbsp;MD5 interface</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_10.6"></a><a href="man-Z-H-11.html#node_sec_10.6">10.6&nbsp;&nbsp;Configuration variables</a><br>
+</p>
+<p><b>
+&nbsp; &nbsp; <a name="node_toc_node_chap_11"></a><a href="man-Z-H-12.html#node_chap_11">11&nbsp;&nbsp;Running scsh</a></b><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1"></a><a href="man-Z-H-12.html#node_sec_11.1">11.1&nbsp;&nbsp;Scsh command-line switches</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.1"></a><a href="man-Z-H-12.html#node_sec_11.1.1">11.1.1&nbsp;&nbsp;Scripts and programs</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.2"></a><a href="man-Z-H-12.html#node_sec_11.1.2">11.1.2&nbsp;&nbsp;Inserting interpreter triggers into scsh programs</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.3"></a><a href="man-Z-H-12.html#node_sec_11.1.3">11.1.3&nbsp;&nbsp;Module system</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.3.1"></a><a href="man-Z-H-12.html#node_sec_11.1.3.1">11.1.3.1&nbsp;&nbsp;Module warning</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.4"></a><a href="man-Z-H-12.html#node_sec_11.1.4">11.1.4&nbsp;&nbsp;Library directories search facility</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.5"></a><a href="man-Z-H-12.html#node_sec_11.1.5">11.1.5&nbsp;&nbsp;Switches</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.6"></a><a href="man-Z-H-12.html#node_sec_11.1.6">11.1.6&nbsp;&nbsp;The meta argument</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.6.1"></a><a href="man-Z-H-12.html#node_sec_11.1.6.1">11.1.6.1&nbsp;&nbsp;Secondary argument syntax</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.7"></a><a href="man-Z-H-12.html#node_sec_11.1.7">11.1.7&nbsp;&nbsp;Examples</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.1.8"></a><a href="man-Z-H-12.html#node_sec_11.1.8">11.1.8&nbsp;&nbsp;Process exit values</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.2"></a><a href="man-Z-H-12.html#node_sec_11.2">11.2&nbsp;&nbsp;The scsh virtual machine</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.2.1"></a><a href="man-Z-H-12.html#node_sec_11.2.1">11.2.1&nbsp;&nbsp;VM arguments</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.2.1.1"></a><a href="man-Z-H-12.html#node_sec_11.2.1.1">11.2.1.1&nbsp;&nbsp;VM options</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.2.1.2"></a><a href="man-Z-H-12.html#node_sec_11.2.1.2">11.2.1.2&nbsp;&nbsp;End options</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.2.2"></a><a href="man-Z-H-12.html#node_sec_11.2.2">11.2.2&nbsp;&nbsp;Stripped image</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.2.3"></a><a href="man-Z-H-12.html#node_sec_11.2.3">11.2.3&nbsp;&nbsp;Inserting interpreter triggers into heap images</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.2.4"></a><a href="man-Z-H-12.html#node_sec_11.2.4">11.2.4&nbsp;&nbsp;Inserting a double-level trigger into Scheme programs</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.3"></a><a href="man-Z-H-12.html#node_sec_11.3">11.3&nbsp;&nbsp;Compiling scsh programs</a><br>
+&nbsp; &nbsp; &nbsp; &nbsp; <a name="node_toc_node_sec_11.4"></a><a href="man-Z-H-12.html#node_sec_11.4">11.4&nbsp;&nbsp;Standard file locations</a><br>
+ </p>
+<p>
+</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man.html">previous</a></span><span>, <a href="man-Z-H-2.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span class=disable>contents</span><span><span class=disable>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

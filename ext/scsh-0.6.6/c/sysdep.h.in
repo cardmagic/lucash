@@ -1,0 +1,286 @@
+/* c/sysdep.h.in.  Generated from configure.in by autoheader.  */
+
+/* Define to 1 on cygwin */
+#undef CYGWIN
+
+/* Define to 1 if you have the `chroot' function. */
+#undef HAVE_CHROOT
+
+/* const char* sys_errlist */
+#undef HAVE_CONST_SYS_ERRLIST
+
+/* Define to 1 if you have the <crypt.h> header file. */
+#undef HAVE_CRYPT_H
+
+/* Define to 1 if the interface to the dynamic linker exists */
+#undef HAVE_DLOPEN
+
+/* Define to 1 if you have the `ftime' function. */
+#undef HAVE_FTIME
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#undef HAVE_GETTIMEOFDAY
+
+/* Define to 1 if struct tm has member tm_gmtoff */
+#undef HAVE_GMTOFF
+
+/* Define to 1 on m88k-harris-cxux */
+#undef HAVE_HARRIS
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `crypt' library (-lcrypt). */
+#undef HAVE_LIBCRYPT
+
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
+
+/* Define to 1 if you have the `elf' library (-lelf). */
+#undef HAVE_LIBELF
+
+/* Define to 1 if you have the `gen' library (-lgen). */
+#undef HAVE_LIBGEN
+
+/* Define to 1 if you have the <libgen.h> header file. */
+#undef HAVE_LIBGEN_H
+
+/* Define to 1 if you have the `m' library (-lm). */
+#undef HAVE_LIBM
+
+/* Define to 1 if you have the `mld' library (-lmld). */
+#undef HAVE_LIBMLD
+
+/* Define to 1 if you have the `nsl' library (-lnsl). */
+#undef HAVE_LIBNSL
+
+/* Define to 1 if you have the `socket' library (-lsocket). */
+#undef HAVE_LIBSOCKET
+
+/* Define to 1 if you have the `sun' library (-lsun). */
+#undef HAVE_LIBSUN
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `nlist' function. */
+#undef HAVE_NLIST
+
+/* Define to 1 if you have the <nlist.h> header file. */
+#undef HAVE_NLIST_H
+
+/* Define to 1 if you have the <posix/time.h> header file. */
+#undef HAVE_POSIX_TIME_H
+
+/* Define to 1 if you have the `select' function. */
+#undef HAVE_SELECT
+
+/* Define to 1 if you have the setegid function */
+#undef HAVE_SETEGID
+
+/* Define to 1 if you have the seteuid function */
+#undef HAVE_SETEUID
+
+/* Define to 1 if you have the `setitimer' function. */
+#undef HAVE_SETITIMER
+
+/* Define to 1 if you have the setregid function */
+#undef HAVE_SETREGID
+
+/* Define to 1 if you have the setreuid function */
+#undef HAVE_SETREUID
+
+/* Define to 1 if you have the `sigaction' function. */
+#undef HAVE_SIGACTION
+
+/* Define to 1 if you have the `socket' function. */
+#undef HAVE_SOCKET
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the strerror function */
+#undef HAVE_STRERROR
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if `tm_zone' is member of `struct tm'. */
+#undef HAVE_STRUCT_TM_TM_ZONE
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/timeb.h> header file. */
+#undef HAVE_SYS_TIMEB_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/un.h> header file. */
+#undef HAVE_SYS_UN_H
+
+/* Define to 1 if your `struct tm' has `tm_zone'. Deprecated, use
+   `HAVE_STRUCT_TM_TM_ZONE' instead. */
+#undef HAVE_TM_ZONE
+
+/* Define to 1 if you don't have `tm_zone' but do have the external array
+   `tzname'. */
+#undef HAVE_TZNAME
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `vasprintf' function. */
+#undef HAVE_VASPRINTF
+
+/* Define to 1 if struct nlist.n_name exists */
+#undef NLIST_HAS_N_NAME
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define as the return type of signal handlers (`int' or `void'). */
+#undef RETSIGTYPE
+
+/* scsh interrupt for signal 1 */
+#undef SIGNR_1
+
+/* scsh interrupt for signal 10 */
+#undef SIGNR_10
+
+/* scsh interrupt for signal 11 */
+#undef SIGNR_11
+
+/* scsh interrupt for signal 12 */
+#undef SIGNR_12
+
+/* scsh interrupt for signal 13 */
+#undef SIGNR_13
+
+/* scsh interrupt for signal 14 */
+#undef SIGNR_14
+
+/* scsh interrupt for signal 15 */
+#undef SIGNR_15
+
+/* scsh interrupt for signal 16 */
+#undef SIGNR_16
+
+/* scsh interrupt for signal 17 */
+#undef SIGNR_17
+
+/* scsh interrupt for signal 18 */
+#undef SIGNR_18
+
+/* scsh interrupt for signal 19 */
+#undef SIGNR_19
+
+/* scsh interrupt for signal 2 */
+#undef SIGNR_2
+
+/* scsh interrupt for signal 20 */
+#undef SIGNR_20
+
+/* scsh interrupt for signal 21 */
+#undef SIGNR_21
+
+/* scsh interrupt for signal 22 */
+#undef SIGNR_22
+
+/* scsh interrupt for signal 23 */
+#undef SIGNR_23
+
+/* scsh interrupt for signal 24 */
+#undef SIGNR_24
+
+/* scsh interrupt for signal 25 */
+#undef SIGNR_25
+
+/* scsh interrupt for signal 26 */
+#undef SIGNR_26
+
+/* scsh interrupt for signal 27 */
+#undef SIGNR_27
+
+/* scsh interrupt for signal 28 */
+#undef SIGNR_28
+
+/* scsh interrupt for signal 29 */
+#undef SIGNR_29
+
+/* scsh interrupt for signal 3 */
+#undef SIGNR_3
+
+/* scsh interrupt for signal 30 */
+#undef SIGNR_30
+
+/* scsh interrupt for signal 31 */
+#undef SIGNR_31
+
+/* scsh interrupt for signal 4 */
+#undef SIGNR_4
+
+/* scsh interrupt for signal 5 */
+#undef SIGNR_5
+
+/* scsh interrupt for signal 6 */
+#undef SIGNR_6
+
+/* scsh interrupt for signal 7 */
+#undef SIGNR_7
+
+/* scsh interrupt for signal 8 */
+#undef SIGNR_8
+
+/* scsh interrupt for signal 9 */
+#undef SIGNR_9
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Define to 1 if your <sys/time.h> declares `struct tm'. */
+#undef TM_IN_SYS_TIME
+
+/* Define to 1 if symbols start with _ */
+#undef USCORE
+
+/* Define to 1 if your processor stores words with the most significant byte
+   first (like Motorola and SPARC, unlike Intel and VAX). */
+#undef WORDS_BIGENDIAN
+
+/* Define to 1 to compile on HP/UX */
+#undef _HPUX_SOURCE
+
+/* Define to 1 to compile on HP/UX */
+#undef _XOPEN_SOURCE_EXTENDED
+
+/* Define to empty if `const' does not conform to ANSI C. */
+#undef const
+
+/* Define to 1 on HP/UX */
+#undef hpux
+
+/* Define to type of socklen_t */
+#undef socklen_t

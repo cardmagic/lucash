@@ -1,0 +1,1012 @@
+%&latex -*- latex -*-
+
+\chapter{Running scsh}
+\label{chapt:running}
+
+Scsh is currently implemented on top of {\scm}, a freely-available
+{\Scheme} implementation written by Jonathan Rees and Richard Kelsey.
+{\scm} uses a byte-code interpreter for good code density, portability
+and medium efficiency. It is {\RnRS}.
+It also has a module system designed by Jonathan Rees.
+
+Scsh's design is not {\scm} specific, although the current implementation
+is necessarily so.
+Scsh is intended to be implementable in other {\Scheme} implementations.
+The {\scm} virtual machine that scsh uses is a specially modified version;
+standard {\scm} virtual machines cannot be used with the scsh heap image.
+
+There are several different ways to invoke scsh.
+You can run it as an interactive Scheme system, with a standard
+read-eval-print interaction loop.
+Scsh can also be invoked as the interpreter for a shell script by putting
+a ``\verb|#!/usr/local/bin/scsh -s|'' line at the top of the shell script.
+
+Descending a level, it is also possible to invoke the underlying virtual
+machine byte-code interpreter directly on dumped heap images.
+Scsh programs can be pre-compiled to byte-codes and dumped as raw,
+binary heap images.
+Writing heap images strips out unused portions of the scsh runtime
+(such as the compiler, the debugger, and other complex subsystems),
+reducing memory demands and saving loading and compilation times.
+The heap image format allows for an initial \verb|#!/usr/local/lib/scsh/scshvm| trigger
+on the first line of the image, making heap images directly executable as 
+another kind of shell script.
+
+Finally, scsh's static linker system allows dumped heap images to be compiled
+to a raw Unix a.out(5) format, which can be linked into the text section
+of the vm binary.
+This produces a true Unix executable binary file.
+Since the byte codes comprising the program are in the file's text section,
+they are not traced or copied by the garbage collector, do not occupy space
+in the vm's heap, and do not need to be loaded and linked at startup time.
+This reduces the program's startup time, memory requirements,
+and paging overhead.
+
+This chapter will cover these various ways of invoking scsh programs.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Scsh command-line switches}
+
+When the scsh top-level starts up, it scans the command line
+for switches that control its behaviour.
+These arguments are removed from the command line; 
+the remaining arguments can be accessed as the value of
+the scsh variable \ex{command-line-arguments}.
+
+\subsection{Scripts and programs}
+
+The scsh command-line switches provide sophisticated support for 
+the authors of shell scripts and programs;
+they also allow the programmer to write programs 
+that use the {\scm} module system.
+
+There is a difference between a \emph{script}, which performs its action
+\emph{as it is loaded}, and a \emph{program}, which is loaded/linked, 
+and then performs its action by having control transferred to an entry point
+(\eg, the \ex{main()} function in C programs) that was defined by the
+load/link operation.
+
+A \emph{script}, by the above definition, cannot be compiled by the simple
+mechanism of loading it into a scsh process and dumping out a heap image---it
+executes as it loads. It does not have a top-level \ex{main()}-type entry
+point.
+
+It is more flexible and useful to implement a system 
+as a program than as a script.
+Programs can be compiled straightforwardly; 
+they can also export procedural interfaces for use by other Scheme packages.
+However, scsh supports both the script and the program style of programming.
+
+\subsection{Inserting interpreter triggers into scsh programs}
+When Unix tries to execute an executable file whose first 16 bits are
+the character pair ``\ex{\#!}'', it treats the file not as machine-code
+to be directly executed by the native processor, but as source code to
+be executed by some interpreter.
+The interpreter to use is specified immediately after the ``\ex{\#!}''
+sequence on the first line of the source file 
+(along with one optional initial argument).
+The kernel reads in the name of the interpreter, and executes that instead.
+The interpreter is passed the source filename as its first argument, with
+the original arguments following.
+Consult the Unix man page for the \ex{exec} system call for more information.
+
+Scsh allows Scheme programs to have these triggers placed on
+their first line.
+Scsh treats the character sequence ``\ex{\#!}'' as a block-comment sequence,%
+\footnote{Why a block-comment instead of an end-of-line delimited comment?
+          See the section on meta-args.}
+and skips all following characters until it reads the comment-terminating
+sequence newline/exclamation-point/sharp-sign/newline (\ie, the
+sequence ``\ex{!\#}'' occurring on its own line).
+
+In this way, the programmer can arrange for an initial
+\begin{code}
+#!/usr/local/bin/scsh -s
+!#\end{code}
+header appearing in a Scheme program
+to be ignored when the program is loaded into scsh.
+
+\subsection{Module system}
+Scsh uses the {\scm} module system, which defines
+\emph{packages}, \emph{structures}, and \emph{interfaces}.
+%
+\begin{description}
+
+\item [Package] A package is an environment---that is, a set of
+variable/value bindings.
+You can evaluate Scheme forms inside a package, or load a file into a package.
+Packages export sets of bindings; these sets are called \emph{structures}.
+
+\item [Structure] A structure is a named view on a package---a set of
+    bindings. Other packages can \emph{open} the structure, importing its
+    bindings into their environment. Packages can provide more than one
+    structure, revealing different portions of the package's environment.
+
+\item [Interface] An interface is the ``type'' of a structure. An
+    interface is the set of names exported by a structure. These names
+    can also be marked with other static information (\eg, advisory type
+    declarations, or syntax information).
+\end{description}
+More information on the the {\scm} module system can be found in the 
+file \ex{module.ps} in the \ex{doc} directory of the {\scm} and scsh releases.
+
+Programming Scheme with a module system is different from programming
+in older Scheme implementations,
+and the associated development problems are consequently different.
+In Schemes that lack modular abstraction mechanisms, 
+everything is accessible; the major problem is preventing name-space conflicts.
+In Scheme 48, name-space conflicts vanish; the major problem is that not
+all bindings are accessible from every place.
+It takes a little extra work to specify what packages export which values.
+
+It may take you a little while to get used to the new style of program
+development.
+Although scsh can be used without referring to the module system at
+all, we recommend taking the time to learn and use it.
+The effort will pay off in the construction of modular, factorable programs.
+
+\subsubsection{Module warning}
+Most scsh programs will need to import from the \ex{scheme} structure
+as well as from the \ex{scsh} structure. However, putting both of
+these structures in the same \texttt{open} clause is a bad idea
+because the structures \ex{scheme} and \ex{scsh} export some names of
+I/O functions in common but with different definitions.  The current
+implementation of the module system does not recognize this as an
+error but silently overwrites the exports of one structure with the
+exports of the other.  If the \ex{scheme} structure overwrites the
+exports of the \ex{scsh} structures the program will access the
+R$^5$RS definitions of the I/O functions which is not what you want.
+
+Previous versions of this manual suggested to list \ex{scheme} and
+\ex{scsh} in a specific order in the \texttt{open} clause of a
+structure to ensure that the definitions from \ex{scsh} overwrite the
+ones from \ex{scheme}. This approach is error-prone and fragile: A
+simple change in the implementation of the module system will render
+thousands of programs useless.  Starting with release 0.6.3 scsh
+provides a better means to deal with this problem: the structure
+\ex{scheme-with-scsh} provides all the exports of the modules
+\ex{scheme} and \ex{scsh} but exports the right denotations for the
+I/O functions in question. To make a long story short:
+\begin{center}
+  Scsh programs should open the structure \ex{scheme-with-scsh} if
+  they need access to the exports of \ex{scheme} and \ex{scsh}.
+\end{center}
+
+For programs which should run in versions of scsh prior to release
+0.6.3, programmers should make sure to always put the \ex{scsh}
+reference first.
+
+\subsection{Library directories search facility}
+\label{sec:lib-dirs}
+
+Scsh's command line switches allow loading of code not present in the
+script file or the heap image at startup. To relief the user from
+specifying full path names and to improve flexibility, scsh offers the
+library directories path list. This list contains directories in which
+scsh searches automatically for a file name argument of the
+\texttt{-ll} or \texttt{-le} switch.
+
+This section describes the programmatic interface to the library
+directories search facility. In addition, various command line
+switches for scsh modify the library directories path list. Section
+\ref{sec:scsh-switches} describes these switches and the switches to
+actually load files.
+
+Another way to change the library directories path list is the
+environment variable \texttt{\$SCSH\_LIB\_DIRS}. If this variable is
+set, scsh uses it to set library directories path list. The value of
+this environment variable is treated as a sequence of s-expressions,
+which are ``read'' from the string:
+    
+\begin{itemize}
+\item A string is treated as a directory,
+\item \sharpf{} is replaced with the default list of directories.
+\end{itemize}
+
+A \texttt{\$SCSH\_LIB\_DIRS} assignment of this form
+\begin{small}
+\begin{verbatim}
+SCSH_LIB_DIRS='"." "/usr/contrib/lib/scsh/" #f "/home/shivers/lib/scsh"'
+\end{verbatim}
+\end{small}
+would produce this list of strings for the
+\textit{library-directories} list:
+%
+\begin{verbatim}
+          ("." "/usr/contrib/lib/scsh/" 
+          "/usr/local/lib/scsh/modules/" 
+          "/home/shivers/lib/scsh")
+\end{verbatim}
+%
+It is a startup error if reading the \texttt{\$SCSH\_LIB\_DIRS}
+environment variable causes a read error, or produces a value that
+isn't a list of strings or \sharpf.
+
+\defvar{default-lib-dirs}{string list}
+
+\begin{desc}
+  The default list of \textit{library directories}. The original value
+of this variable is \verb+("$prefix/lib/scsh/modules/")+. %$ but
+starting with version 0.6.5 the option \verb+--with-lib-dirs-list+ of
+the \texttt{configure} script changes for a new installation.
+\end{desc}    
+
+\defun{find-library-file}{file lib-dirs script-file}{\undefined}
+\begin{desc}
+  Searches the list of library directories \var{lib-dirs} for
+  \var{file} and returns the full path. The variable \var{script-file}
+  is used to resolve references to the directory of the current
+  script. 
+  
+  When searching for a directory containing a given library module,
+  nonexistent or read-protected directories are silently ignored; it
+  is not an error to have them in the \textit{library-directories}
+  list.
+    
+  Directory search can be recursive. A directory name that ends with a
+  slash is recursively searched.
+\end{desc}
+
+\defun{lib-dirs}{}{string list}
+\begin{desc}
+  Returns the current library directories path list.
+\end{desc}
+
+\defun{lib-dirs-prepend-script-dir!}{}{\undefined}
+\defunx{lib-dirs-append-script-dir!}{}{\undefined}
+\begin{desc}
+  Add the directory of the current script file to the beginning or end
+  of the \textit{library-directories} path list, respectively.
+\end{desc}
+
+\defun{lib-dirs-append!}{dir}{\undefined}
+\defunx{lib-dirs-prepend!}{dir}{\undefined}
+\begin{desc}
+  Add directory \var{lib-dir} to the beginning or end of the
+  \textit{library-directories} path list, respectively.
+\end{desc}
+
+\defun{clear-lib-dirs!}{}{\undefined}
+\begin{desc}
+  Set the \textit{library-directories} path list to the empty list.
+\end{desc}
+
+\defun{reset-lib-dirs!}{}{\undefined}
+\begin{desc}
+  Set the \textit{library-directories} path list to system default,
+  i.e. to the value of \var{default-lib-dirs}.
+\end{desc}
+
+\subsection{Switches}
+\label{sec:scsh-switches}
+The scsh top-level takes command-line switches in the following
+format:
+%
+\codex{scsh [\var{meta-arg}] [\vari{switch}i {\ldots}] 
+            [\var{end-option} \vari{arg}1 {\ldots} \vari{arg}n]}
+where
+\begin{inset}
+\begin{flushleft}
+\begin{tabular}{ll@{\qquad}l}
+\var{meta-arg:}         & \verb|\| \var{script-file-name} \\
+\\
+\var{switch:}           & \ex{-e} \var{entry-point} 
+                        & Specify top-level entry-point. \\
+
+                        & \ex{-o} \var{structure}
+                        & Open structure in current package. \\
+
+                        & \ex{-m} \var{structure}
+                        & Switch to package. \\
+
+                        & \ex{-n} \var{new-package}
+                        & Switch to new package. \\ \\
+
+
+                        & \ex{-lm} \var{module-file-name}
+                        & Load module into config package. \\
+
+                        & \ex{-le} \var{exec-file-name}
+                        & Load module into exec package. \\
+
+                        & \ex{-l} \var{file-name}
+                        & Load file into current package. \\
+
+                        
+                        
+                        & \ex{-ll} \var{module-file-name} 
+                        & As in -lm, but search the library path list.\\
+                        & \ex{-lel} \var{exec-file-name} 
+                        & As in -le, but search the library path list.\\
+                        & \ex{+lp}  \var{dir}
+                        & Add dir to front of library path list.\\
+                        & \ex{lp+}  \var{dir}
+                        & Add dir to end of library path list.\\
+                        & \ex{+lpe} \var{dir}
+                        & +lp, with env var and \~user expansion.\\
+                        & \ex{lpe+} \var{dir}
+                        & lp+, with env var and \~user expansion.\\
+                        & \ex{+lpsd}                    
+                        & Add script-file's dir to front of path list.\\
+                        & \ex{lpsd+}                    
+                        & Add script-file's dir to end of path list.\\
+                        & \ex{-lp-clear}                
+                        & Clear library path list to ().\\
+                        & \ex{-lp-default}              
+                        & Reset library path list to system default.\\
+                        
+                        & \ex{-ds} & Do script. \\
+                        & \ex{-dm} & Do script module. \\
+                        & \ex{-de} & Do script exec. \\
+\\
+\var{end-option:}       & \ex{-s} \var{script} \\
+                        & \ex{-sfd} \var{num} \\
+                        & \ex{-c} \var{exp} \\
+                        & \ex{--}
+\end{tabular}
+\end{flushleft}
+\end{inset}
+%
+These command-line switches essentially provide a little linker
+language for linking a shell script or a program together with {\scm}
+modules or {\scm} exec programs \footnote{See the Section ``Command
+  programs'' in the {\scm} manual for a description of the exec language.}.
+The command-line processor serially opens structures and loads code
+into a given package.  Switches that side-effect a package operate on
+a particular ``current'' package; there are switches to change this
+package.  (These switches provide functionality equivalent to the
+interactive \ex{,open} \ex{,load} \ex{,in} and \ex{,new} commands.)
+Except where indicated, switches specify actions that are executed in
+a left-to-right order.  The initial current package is the user
+package, which is completely empty and opens (imports the bindings of)
+the \RnRS{} and scsh structures.
+
+If the Scheme process is started up in an interactive mode, then the current
+package in force at the end of switch scanning is the one inside which
+the interactive read-eval-print loop is started.
+
+The command-line switch processor works in two passes:
+it first parses the switches, building a list of actions to perform, 
+then the actions are performed serially.
+The switch list is terminated by one of the \var{end-option} switches.
+The \vari{arg}{i} arguments occurring after an end-option switch are 
+passed to the scsh program as the value of \ex{command-line-arguments}
+and the tail of the list returned by \ex{(command-line)}.
+That is, an \var{end-option} switch separates switches that control
+the scsh ``machine'' from the actual arguments being passed to the scsh
+program that runs on that machine.
+
+The following switches and end options are defined:
+\begin{itemize}
+\def\Item#1{\item{\ex{#1}}\\}
+
+\Item{-o \var{struct}}
+    Open the structure in the current package.
+
+\Item{-n \var{package}}
+    Make and enter a new package. The package has an associated structure
+    named \var{package} with an empty export list.
+    If \var{package} is the string ``\ex{\#f}'', 
+    the new package is anonmyous, with no associated named structure.
+
+    The new package initially opens no other structures,
+    not even the \RnRS{} bindings. You must follow a ``\ex{-n foo}''
+    switch with ``\ex{-o scheme}'' to access the standard identifiers such
+    as \ex{car} and \ex{define}.
+
+\Item{-m \var{struct}}
+    Change the current package to the package underlying 
+    structure \var{struct}.
+    (The \ex{-m} stands for ``module.'')
+
+\Item{-lm \var{module-file-name}}
+     Load the specified file into scsh's config package --- the file
+     must contain source written in the Scheme 48 module language
+     (``load module''). Does not alter the current package.
+
+\Item{-le \var{exec-file-name}}
+     Load the specified file into scsh's exec package --- the file
+     must contain source written in the Scheme 48 exec language
+     (``load exec''). Does not alter the current package.
+
+\Item{-l \var{file-name}}
+     Load the specified file into the current package.
+
+\Item{-c \var{exp}}
+    Evaluate expression \var{exp} in the current package and exit. 
+    This is called \ex{-c} after a common shell convention (see sh and csh). 
+    The expression is evaluated in the the current package (and hence is
+    affected by \ex{-m}'s and \ex{-n}'s.)
+
+    When the scsh top-level constructs the scsh command-line in this case,
+    it takes \ex{"scsh"} to be the program name.
+    This switch terminates argument scanning; following args become
+    the tail of the command-line list.
+
+\Item{-e \var{entry-point}}
+    Specify an entry point for a program. The \var{entry-point} is
+    a variable that is taken from the current package in force at the end
+    of switch evaluation. The entry point does not have to be exported
+    by the package in a structure; it can be internal to the package.
+    The top level passes control to the entry point by applying it to
+    the command-line list (so programs executing in private
+    packages can reference their command-line arguments without opening
+    the \ex{scsh} package to access the \ex{(command-line)} procedure).
+    Note that, like the list returned by the \ex{(command-line)} procedure,
+    the list passed to the entry point includes the name
+    of the program being executed (as the first element of the list), 
+    not just the arguments to the program.
+
+    A \ex{-e} switch can occur anywhere in the switch list, but it is the
+    \emph{last} action performed by switch scanning if it occurs. 
+    (We violate ordering here as the shell-script \ex{\#!} mechanism
+     prevents you from putting the \emph{-e} switch last, where it belongs.)
+
+\Item{-s \var{script}}
+    Specify a file to load.
+    A \ex{-ds} (do-script), \ex{-dm} (do-module), or \ex{-de}
+    (do-exec) switch occurring earlier in the switch list gives the
+    place where the script should be loaded. If there is no \ex{-ds},
+    \ex{-dm}, or \ex{-de} switch, then the script is loaded at the end of switch
+    scanning, into the module that is current at the end of switch
+    scanning.
+
+    We use the \ex{-ds} switch to violate left-to-right switch execution order
+    as the \ex{-s} switch is \emph{required} to be last
+    (because of the \ex{\#!} machinery), 
+    independent of when/where in the switch-processing order 
+    it should be loaded.
+
+    When the scsh top-level constructs the scsh command-line in this case,
+    it takes \var{script} to be the program name.
+    This switch terminates switch parsing; following args are ignored
+    by the switch-scanner and are passed through to the program as
+    the tail of the command-line list.
+
+\Item{-sfd \var{num}}
+    Loads the script from file descriptor \var{num}. 
+    This switch is like the \ex{-s} switch, 
+    except that the script is loaded from one of the process' open input
+    file descriptors.
+    For example, to have the script loaded from standard input, specify
+    \ex{-sfd 0}.
+
+\Item{--}
+    Terminate argument scanning and start up scsh in interactive mode.
+    If the argument list just runs out, without either a terminating 
+    \ex{-s} or \ex{--} arg, then scsh also starts up in interactive mode, 
+    with an empty \ex{command-line-arguments} list 
+    (for example, simply entering \ex{scsh} at a shell prompt with no
+     args at all).
+
+    When the scsh top-level constructs the scsh command-line in this case,
+    it takes \ex{"scsh"} to be the program name.
+    This switch terminates switch parsing; following args are ignored
+    by the switch-scanner and are passed through to the program as
+    the tail of the command-line list.
+
+\Item{-ds}
+    Specify when to load the script (``do-script''). If this switch occurs, 
+    the switch list \emph{must} be terminated by a \ex{-s \var{script}}
+    switch. The script is loaded into the package that is current at the
+    \ex{-ds} switch.
+
+\Item{-dm}
+    As above, but the current module is ignored. The script is loaded into the
+    \ex{config} package (``do-module''), and hence must be written in the
+    {\scm} module language.
+    This switch doesn't affect the current module---after executing this 
+    switch, the current module is the same as as it was before.
+
+    This switch is provided to make it easy to write shell scripts in the
+    {\scm} module language.
+
+\Item{-de}
+    As above, but the current module is ignored. The script is loaded into the
+    \ex{exec} package (``do-exec''), and hence must be written in the
+    {\scm} exec language.
+
+    This switch is provided to make it easy to write shell scripts in the
+    {\scm} exec language.
+
+\Item{-ll \var{module-file-name}}
+
+    Load library module into config package.
+    This is just like the \ex{-lm} switch, except that it searches the
+    library-directory path list (see Section \ref{sec:lib-dirs}) 
+    for the file to load.
+    
+    Specifically, it means: search through the
+    \textit{library-directories} list of directories looking for a
+    module file of the given name, and load it in. Scsh uses the
+    procedure \var{find-library-file} from Section \ref{sec:lib-dirs}
+    to perform the search.
+
+\Item{-lel \var{exec-file-name}}
+    As above, but load the specified file into scsh's exec package.
+    This is just like the \ex{-le} switch, except that it searches the
+    library-directory path list for the file to load.
+
+\Item{+lp \var{lib-dir},lp+ \var{lib-dir}}
+    Add directory \var{lib-dir} to the beginning or end of the
+    \textit{library-directories} path list, respectively.
+    
+    \var{lib-dir} is a single directory. It is not split at colons or
+    otherwise processed. These switches correspond to the procedures
+    \ex{lib-dirs-prepend!} and \ex{lib-dirs-append!} from Section
+    \ref{sec:lib-dirs}.
+
+\Item{+lpe, lpe+}
+    As above, except that \~ home-directory syntax and environment
+    variables are expanded out.
+     
+\Item{+lpsd,lpsd+} 
+    Add script-file's directory to the beginning or end of the
+    \textit{library-directories} path list, respectively. These switches 
+    correspond to the procedures
+    \ex{lib-dirs-prepend-script-dir!} and \ex{lib-dirs-append-script-dir!} from Section
+    \ref{sec:lib-dirs}.
+
+\Item{-lp-clear, -lp-default}
+    Set the \textit{library-directories} path list to the empty list and
+    the system default, respectively. These switches correspond to
+    the procedures \ex{clear-lib-dirs!} and \ex{reset-lib-dirs!} from Section
+    \ref{sec:lib-dirs}.
+        
+    The two switches are useful if you would like to protect your
+    script from influence by the \texttt{\$SCSH\_LIB\_DIRS} variable.
+
+    In these cases, the \texttt{\$SCSH\_LIB\_DIRS} environment variable is never
+    even parsed, so a bogus value will not affect the script's
+    execution at all.
+\end{itemize}
+
+\subsection{The meta argument}
+\label{sec:meta-arg}
+The scsh switch parser takes a special command-line switch,
+a single backslash called the ``meta-argument,'' which is useful for 
+shell scripts.
+If the initial command-line argument is a ``\verb|\|''
+argument, followed by a filename argument \var{fname}, scsh will open the file
+\var{fname} and read more arguments from the second line of this file. 
+This list of arguments will then replace the ``\verb|\|'' argument---\ie,
+the new arguments are inserted in front of \var{fname}, 
+and the argument parser resumes argument scanning.
+This is used to overcome a limitation of the \ex{\#!} feature: 
+the \ex{\#!} line can only specify a single argument after the interpreter.
+For example, we might hope the following scsh script, \ex{ekko}, 
+would implement a simple-minded version of the Unix \ex{echo} program:
+\begin{code}
+#!/usr/local/bin/scsh -e main -s
+!#
+(define (main args)
+  (map (\l{arg} (display arg) (display " "))
+       (cdr args))
+  (newline))\end{code}
+%   
+The idea would be that the command
+    \codex{ekko Hi there.}
+would by expanded by the \ex{\urlh{http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html}{exec(2)}} kernel call into
+%
+\begin{code}
+/usr/local/bin/scsh -e main -s ekko Hi there.\end{code}
+%
+In theory, this would cause scsh to start up, load in file \ex{ekko},
+call the entry point on the command-line list
+\codex{(main '("ekko" "Hi" "there."))}
+and exit.
+
+Unfortunately, the {\Unix} \ex{\urlh{http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html}{exec(2)}} syscall's support for scripts is
+not very general or well-designed.
+It will not handle multiple arguments;
+the \ex{\#!} line is usually required to contain no more than 32 characters;
+it is not recursive.
+If these restrictions are violated, most Unix systems will not provide accurate
+error reporting, but either fail silently, or simply incorrectly implement
+the desired functionality.
+These are the facts of Unix life.
+
+In the \ex{ekko} example above, our \ex{\#!} trigger line has three
+arguments (``\ex{-e}'', ``\ex{main}'', and ``\ex{-s}''), so it will not
+work.
+The meta-argument is how we work around this problem.
+We must instead invoke the scsh interpreter with the single \cd{\\} argument,
+and put the rest of the arguments on line two of the program. 
+Here's the correct program:
+%
+\begin{code}
+#!/usr/local/bin/scsh \\
+-e main -s
+!#
+(define (main args) 
+  (map (\l{arg} (display arg) (display " "))
+       (cdr args))
+  (newline))\end{code}
+%
+Now, the invocation starts as
+        \codex{ekko Hi there.}
+and is expanded by exec(2) into
+\begin{code}    
+/usr/local/bin/scsh \\ ekko Hi there.\end{code}
+When scsh starts up, it expands the ``\cd{\\}'' argument into the arguments
+read from line two of \ex{ekko}, producing this argument list:
+\begin{code}\cddollar
+\underline{-e main -s ekko} Hi there.
+        $\uparrow$
+{\rm{}Expanded from} \cd{\\} ekko\end{code}
+%
+With this argument list, processing proceeds as we intended.
+
+\subsubsection{Secondary argument syntax}
+Scsh uses a very simple grammar to encode the extra arguments on 
+the second line of the scsh script.
+The only special characters are space, tab, newline, and backslash.
+\begin{itemize}
+\item Each space character terminates an argument.
+    This means that two spaces in a row introduce an empty-string argument.
+
+\item The tab character is not permitted 
+    (unless you quote it with the backslash character described below).
+    This is to prevent the insidious bug where you believe you have
+    six space characters, but you really have a tab character, 
+    and \emph{vice-versa}.
+
+\item The newline character terminates an argument, like the space character,
+      and also terminates the argument sequence.
+      This means that an empty line parses to the singleton list whose one
+      element is the empty string: \ex{("")}. 
+      The grammar doesn't admit the empty list.
+
+\item The backslash character is the escape character.
+    It escapes backslash, space, tab, and newline, turning off their
+    special functions, and allowing them to be included in arguments.
+    The {\Ansi} C escape sequences (\verb|\b|, \verb|\n|, \verb|\r|
+    and \verb|\t|) are also supported; 
+    these also produce argument-constituents---\verb|\n| doesn't act 
+    like a terminating newline. 
+    The escape sequence \verb|\|\emph{nnn} for \emph{exactly} three
+    octal digits reads as the character whose {\Ascii} code is \emph{nnn}.
+    It is an error if backslash is followed by just one or two octal digits:
+    \verb|\3Q| is an error. 
+    Octal escapes are always constituent chars. 
+    Backslash followed by other chars is not allowed 
+    (so we can extend the escape-code space later if we like).
+\end{itemize}
+
+You have to construct these line-two argument lines carefully.
+In particular, beware of trailing spaces at the end of the line---they'll
+give you extra trailing empty-string arguments.
+Here's an example:
+%
+\begin{inset}
+\begin{verbatim}
+#!/bin/interpreter \
+foo bar  quux\ yow\end{verbatim}
+\end{inset}
+%
+would produce the arguments
+%
+\codex{("foo" "bar" "" "quux yow")}
+
+\subsection{Examples}
+
+\begin{itemize}
+\def\Item#1{\item{\ex{#1}}\\}
+\def\progItem#1{\item{Program \ex{#1}}\\}
+
+\Item{scsh -dm -m myprog -e top -s myprog.scm}
+    Load \ex{myprog.scm} into the \ex{config} package, then shift to the
+    \ex{myprog} package and call \ex{(top '("myprog.scm"))}, then exit. 
+    This sort of invocation is typically used in \ex{\#!} script lines
+    (see below).
+
+\Item{scsh -c '(display "Hello, world.")'}
+   A simple program.
+
+\Item{scsh -o bigscheme}
+    Start up interactively in the user package after opening 
+    structure \ex{bigscheme}.
+
+\Item{scsh -o bigscheme -- Three args passed}
+    Start up interactively in the user package after opening \ex{bigscheme}.
+    The \ex{command-line-args} variable in the scsh package is bound to the
+    list \ex{("Three" "args" "passed")}, and the \ex{(command-line)}
+    procedure returns the list \ex{("scsh" "Three" "args" "passed")}.
+
+
+\progItem{ekko}
+This shell script, called \ex{ekko}, implements a version of 
+the Unix \ex{echo} program:
+\begin{code}
+#!/usr/local/bin/scsh -s
+!#
+(for-each (\l{arg} (display arg) (display " "))
+          command-line-args)\end{code}
+    
+Note this short program is an example of a \emph{script}---it
+executes as it loads. 
+The Unix rule for executing \ex{\#!} shell scripts causes
+\codex{ekko Hello, world.}
+to expand as    
+\codex{/usr/local/bin/scsh -s ekko Hello, world.}
+
+\progItem{ekko}
+This is the same program, \emph{not} as a script. 
+Writing it this way makes it possible to compile the program 
+(and then, for instance, dump it out as a heap image).
+%
+\begin{code}
+#!/usr/local/bin/scsh \\
+-e top -s
+!#
+(define (top args)
+  (for-each (\l{arg} (display arg) (display " "))
+            (cdr args)))\end{code}
+%
+The \ex{\urlh{http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html}{exec(2)}} expansion of the \ex{\#!} line together with
+the scsh expansion of the ``\verb|\ ekko|'' meta-argument 
+(see section~\ref{sec:meta-arg}) gives the following command-line expansion:
+\begin{code}
+ekko Hello, world.
+    {\evalto} /usr/local/bin/scsh \\ ekko         Hello, world.
+    {\evalto} /usr/local/bin/scsh -e top -s ekko Hello, world.\end{code}
+
+\progItem{sort}
+This is a program to replace the Unix \ex{sort} utility---sorting lines
+read from stdin, and printing the results on stdout.
+Note that the source code defines a general sorting package, 
+which is useful (1) as a Scheme module exporting sort procedures
+to other Scheme code, and (2) as a standalone program invoked from
+the \ex{top} procedure.
+\begin{code}
+#!/usr/local/bin/scsh \\
+-dm -m sort-toplevel -e top -s
+!#
+
+;;; This is a sorting module. TOP procedure exports
+;;; the functionality as a Unix program akin to sort(1).
+(define-structures ((sort-struct (export sort-list
+                                         sort-vector!))
+                    (sort-toplevel (export top)))
+  (open scheme)
+
+  (begin (define (sort-list elts <=) {\ldots})
+         (define (sort-vec! vec <=)  {\ldots})
+
+         ;; Parse the command line and 
+         ;; sort stdin to stdout.
+         (define (top args)
+            {\ldots})))\end{code}
+
+The expansion below shows how the command-line scanner
+(1) loads the config file \ex{sort} (written in the {\scm} module language),
+(2) switches to the package underlying the \ex{sort-toplevel} structure,
+(3) calls \ex{(top '("sort" "foo" "bar"))} in the package, and finally
+(4) exits.
+%
+{\small
+\begin{centercode}
+sort foo bar
+{\evalto} /usr/local/bin/scsh \\ sort                              foo bar
+{\evalto} /usr/local/bin/scsh -dm -m sort-toplevel -e top -s sort foo bar\end{centercode}}
+
+An alternate method would have used a 
+\begin{code}
+-n #f -o sort-toplevel\end{code}
+sequence of switches to specify a top-level package.
+
+\end{itemize}
+
+Note that the sort example can be compiled into a Unix program by
+loading the file into an scsh process, and dumping a heap with top-level
+\ex{top}.  Even if we don't want to export the sort's functionality as a
+subroutine library, it is still useful to write the sort program with the
+module language. The command line design allows us to run this program as
+either an interpreted script (given the \ex{\#!} args in the header) or as a
+compiled heap image.
+
+\subsection{Process exit values}
+Scsh ignores the value produced by its top-level computation when determining
+its exit status code. 
+If the top-level computation completed with no errors, 
+scsh dies with exit code 0.
+For example, a scsh process whose top-level is specified by a \ex{-c \var{exp}}
+or a \ex{-e \var{entry}} entry point ignores the value produced
+by evaluating \var{exp} and calling \var{entry}, respectively.
+If these computations terminate with no errors, the scsh process
+exits with an exit code of 0.
+
+To return a specific exit status, use the \ex{exit} procedure explicitly, \eg,
+\begin{tightcode}
+scsh -c \\
+  "(exit (status:exit-val (run (| (fmt) (mail shivers)))))"\end{tightcode}
+
+\section{The scsh virtual machine}
+To run the {\scm} implementation of scsh, you run a specially modified
+copy of the {\scm} virtual machine with a scsh heap image.
+The scsh binary is actually nothing but a small cover program that invokes the
+byte-code interpreter on the scsh heap image for you.
+This allows you to simply start up an interactive scsh from a command
+line, as well as write shell scripts that begin with the simple trigger
+\codex{\#!/usr/local/bin/scsh -s}
+
+You can also directly execute the virtual machine, 
+which takes its own set of command-line switches..
+For example,
+this command starts the vm up with a 1Mword heap (split into two semispaces):
+        \codex{scshvm -o scshvm -h 1000000 -i scsh.image arg1 arg2 \ldots}
+The vm peels off initial vm arguments
+up to the \ex{-i} heap image argument, which terminates vm argument parsing.
+The rest of the arguments are passed off to the scsh top-level.
+Scsh's top-level removes scsh switches, as discussed in the previous section;
+the rest show up as the value of \ex{command-line-arguments}.
+
+Directly executing the vm can be useful to specify non-standard switches, or
+invoke the virtual machine on special heap images, which can contain
+pre-compiled scsh programs with their own top-level procedures.
+
+\subsection{VM arguments}
+\label{sec:vm-args}
+
+The vm takes arguments in the following form:
+\codex{scshvm [\var{meta-arg}] [\var{vm-options}\+] [\var{end-option} \var{scheme-args}]}
+where
+\begin{inset}
+\begin{tabular}{ll}
+\var{meta-arg:}         & \verb|\ |\var{filename} \\
+\\
+\var{vm-option}:        & \ex{-h }\var{heap-size-in-words} \\
+                        & \ex{-s }\var{stack-size-in-words} \\
+                        & \ex{-o }\var{object-file-name} \\
+\\
+\var{end-option:}       & \ex{-i }\var{image-file-name} \\
+                        & \ex{--}
+\end{tabular}
+\end{inset}
+
+The vm's meta-switch ``\verb|\ |\var{filename}'' is handled the same
+as scsh's meta-switch, and serves the same purpose.
+
+\subsubsection{VM options}
+The \ex{-o \var{object-file-name}} switch tells the vm where to find
+relocation information for its foreign-function calls.
+Scsh will use a pre-compiled default if it is not specified.
+Scsh \emph{must} have this information to run,
+since scsh's syscall interfaces are done with foreign-function calls.
+
+The \ex{-h} and \ex{-s} options tell the vm how much space to allocate
+for the heap and stack.
+The heap size value is the total number of words allocated for the heap;
+this space is then split into two semi-spaces for {\scm}'s stop-and-copy
+collector.
+
+\subsubsection{End options}
+End options terminate argument parsing.
+The \ex{-i} switch is followed by the name of a heap image for the
+vm to execute.
+The \var{image-file-name} string is also taken to be the name of the program
+being executed by the VM; this name becomes the head of the argument
+list passed to the heap image's top-level entry point.
+The tail of the argument list is constructed from all following arguments.
+
+The \ex{--} switch terminates argument parsing without giving
+a specific heap image; the vm will start up using a default
+heap (whose location is compiled into the vm).
+All the following arguments comprise the tail of the list passed off to
+the heap image's top-level procedure.
+
+Notice that you are not allowed to pass arguments to the heap image's
+top-level procedure (\eg, scsh) without delimiting them with \ex{-i}
+or \ex{--} flags.
+
+\subsection{Stripped image}
+
+Besides the standard image \ex{scsh.image} scsh also ships with the
+much smaller image \ex{stripped-scsh.image}. This image contains the
+same code as the standard image but has almost all debugging
+information removed. \ex{stripped-scsh.image} is intended to be used
+with standalone programs where startup time and memory consumption
+count but debugging the scheme code is not that important. To use the
+image the VM has to be called directly and the path to the image must
+be given after the \ex{-i} argument.
+
+\subsection{Inserting interpreter triggers into heap images}
+{\scm}'s heap image format allows for an informational header:
+when the vm loads in a heap image, it ignores all data occurring before
+the first control-L character (\textsc{Ascii} 12).
+This means that you can insert a ``\ex{\#!}'' trigger line into a
+heap image, making it a form of executable ``shell script.''
+Since the vm requires multiple arguments to be given on the command
+line, you must use the meta-switch.
+Here's an example heap-image header:
+\begin{code}
+#!/usr/local/lib/scsh/scshvm \\
+-o /usr/local/lib/scsh/scshvm -i
+{\ldots} \textnormal{\emph{Your heap image goes here}} \ldots\end{code}
+
+\subsection{Inserting a double-level trigger into Scheme programs}
+If you're a nerd, you may enjoy doing a double-level machine shift
+in the trigger line of your Scheme programs with the following magic:
+\begin{code}\small
+#!/usr/local/lib/scsh/scshvm \\
+-o /usr/local/lib/scsh/scshvm -i /usr/local/lib/scsh/scsh.image -s
+!#
+{\ldots} \textnormal{\emph{Your Scheme program goes here}} \ldots\end{code}
+
+\section{Compiling scsh programs}
+Scsh allows you to create a heap image with your own top-level procedure.
+Adding the pair of lines
+\begin{code}
+#!/usr/local/lib/scsh/scshvm \\
+-o /usr/local/lib/scsh/scshvm -i\end{code}
+to the top of the heap image will turn it into an executable {\Unix} file.
+
+You can create heap images with the following two procedures.
+
+\defun{dump-scsh-program}{main fname}{\undefined}
+\begin{desc}
+    This procedure writes out a scsh heap image. When the
+    heap image is executed by the {\scm} vm, it will call
+    the \var{main} procedure, passing it the vm's argument list.
+    When \ex{main} returns an integer value $i$, the vm exits with
+    exit status $i$.
+    The {\Scheme} vm will parse command-line switches as
+    described in section~\ref{sec:vm-args}; remaining arguments
+    form the tail of the command-line list that is passed to \ex{main}.
+    (The head of the list is the name of the program being executed
+    by the vm.)
+    Further argument parsing
+    (as described for scsh in section~\ref{sec:scsh-switches})
+    is not performed.
+
+    The heap image created by \ex{dump-scsh-program} has unused
+    code and data pruned out, so small programs compile to much smaller
+    heap images.
+\end{desc}
+
+\defun{dump-scsh}{fname}{\undefined}
+\begin{desc}
+    This procedure writes out a heap image with the standard 
+    scsh top-level.
+    When the image is resumed by the vm, it will parse and
+    execute scsh command-line switches as described in section 
+    \ref{sec:scsh-switches}.
+
+    You can use this procedure to write out custom scsh heap images
+    that have specific packages preloaded and start up in specific
+    packages.
+\end{desc}
+
+Unfortunately, {\scm} does not support separate compilation of
+Scheme files or Scheme modules.
+The only way to compile is to load source and then dump out a
+heap image.
+One occasionally hears rumours that this is being addressed
+by the {\scm} development team.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Standard file locations}
+Because the scshvm binary is intended to be used for writing shell
+scripts, it is important that the binary be installed in a standard
+place, so that shell scripts can dependably refer to it.
+The standard directory for the scsh tree should be \ex{/usr/local/lib/scsh/}.
+Whenever possible, the vm should be located in
+        \codex{/usr/local/lib/scsh/scshvm}
+and a scsh heap image should be located in
+        \codex{/usr/local/lib/scsh/scsh.image}
+The top-level scsh program should be located in
+        \codex{/usr/local/lib/scsh/scsh}
+with a symbolic link to it from
+        \codex{/usr/local/bin/scsh}
+
+The {\scm} image format allows heap images to have \ex{\#!} triggers,
+so \ex{scsh.image} should have a \ex{\#!} trigger of the following form:
+\begin{code}
+#!/usr/local/lib/scsh/scshvm \\
+-o /usr/local/lib/scsh/scshvm -i
+{\ldots} \textnormal{\emph{heap image goes here}} \ldots\end{code}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "man"
+%%% End: 

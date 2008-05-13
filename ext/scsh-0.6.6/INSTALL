@@ -1,0 +1,49 @@
+			   Installing scsh
+
+This file describes how to install scsh from the source package. If
+you have obtained the source tree from CVS refer to the file
+CVS_README.
+
+1.  Configure the package for your system.
+
+    Just `cd' to the directory containing this README file and type
+
+	./configure
+	
+    You can pass some additional options to the configure script, along
+    them the installation directory with the
+    --prefix=/my/install/location option. Type ./configure --help to
+    get a list of all switches.
+    Running `configure' takes a minute or two.  While it is running, it
+    prints some messages that tell what it is doing. Consult the file
+    config.log if anything went wrong.
+
+2.  Type
+
+	make 
+   
+    to compile scsh.
+
+3.  After a successful build you can invoke scsh by typing 
+
+	./go
+
+    You should see the command prompt of scsh which you can exit by
+    typing `,exit'.
+
+4.  Type 
+
+	make install
+
+     to install programs, data files, and documentation.
+
+5.  You can remove the program binaries and object files from the
+    source directory by typing `make clean'.  To also remove the
+    Makefile, the header file containing system-dependent definitions
+    , `config.status' and `config.cache' (all the files that
+    `configure' created), type `make distclean'.
+
+For more information about scsh have a look into the README file and
+the documentation in the `doc/' directory. There you can also read
+documentation about Scheme 48, the Scheme implementation scsh is based
+on.

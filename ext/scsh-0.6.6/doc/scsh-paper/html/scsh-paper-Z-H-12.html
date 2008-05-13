@@ -1,0 +1,341 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-11.html">previous</a></span><span>, <a href="scsh-paper-Z-H-13.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_10"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_10">10&nbsp;&nbsp;Systems programming in Scheme</a></h1><p>
+Unix systems programming in Scheme is a much more pleasant experience
+than Unix systems programming in C.
+Several features of the language remove a lot of the painful or error-prone
+problems C systems programmers are accustomed to suffering.
+The most important of these features are:
+</p>
+<ul>
+<li><p>exceptions
+</p>
+<li><p>automatic storage management
+</p>
+<li><p>real strings
+</p>
+<li><p>higher-order procedures
+</p>
+<li><p>S-expression syntax and backquote
+</p>
+</ul><p>
+Many of these features are available in other advanced programming languages,
+such as Modula-3 or ML. None are available in C.</p>
+<p>
+</p>
+<a name="node_sec_10.1"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_10.1">10.1&nbsp;&nbsp;Exceptions and robust error handling</a></h2><p>In scsh, system calls never return the error codes that make careful
+systems programming in C so difficult. Errors are signaled by raising
+exceptions.
+Exceptions are usually handled by default handlers that either abort the
+program or invoke a run-time debugger; the programmer can override these when
+desired by using exception-handler expressions.
+Not having to return error codes frees up procedures to return useful values, 
+which encourages procedural composition.
+It also keeps the programmer from cluttering up his code with
+(or, as is all too often the case, just forgetting to include)
+error checks for every system call.
+In scsh, the programmer can assume that if a system call returns at all, it
+returns successfully.
+This greatly simplifies the flow of the code from the programmer's point
+of view, as well as greatly increasing the robustness of the program.</p>
+<p>
+</p>
+<a name="node_sec_10.2"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_10.2">10.2&nbsp;&nbsp;Automatic storage management</a></h2><p>Further, Scheme's automatic storage allocation removes the
+``result'' parameters from the procedure argument lists.
+When composite data is returned, it is simply returned in a 
+freshly-allocated data structure.
+Again, this helps make it possible for procedures to return useful values.</p>
+<p>
+For example, the C system call <tt>readlink()</tt>
+dereferences a symbolic link in the file system.
+A working definition for the system call is given in 
+figure&nbsp;<a href="#node_fig_Temp_8">5</a>b.
+It is complicated by many small bookkeeping details, 
+made necessary by C's weak linguistic facilities.</p>
+<p>
+In contrast, scsh's equivalent procedure, <tt>read-symlink</tt>,
+has a much simpler definition (fig.&nbsp;<a href="#node_fig_Temp_8">5</a>a).
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_8"></a>
+<div class=figure align=center><table width=100%><tr><td align=center><p>
+</p>
+ <p></p>
+<p><tt>(read-symlink fname)</tt><br>
+
+<tt>read-symlink</tt> returns the filename referenced by symbolic link
+<tt>fname</tt>.
+An exception is raised if there is an error.
+</p>
+<div align=center><table><tr><td>
+<em>(a) Scheme definition of <tt>readlink</tt></em></td></tr></table></div>
+
+<p>
+</p>
+<p></p>
+<p></p>
+<p>
+</p>
+<p></p>
+<p><tt>readlink(char *path, char *buf, int bufsiz)</tt><br>
+
+<tt>readlink</tt> dereferences the symbolic link <tt>path</tt>.
+If the referenced filename is less than or equal to <tt>bufsiz</tt> characters
+in length,
+it is written into the <tt>buf</tt> array, which we fondly hope the
+programmer has arranged to be at least of size <tt>bufsiz</tt> characters.
+If the referenced filename is longer than <tt>bufsiz</tt> characters,
+the system call returns an error code;
+presumably the programmer should then reallocate a larger buffer and try
+again.
+If the system call succeeds, it returns the length of the result filename.
+When the referenced filename is written into <tt>buf</tt>, it is <em>not</em>
+nul-terminated; it is the programmer's responsibility to leave space
+in the buffer for the terminating nul 
+(remembering to subtract one from the actual buffer length when passing it to
+the system call), and deposit the terminal nul after the system call returns.</p>
+<p>
+If there is a real error,
+the procedure will, in most cases, return an error code.
+(We will gloss over the error-code mechanism for the sake of
+brevity.)
+However, if the length of <tt>buf</tt> does not actually match the argument
+<tt>bufsiz</tt>,
+the system call may either</p>
+<ul><li><p>succeed anyway,
+</p>
+<li><p>dump core,
+</p>
+<li><p>overwrite other storage and silently proceed,
+</p>
+<li><p>report an error, 
+</p>
+<li><p>or perform some fifth action.
+</p>
+</ul><p>It all depends.
+</p>
+<div align=center><table><tr><td>
+<em>(b) C definition of <tt>readlink</tt></em></td></tr></table></div>
+
+<p>
+</p>
+</td></tr>
+<tr><td align=center><b>Figure 5:</b>&nbsp;&nbsp;Two definitions of <tt>readlink</tt></td></tr>
+<tr><td>
+
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p>
+With the scsh version, there is no possibility that the result buffer will be
+too small.
+There is no possibility that the programmer will misrepresent the
+size of the result buffer with an incorrect <tt>bufsiz</tt> argument.
+These sorts of issues are completely eliminated by the Scheme programming
+model.
+Instead of having to worry about seven or eight trivial but potentially
+fatal issues, and write the necessary 10 or 15 lines of code to correctly
+handle the operation, the programmer can write a single function call and
+get on with his task.</p>
+<p>
+</p>
+<a name="node_sec_10.3"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_10.3">10.3&nbsp;&nbsp;Return values and procedural composition</a></h2><p>Exceptions and automatic storage allocation make it easier for
+procedures to return useful values.
+This increases the odds that the programmer can use the compact notation
+of function composition -- <tt>f(g(x))</tt> -- to connect producers and consumers
+of data, which is surprisingly difficult in C.
+</p>
+<p>
+In C, if we wish to compose two procedure calls, we frequently must write:
+</p>
+<blockquote><tt><br>
+/*&nbsp;C&nbsp;style:&nbsp;*/<br>
+g(x,&amp;y);<br>
+<tt>...</tt>f(y)<tt>...</tt></tt></blockquote>
+Procedures that compute composite data structures for a result
+commonly return them by storing them into a data structure passed
+by-reference as a parameter.
+If <tt>g</tt> does this, we cannot nest calls, but must write the code as shown.<p>
+In fact, the above code is not quite what we want; we forgot to check <tt>g</tt>
+for an error return.
+What we really wanted was:
+</p>
+<blockquote><tt><br>
+/*&nbsp;Worse/better:&nbsp;*/<br>
+err=g(x,&amp;y);<br>
+if(&nbsp;err&nbsp;)&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&lt;<i>handle&nbsp;error&nbsp;on&nbsp;<tt>g</tt>&nbsp;call</i>&gt;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+<tt>...</tt>f(y)<tt>...</tt></tt></blockquote>
+The person who writes this code has to remember to check for the error;
+the person who reads it has to visually link up the data flow by
+connecting <tt>y</tt>'s def and use points.
+This is the data-flow equivalent of <tt>goto</tt>'s, 
+with equivalent effects on program clarity.<p>
+In Scheme, none of this is necessary. We simply write
+</p>
+<blockquote><tt>(f (g x)) ; Scheme</tt></blockquote>Easy to write; easy to read and understand.
+Figure <a href="#node_fig_Temp_9">6</a> shows an example of this problem, where the
+task is determining if a given file is owned by root.
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_9"></a>
+<div class=figure align=center><table width=100%><tr><td align=center>
+<p></p>
+<p></p>
+<blockquote><tt><br>
+(if&nbsp;(zero?&nbsp;(fileinfo:owner&nbsp;(file-attributes&nbsp;fname)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<tt>...</tt>)</tt></blockquote>
+<p></p>
+<p></p>
+<div align=center><table><tr><td>
+<em>Scheme</em></td></tr></table></div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p>
+</p>
+<blockquote>
+<pre class=verbatim>if( stat(fname,&amp;statbuf) ) {
+    perror(progname);
+    exit(-1);
+    }
+if( statbuf.st_uid == 0 ) ...</pre><p>
+</p>
+</blockquote>
+<p></p>
+<p></p>
+<div align=center><table><tr><td>
+<em>C</em></td></tr></table></div>
+
+</td></tr>
+<tr><td align=center><b>Figure 6:</b>&nbsp;&nbsp;Why we program with Scheme.</td></tr>
+<tr><td>
+
+
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<a name="node_sec_10.4"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_10.4">10.4&nbsp;&nbsp;Strings</a></h2><p>Having a true string datatype turns out to be surprisingly valuable
+in making systems programs simpler and more robust.
+The programmer never has to expend effort to make sure that a string
+length kept in a variable matches the actual length of the string;
+never has to expend effort wondering how it will affect his program if
+a nul byte gets stored into his string.
+This is a minor feature, but like garbage collection, it eliminates a whole
+class of common C programming bugs.</p>
+<p>
+</p>
+<a name="node_sec_10.5"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_10.5">10.5&nbsp;&nbsp;Higher-order procedures</a></h2><p>Scheme's first-class procedures are very convenient for systems programming.
+Scsh uses them to parameterise the action of procedures that create
+Unix processes.
+The ability to package up an arbitrary computation as a thunk turns
+out to be as useful in the domain of Unix processes as it is in the domain
+of Scheme computation.
+Being able to pass computations in this way to the procedures that create
+Unix processes, such as <tt>fork</tt>, <tt>fork/pipe</tt> and <tt>run/port*</tt> is a
+powerful programming technique.</p>
+<p>
+First-class procedures allow us to parameterise port readers over different
+parsers, with the 
+</p>
+<blockquote><tt>(port-&gt;list <i>parser</i> <i>port</i>)</tt></blockquote>procedure.
+This is the essential Scheme ability to capture abstraction in a procedure
+definition.
+If the user wants to read a list of objects written in some syntax from an
+i/o source, he need only write a parser capable of parsing a single
+object.
+The <tt>port-&gt;list</tt> procedure can work with the user's parser as easily as it
+works with <tt>read</tt> or <tt>read-line</tt>.
+{Note On-line streams}<p>
+First-class procedures also allow iterators such as <tt>for-each</tt> and
+<tt>filter</tt> to loop over lists of data.
+For example, to build the list of all my files in <tt>/usr/tmp</tt>, I write:
+</p>
+<blockquote><tt><br>
+(filter&nbsp;(lambda&nbsp;(f)&nbsp;(=&nbsp;(file-owner&nbsp;f)&nbsp;(user-uid)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(glob&nbsp;&quot;/usr/tmp/*&quot;))</tt></blockquote>
+To delete every C file in my directory, I write:
+<blockquote><tt>(for-each delete-file (glob &quot;*.c&quot;))</tt></blockquote><p>
+</p>
+<a name="node_sec_10.6"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_10.6">10.6&nbsp;&nbsp;S-expression syntax and backquote</a></h2><p>
+In general, Scheme's s-expression syntax is much, much simpler to
+understand and use than most shells' complex syntax, with their embedded
+pattern matching, variable expansion, alias substitution, and multiple
+rounds of parsing.
+This costs scsh's notation some compactness, at the gain of comprehensibility.</p>
+<p>
+</p>
+<a name="node_sec_Temp_10"></a>
+<h3><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_10">Recursive embeddings and balls of mud</a></h3><p>Scsh's ability to cover a high-level/low-level spectrum of expressiveness
+is a function of its uniform s-expression notational framework.
+Since scsh's process notation is embedded within Scheme,
+and Scheme escapes are embedded within the process notation,
+the programmer can easily switch back and forth as needed,
+using the simple notation where possible, 
+and escaping to system calls and general Scheme where necessary.
+This recursive embedding is what gives scsh its broad-spectrum coverage
+of systems functionality not available to either shells or traditional
+systems programming languages;
+it is essentially related to the ``ball of mud'' extensibility of the 
+Lisp and Scheme family of languages.</p>
+<p>
+</p>
+<a name="node_sec_Temp_11"></a>
+<h3><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_11">Backquote and reliable argument lists</a></h3><p>Scsh's use of implicit backquoting in the process notation is a particularly
+nice feature of the s-expression syntax.
+Most Unix shells provide the user with a way to take a computed string,
+split it into pieces, and pass them as arguments to a program.
+This usually requires the introduction of some sort of <tt>$IFS</tt> separator
+variable to control how the string is parsed into separate arguments.
+This makes things error prone in the cases where a single argument
+might contain a space or other parser delimiter.
+Worse than error prone, <tt>$IFS</tt> rescanning is in fact the source of a
+famous security hole in Unix [<a href="scsh-paper-Z-H-17.html#node_bib_9">Reeds</a>].</p>
+<p>
+In scsh, data are used to construct argument lists using the implicit backquote
+feature of process forms, <em>e.g.</em>:
+</p>
+<blockquote><tt><br>
+(run&nbsp;(cc&nbsp;,file&nbsp;-o&nbsp;,binary&nbsp;,@flags)).</tt></blockquote>
+Backquote completely avoids the parsing issue because it deals
+with pre-parsed data: it constructs expressions from lists, not character
+strings.
+When the programmer computes a list of arguments, he has complete
+confidence that they will be passed to the program exactly as is,
+without running the risk of being re-parsed by the shell.<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-11.html">previous</a></span><span>, <a href="scsh-paper-Z-H-13.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

@@ -1,0 +1,740 @@
+Scsh cheat sheet
+Olin Shivers
+November 1996
+
+This cheat sheet is intentionally kept brief and minimalist.
+It is intended to function as an ASCII-format reminder for the
+full manual, not as the definition. It can be read using GNU Emacs's
+outline mode.
+
+It is also not entirely up-to-date. I'd appreciate getting updates from users.
+-------------------------------------------------------------------------------
+
+* High-level forms
+
+Extended process form:
+    (PF [REDIR1 ...])
+
+Redirection:
+    (<  [FDES] FILE-NAME)
+    (>  [FDES] FILE-NAME)
+    (<< [FDES] OBJECT)
+    (=  FDES FDES/PORT)
+    (-  FDES/PORT)
+    stdports
+Subforms are implicitly backquoted.
+
+Process form:
+    (| PF1 ...)				; pipeline
+    (|+ CONNECT-LIST PF1 ...)		; complex pipeline
+    (begin . BODY)			; Scheme form
+    (epf . EPF)				; Embedded extended process form
+    (PROG ARG1 ... ARGn)		; Exec a program
+Subforms are implicitly backquoted.
+
+Using process forms in Scheme:
+    (exec-epf . EPF)	; Nuke the current process.
+    (& . EPF)		; Fork process in background. Return proc object.
+    (run . EPF)		; Run process. Return exit code.
+
+    (& . EPF) = (fork (lambda () (exec-epf . EPF)))
+    (run . EPF) = (wait (& . EPF))
+
+Interfacing to subprocess I/O:
+    (run/port . EPF) -> port
+    (run/file . EPF) -> string
+    (run/string . EPF) -> string
+    (run/strings . EPF) -> string list
+    (run/sexp . EPF) -> object
+    (run/sexps . EPF) -> list
+
+There are procedural equivalents for each of these, e.g., run/port* and
+run/file*, that take thunk arguments for the subprocess.
+
+(port->string PORT) -> string
+    Read until EOF on PORT, return data as a string.
+
+(port->string-list PORT) -> string list
+    Repeatedly apply READ-LINE to PORT until EOF. Return list of lines read.
+
+(port->sexp-list PORT) -> list
+    Repeatedly apply READ to PORT until EOF. Return list of items read.
+
+(port->list READER PORT)
+    Repeatedly apply READER to PORT until EOF. Return list of items read.
+
+(reduce-port PORT READER OP . SEEDS)
+    Evaluate (OP (READER PORT) . SEEDS) to get a new set of seeds
+    (OP must return as many values as there are SEEDS). When
+    a port read returns EOF, the current set of seed values are
+    returned as multiple values.
+
+(run/port+proc  . EPF) -> [port proc]
+(run/port+proc* THUNK) -> [port proc]
+
+(run/collecting  FDS . EPF) -> [port ...]
+(run/collecting* FDS THUNK) -> [port ...]
+    RUN/COLLECTING implicitly backquotes FDS.
+
+(|| PF1 ... PFn)
+(&& PF1 ... PFn)
+    Conditionally execute processes.
+
+(char-filter   filter) -> procedure
+(string-filter filter [buflen]) -> procedure
+
+* System calls
+
+** Errors
+
+(errno-error errno SYSCALL . DATA)
+(with-errno-handler* HANDLER THUNK) -> value of thunk
+    HANDLER is called on two arguments: (HANDLER ERRNO PACKET)
+    where PACKET is a list of the form (ERRNO-MSG SYSCALL . DATA)
+    If HANDLER returns at all, the handler search continues upwards.
+
+(with-errno-handler HANDLER-SPEC . BODY)
+    HANDLER-SPEC is of the form
+    	((ERRNO PACKET) CLAUSE ...)
+    ERRNO and PACKET are variables bound to the errno error being raised.
+    There are two forms for handler clauses:
+    	((ERRNO ...) . BODY)
+    	(else . BODY)
+    ERRNO are expressions evaluating to errno integers.
+
+** I/O
+*** Port Manipulation
+(close-after PORT CONSUMER) -> value(s) of consumer
+(error-output-port) -> port
+
+(with-current-input-port  port . body) -> value(s) of body
+(with-current-output-port port . body) -> value(s) of body
+(with-error-output-port   port . body) -> value(s) of body
+
+(with-current-input-port*  port thunk) -> value(s) of thunk
+(with-current-output-port* port thunk) -> value(s) of thunk
+(with-error-output-port*   port thunk) -> value(s) of thunk
+
+(close fd/port)
+
+(stdports->stdio)
+(stdio->stdports)
+
+(with-stdio-ports* thunk) -> value(s) of thunk
+(with-stdio-ports . body) -> value(s) of body
+
+(make-string-input-port) -> port
+(string-output-port-output port) -> port
+(call-with-string-output-port proc) -> str
+
+** Port and file descriptors
+(fdes->inport  fd) -> port
+(fdes->outport fd) -> port
+(port->fdes port)  -> fixnum
+    Increment port's revealed count.
+
+(port-revealed port) -> integer or #f
+(release-port-handle port)
+(call/fdes fd/port consumer) -> value(s) of consumer
+
+(move->fdes fd/port target-fd) -> port or fdes
+
+** Unix I/O
+
+(dup fd/port [newfd]) 	    	-> fd/port
+(dup->inport fd/port [newfd]) 	-> port
+(dup->outport fd/port [newfd]) 	-> port
+(dup->fdes fd/port [newfd]) 	-> fd
+
+(file-seek fd/port offset whence)
+
+(open-file fname flags [perms]) -> port
+(open-input-file fname [flags]) -> port
+(open-output-file fname [flags perms]) -> port
+(open-fdes fname flags [perms]) -> integer
+
+(fdes-flags fd/port)
+(set-fdes-flags fd/port flags)
+    Only Posix flag defined is FDFLAGS/CLOSE-ON-EXEC, which you should
+    not ever have to use -- scsh manages this automatically.
+
+(fdes-status fd/port)
+(set-fdes-flags fd/port flags)
+
+    Operations allowed	Flags
+    ------------------	-----
+    Open+get+set	open/append, open/non-blocking
+			open/async, open/fsync (non-Posix)
+
+    Open+get		open/read, open/write, open/read+write
+			open/access-mask
+
+    Open only		open/create, open/exclusive, 
+			open/no-control-tty, open/truncate
+
+(pipe) -> [rport wport]
+(read-line [fd/port retain-newline?]) -> string or eof-object
+
+(read-string nbytes [fd/port]) -> string or #f
+(read-string! str [fd/port start end]) -> [nread or #f]
+(read-string/partial nbytes [fd/port]) -> string or #f
+(read-string!/partial str [fd/port start end]) -> [nread or #f]
+
+(write-string string [fd/port start end])
+(write-string/partial string [fd/port start end]) -> nwritten
+(force-output [fd/port])
+
+** File locking
+(define-record lock-region
+  exclusive?	; write or read lock?
+  start		; integer: start, end & whence
+  end           ; integer: define the region being locked.
+  whence	; The value of SEEK/SET, SEEK/DELTA, or SEEK/END.
+  proc)		; A proc object for the process locking the region.
+
+(make-lock-region exclusive? start len [whence]) -> lock-region
+    WHENCE defaults to the value of SEEK/SET.
+
+(lock-region fdes lock)
+(lock-region/no-block fdes lock)
+
+(get-lock-region fdes lock) -> lock-region or #f
+
+(unlock-region fdes lock)
+
+(with-region-lock* fdes lock thunk)
+(with-region-lock fdes lock body ...)	Syntax
+
+** File system
+(create-directory fname [perms override?])
+(create-fifo fname [perms override?])
+(create-hard-link oldname newname [override?])
+    OVERRIDE? one of {#f, QUERY, other true value}
+
+(delete-directory fname)
+(delete-file fname)
+(delete-filesys-object fname)
+
+(read-symlink fname) -> string
+
+(rename-file old-fname new-fname [override?])
+
+(set-file-mode  fname/fd/port mode)
+(set-file-owner fname/fd/port uid)
+(set-file-group fname/fd/port gid)
+
+(sync-file fd/port)
+(sync-file-system)
+
+(truncate-file fname/fd/port len)
+
+(file-attributes fname/fd/port [chase?]) -> file-info
+
+(define-record file-info
+  type      ; {block-special, char-special, directory,
+            ;     fifo, regular, socket, symlink}
+  device    ; Device file resides on.
+  inode     ; File's inode.
+  mode      ; File's permission bits.
+  nlinks    ; Number of hard links to this file.
+  uid       ; Owner of file.
+  gid       ; File's group id.
+  size      ; Size of file, in bytes.
+  atime     ; Last access time.
+  mtime     ; Last status-change time.
+  ctime)    ; Creation time.
+
+Derived procedures:
+    file-type           	 type 
+    file-inode          	 inode 
+    file-mode           	 mode 
+    file-nlinks         	 nlinks 
+    file-owner          	 uid 
+    file-group          	 gid 
+    file-size           	 size 
+    file-last-access    	 atime 
+    file-last-mod       	 mtime 
+    file-last-status-change  	 ctime
+
+(file-not-readable?   fname) -> boolean
+(file-not-writable?   fname) -> boolean
+(file-not-executable? fname) -> boolean
+
+    Returns one of
+        #f	               Access permitted
+        SEARCH-DENIED 	       Can't stat---a protected directory
+                               is blocking access.
+        PERMISSION             Permission denied.
+        NO-DIRECTORY           Some directory doesn't exist.
+        NONEXISTENT            File doesn't exist.
+
+(file-readable? fname) 	 -> boolean
+(file-writable? fname)   -> boolean
+(file-executable? fname) -> boolean
+
+(file-not-exists? fname [chase?]) -> boolean
+    #f              Exists.
+    SEARCH-DENIED   Some protected directory
+                    is blocking the search.
+    #t              Doesn't exist.
+
+(file-exists? fname [chase?]) -> boolean
+
+(directory-files [dir dotfiles?]) -> string list
+(glob pat1 ...) -> string list
+(glob-quote string) -> string
+(file-match root dot-files? pat1 ...) -> string list
+
+(create-temp-file [prefix]) -> string
+(temp-file-iterate maker [template]) -> [object ...]
+    TEMPLATE defaults to the value of *TEMP-FILE-TEMPLATE*.
+
+(temp-file-channel) -> [inport outport]
+
+** Processes
+(exec prog arg1 ...)
+(exec-path prog arg1 ...)
+(exec/env prog env arg1 ...)
+(exec-path/env prog env arg1 ...)
+
+(%exec prog arglist env)
+(exec-path-search fname pathlist) -> string
+
+(exit [status])
+(%exit [status])
+
+(suspend)
+
+(fork [thunk]) -> proc or #d
+(%fork [thunk]) -> proc or #f
+
+(fork/pipe  [thunk]) -> proc or #f
+(%fork/pipe [thunk]) -> proc or #f
+
+(fork/pipe+  conns [thunk]) proc or #f
+(%fork/pipe+ conns [thunk]) proc or #f
+
+(wait proc/pid [flags]) ->  status [proc]
+
+(call-terminally thunk)
+
+** Process state
+
+(umask) -> fixnum
+(set-umask perms)
+(with-umask* perms thunk) -> values of thunk
+(with-umask perms . body) -> values of body
+
+(chdir [fname])
+(cwd) -> string
+(with-cwd* fname thunk) -> value(s) of thunk
+(with-cwd fname . body) -> value(s) of body
+
+(pid) -> fixnum
+(parent-pid) -> fixnum
+(process-group) -> fixnum
+(set-process-group [proc/pid] pgrp)
+
+(user-login-name) -> string
+(user-uid) -> fixnum 
+(user-effective-uid) -> fixnum
+(user-gid) -> fixnum
+(user-effective-gid) -> fixnum
+(user-supplementary-gids) -> fixnum list
+(set-uid uid)
+(set-gid gid)
+
+(process-times) -> [ucpu scpu uchildren schildren]
+
+** User and group db access
+
+(user-info uid-or-name) -> user-info
+
+(define-record user-info
+    name
+    uid
+    gid
+    home-dir
+    shell)
+
+(->uid uid/name) -> fixnum
+(->username uid/name) -> string
+
+(group-info gid-or-name) -> record
+
+(define-record group-info
+    name
+    gid
+    members)	; List of uids
+
+(->gid gid/name) -> fixnum
+(->group gid/name) -> string
+
+** Accessing command-line arguments
+
+command-line-arguments
+    Does not include program name
+
+(command-line) -> string list
+    Includes program name in list.
+
+(arg  arglist n [default])	    -> string
+(arg* arglist n [default-thunk])    -> string
+(argv n [default]) 		    -> string    
+    ARG  is 1-based access to ARGLIST
+    ARGV is 0-based access to prog + args
+
+** System parameters
+
+(system-name) -> string
+
+** Signal system
+
+(signal-process proc/pid sig)
+(signal-procgroup prgrp sig)
+(pause-until-interrupt)
+(sleep secs)
+
+Non-signal S48 interrupts
+-------------------------
+interrupt/memory-shortage
+
+Posix signals with S48 interrupts
+------------------------------
+signal/alrm	interrupt/alrm  (aka interrupt/alarm)
+signal/int  	interrupt/int   (aka interrupt/int)
+signal/chld	interrupt/chld  
+signal/cont	interrupt/cont  
+signal/hup	interrupt/hup   
+signal/quit	interrupt/quit  
+signal/term	interrupt/term  
+signal/tstp	interrupt/tstp  
+signal/usr1	interrupt/usr1  
+signal/usr2	interrupt/usr2  
+
+signal/info	interrupt/info		Non-Posix
+signal/io	interrupt/io		Non-Posix
+signal/poll	interrupt/poll		Non-Posix
+signal/prof	interrupt/prof		Non-Posix
+signal/pwr	interrupt/pwr		Non-Posix
+signal/urg	interrupt/urg		Non-Posix
+signal/vtalrm	interrupt/vtalrm	Non-Posix
+signal/winch	interrupt/winch		Non-Posix
+signal/xcpu	interrupt/xcpu		Non-Posix
+signal/xfsz	interrupt/xfsz		Non-Posix
+
+Synchronous and uncatchable signals
+-----------------------------------
+signal/stop	Uncatchable Posix
+signal/kill	Uncatchable Posix
+
+signal/abrt	Synchronous Posix
+signal/fpe	Synchronous Posix
+signal/ill	Synchronous Posix
+signal/pipe	Synchronous Posix
+signal/segv	Synchronous Posix
+signal/ttin	Synchronous Posix
+signal/ttou	Synchronous Posix
+		
+signal/bus	Synchronous BSD + SVR4
+signal/emt	Synchronous BSD + SVR4
+signal/iot	Synchronous BSD + SVR4
+signal/sys	Synchronous BSD + SVR4
+signal/trap	Synchronous BSD + SVR4
+
+** Interrupt handlers
+(signal->interrupt sig) -> interrupt
+(interrupt-set integer1 ...) -> integer
+
+(enabled-interrupts) -> integer
+(set-enabled-interrupts! integer) -> integer
+
+(with-enabled-interrupts interrupt-set body ...)	Syntax
+(with-enabled-interrupts* interrupt-set thunk)
+
+(set-interrupt-handler! interrupt handler) -> old-handler
+(interrupt-handler interrupt) -> handler
+    HANDLER is #f (ignored), #t (default), or (lambda (enabled-ints) ...) proc.
+
+** Time
+
+(define-record date
+  seconds minute hour month-day month year
+  tz-name tz-secs summer?
+  week-day year-day)
+
+(make-date sec min hour mday month year [tz-name tz-secs summer? wday yday])
+
+(time+ticks)
+(ticks/sec)
+
+(date [time tz])
+(time [date])
+
+(date->string date)
+(format-date fmt date)
+
+** Environment variables
+
+(setenv var val)
+(getenv var) -> string
+
+(env->alist) -> string->string alist
+(alist->env alist)
+
+(alist-delete key alist)     -> alist
+(alist-update key val alist) -> alist
+(alist-compress alist) -> alist
+
+(with-env* env-alist-delta thunk) -> value(s) of thunk
+(with-total-env* env-alist thunk) -> value(s) of thunk
+
+(with-env env-alist-delta . body) -> value(s) of body
+(with-total-env env-alist . body) -> value(s) of body
+
+(add-before elt before list) -> list
+(add-after elt after list) -> list
+
+** $USER $HOME, and $PATH
+
+home-directory
+exec-path-list
+
+* Networking
+
+** High Level Socket Routines 
+
+*** clients
+(socket-connect protocol-family/internet socket-type name port) -> socket
+(socket-connect protocol-family/unix socket-type pathname) -> socket
+
+*** server
+(bind-listen-accept-loop protocol-family/internet proc port) -> does-not-return
+(bind-listen-accept-loop protocol-family/unix proc pathname) -> does-not-return
+
+proc is a procedure of two arguments: a socket and a socket-address
+
+** Sockets
+(create-socket protocol-family type [protocol]) -> socket
+(create-socket-pair type) -> [socket1 socket2]
+(close-socket socket) -> undefined
+
+protocol-family/unix
+protocol-family/internet
+
+socket-type/stream
+socket-type/datagram
+
+for protocol see protocol-info
+
+(define-record socket family inport outport)
+
+** Socket Addresses
+(define-record socket-address family)
+
+(unix-address->socket-address pathname) -> socket-address
+(internet-address->socket-address host-address service-port)-> socket-address
+
+internet-address/any
+internet-address/loopback
+internet-address/broadcast
+
+(socket-address->unix-address socket-address) -> pathname
+(socket-address->internet-address socket-address) -> 
+	[host-address service-port]
+
+** Low Level Socket Routines
+
+(connect-socket socket socket-address) -> undefined
+(bind-socket socket socket-address) -> undefined
+(listen-socket socket backlog) -> undefined
+(accept-connection socket) -> [new-socket socket-address]
+
+(socket-local-address socket) -> socket-address
+(socket-remote-address socket) -> socket-address
+
+(shutdown-socket socket how-to) -> undefined
+how-to:
+shutdown/receives
+shutdown/sends
+shutdown/sends+receives
+
+** Socket Specific I/O
+see read-string/write-string for info on arguments
+
+(receive-message socket length [flags]) -> 
+	[string-or-#f socket-address]
+(receive-message! socket string [start] [end] [flags]) ->
+	[count-or-#f  socket-address]
+(receive-message/partial socket length [flags]) -> 
+	[string-or-#f socket-address]
+(receive-message!/partial socket string [start] [end] [flags]) ->
+	[count-or-#f socket-address]
+
+(send-message socket string [start] [end] [flags] [socket-address] ->
+	undefined
+(send-message/partial socket string [start] [end] [flags] [socket-address]) ->
+	count
+
+** Socket Options
+(socket-option socket level option) -> value
+(set-socket-option socket level option value) -> undefined
+
+boolean:
+socket/debug
+socket/accept-connect
+socket/reuse-address
+socket/keep-alive
+socket/dont-route
+socket/broadcast
+socket/use-loop-back
+socket/oob-inline
+socket/use-privileged
+socket/cant-signal
+tcp/no-delay
+
+value:
+socket/send-buffer
+socket/receive-buffer
+socket/send-low-water
+socket/receive-low-water
+socket/error
+socket/type
+ip/time-to-live
+tcp/max-segment
+
+socket/linger is #f or integer seconds
+
+real number with microsecond resolution:
+socket/send-timeout 
+socket/receive-timeout
+
+
+** Database-information entries
+
+(host-info name-or-socket-address) -> host-info
+(network-info name-or-socket-address) -> network-info
+(service-info name-or-number [protocol-name]) -> service-info
+(protocol-info name-or-number) -> protocol-info
+
+(define-record host-info name aliases addresses)
+(define-record network-info name aliases net) 
+(define-record service-info name aliases port protocol)
+(define-record protocol-info name aliases number)
+
+* String manipulation
+
+** Regular expressions
+
+(string-match regexp string [start]) -> match or false
+(regexp-match? obj) -> boolean
+(match:start match [match-number]) -> fixnum
+(match:end match [match-number]) -> fixnum
+(match:substring match [match-number]) -> string
+(make-regexp str) -> re
+(regexp? obj) -> boolean
+(regexp-exec regexp str [start]) -> match or false
+(regexp-quote str) -> string
+
+** Other string manipulation facilities
+
+(index string char [start]) -> fixnum or false
+(rindex string char [start]) -> fixnum or false
+
+(substitute-env-vars fname) -> string
+
+** Manipulating file-names
+
+** Record I/O and field parsing
+
+(read-delimited  char-set [port]) -> string or eof
+(read-delimited! char-set buf [port start end]) -> nchars or #f or eof
+
+((record-reader [delims elide-delims? handle-delim]) [port]) -> string or eof
+    HANDLE-DELIM one of {trim, split, concat}
+
+(read-paragraph [port delimiter?])
+
+** Parsing fields
+
+(field-splitter  [regexp num-fields])                    -> parser
+(infix-splitter  [delim  num-fields handle-delim])       -> parser
+(suffix-splitter [delim  num-fields handle-delim])       -> parser
+(sloppy-suffix-splitter [delim num-fields handle-delim]) -> parser
+    Where (parser string [start])
+    HANDLE-DELIM one of {trim, concat, split}
+
+(join-strings strings [delimiter grammar])
+    GRAMMAR one of {infix, suffix}
+
+** Field readers
+
+(field-reader [field-parser record-reader])
+    
+* Awk
+
+(awk <reader-exp> <rec&field-vars> [<rec-counter>] <state-var-inits>
+    <clause>
+      .
+      .
+       )
+
+* Miscellaneous routines
+
+** Integer bitwise ops
+
+(arithmetic-shift i j) -> integer
+(bitwise-and i j) -> integer
+(bitwise-ior i j) -> integer
+(bitwise-not i) -> integer
+(bitwise-xor i j) -> integer
+
+** ASCII encoding
+
+(char->ascii \character) -> integer
+(ascii->char \integer) -> character
+
+** Top level
+
+(repl)
+
+* Running scsh
+
+scsh [meta-arg] [switch1 ...] [end-option arg1 ...]
+    meta-arg: \ <script-file-name>
+
+    switch: -e <entry-point>	Top-level entry point
+	    -o <structure>	Open structure in current package.
+	    -m <structure>	Switch to package.
+	    -n <new-package>	Switch to new package.
+	    
+	    -lm <module> <file-name>	Load module into config package.
+	    -l <file-name>		Load file into current package.
+	    -dm				Do script module.
+	    -ds				Do script.
+
+    end-option:	-s <script>		Specifies script to load.
+		-sfd <num>		Script from file descriptor <num>.
+		-c <expression>		Eval <expression> and exit.
+    	    	--
+
+scshvm [meta-arg] [vm-options] [end-option arg1 ...]
+    meta-arg: \ <fname>
+
+    vm-options: -h heap-size
+    	    	-s stack-size
+    	    	-o object-file
+
+    end-option:	-i image-file
+    	    	--
+(dump-scsh-program main fname)
+
+** File locations
+/usr/local/bin/scsh
+
+/usr/local/lib/scsh/
+    scshvm
+    scsh
+    scsh.image
+    doc/
+

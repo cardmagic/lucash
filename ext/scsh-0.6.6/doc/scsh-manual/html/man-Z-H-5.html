@@ -1,0 +1,569 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-4.html">previous</a></span><span>, <a href="man-Z-H-6.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_4"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_4">Chapter 4</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_4">Networking</a></h1><p>The Scheme Shell provides a BSD-style sockets interface. 
+There is not an official standard for a network interface
+for scsh to adopt (this is the subject of the forthcoming Posix.8
+standard).
+However, Berkeley sockets are a <em>de facto</em> standard,
+being found on most Unix workstations and PC operating systems.</p>
+<p>
+It is fairly straightforward to add higher-level network protocols
+such as smtp, telnet, or http on top of the the basic socket-level
+support scsh provides.
+The Scheme Underground has also released a network library with
+many of these protocols as a companion to the current release of scsh.
+See this code for examples showing the use of the sockets interface.</p>
+<p>
+</p>
+<a name="node_sec_4.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_4.1">4.1&nbsp;&nbsp;High-level interface</a></h2><p>For convenience, and to avoid some of the messy details of the socket
+interface, we provide a high level socket interface. These routines
+attempt to make it easy to write simple clients and servers without
+having to think of many of the details of initiating socket connections.
+We welcome suggested improvements to this interface, including better
+names, which right now are solely descriptions of the procedure's action.
+This might be fine for people who already understand sockets,
+but does not help the new networking programmer.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_992"></a></p>
+<div align=left><tt>(socket-connect <i>protocol-family socket-type . args</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>socket</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>socket-connect</tt> is intended for creating client applications.
+<i>protocol-family</i> is specified as either the
+<tt>protocol-family/internet</tt> or <tt>protocol-family/unix</tt>.
+<i>socket-type</i> is specified as either <tt>socket-type/stream</tt> or
+<tt>socket-type/datagram</tt>. See <tt>socket</tt> for a more complete
+description of these terms. <p>
+The variable <i>args</i> list is meant to specify protocol family
+specific information. For Internet sockets, this consists of two
+arguments: a host name and a port number. For Unix sockets, this
+consists of a pathname.</p>
+<p>
+<tt>socket-connect</tt> returns a <tt>socket</tt> which can be used for input
+and output from a remote server. See <tt>socket</tt> for a description of
+the <em>socket record</em>.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_994"></a></p>
+<div align=left><tt>(bind-listen-accept-loop <i>protocol-family proc arg</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>does-not-return</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>bind-listen-accept-loop</tt> is intended for creating server
+applications. <i>protocol-family</i> is specified as either the
+<tt>protocol-family/internet</tt> or <tt>protocol-family/unix</tt>.
+<i>proc</i> is a procedure of two arguments: a <tt>socket</tt> and a
+socket-address. <i>arg</i> specifies a port number for Internet sockets
+or a pathname for Unix sockets. See <tt>socket</tt> for a more complete
+description of these terms.<p>
+<i>proc</i> is called with a socket and a socket address each time there
+is a connection from a client application. The socket allows
+communications with the client.  The socket address specifies the
+address of the remote client.</p>
+<p>
+This procedure does not return, but loops indefinitely accepting
+connections from client programs.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_996"></a></p>
+<div align=left><tt>(bind-prepare-listen-accept-loop <i>protocol-family prepare proc arg</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>does-not-return</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Same as <tt>bind-listen-accept-loop</tt> but runs the thunk
+<i>prepare</i> after binding the address and before entering the
+loop. The typical task of the <i>prepare</i> procedure is to change
+the user id from the superuser to some unprivileged id once the
+address has been bound.
+</blockquote><p>
+</p>
+<a name="node_sec_4.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_4.2">4.2&nbsp;&nbsp;Sockets</a></h2><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_998"></a></p>
+<div align=left><tt>(create-socket <i>protocol-family type [protocol]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>socket</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1000"></a><div align=left><tt>(create-socket-pair <i>type</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[socket<sub>1</sub> socket<sub>2</sub>]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1002"></a><div align=left><tt>(close-socket <i>socket</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote><p>
+A socket is one end of a network connection. Three specific properties
+of sockets are specified at creation time: the protocol-family, type,
+and protocol.</p>
+<p>
+The <i>protocol-family</i> specifies the protocol family to be used with
+the socket. This also determines the address family of socket addresses,
+which are described in more detail below. Scsh currently supports the
+Unix internal protocols and the Internet protocols using the
+following constants:
+</p>
+<blockquote><tt><br>
+protocol-family/unspecified<br>
+protocol-family/unix<br>
+protocol-family/internet</tt></blockquote><p>
+The <i>type</i> specifies the style of communication. Examples that your
+operating system probably provides are stream and datagram sockets.
+Others maybe available depending on your system. Typical values are:
+</p>
+<blockquote><tt><br>
+socket-type/stream<br>
+socket-type/datagram<br>
+socket-type/raw</tt></blockquote><p>
+The <i>protocol</i> specifies a particular protocol to use within a
+protocol family and type. Usually only one choice exists, but it's
+probably safest to set this explicitly. See the protocol database
+routines for information on looking up protocol constants.</p>
+<p>
+New sockets are typically created with <tt>create-socket</tt>. However,
+<tt>create-socket-pair</tt> can also be used to create a pair of connected
+sockets in the <tt>protocol-family/unix</tt> protocol-family. The value of a
+returned socket is a <em>socket record</em>, defined to have the following
+structure:
+</p>
+<blockquote><tt><br>
+(define-record&nbsp;socket<br>
+&nbsp;&nbsp;family&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;protocol&nbsp;family<br>
+&nbsp;&nbsp;inport&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;input-port<br>
+&nbsp;&nbsp;outport)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;output-port</tt></blockquote><p>
+The <tt>family</tt> specifies the protocol family of the socket. The
+<tt>inport</tt> and <tt>outport</tt> fields are ports that can be used for input
+and output, respectively. For a stream socket, they are only usable
+after a connection has been established via <tt>connect-socket</tt> or
+<tt>accept-connection</tt>. For a datagram socket, <i>outport</i> can be
+immediately using <tt>send-message</tt>, and <i>inport</i> can be used after
+<tt>bind</tt> has created a local address.</p>
+<p>
+<tt>close-socket</tt> provides a convenient way to close a socket's port. It
+is preferred to explicitly closing the inport and outport because using
+<tt>close</tt> on sockets is not currently portable across operating systems.</p>
+<p>
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1004"></a></p>
+<div align=left><tt>(port-&gt;socket <i>port protocol-family</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>socket</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure turns <i>port</i> into a socket object. The port's
+underlying file descriptor must be a socket with protocol family
+<i>protocol-family</i>. <tt>port-&gt;socket</tt> applies <tt>dup-&gt;inport</tt>
+and <tt>dup-&gt;outport</tt> to <i>port</i> to create the ports of the
+socket object.<p>
+<tt>port-&gt;socket</tt> comes in handy for writing
+servers which run as children of <tt>inetd</tt>: after receiving a
+connection <tt>inetd</tt> creates a socket and passes it as
+standard input to its child.
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_4.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_4.3">4.3&nbsp;&nbsp;Socket addresses</a></h2><p>The format of a socket-address depends on the address family of the
+socket. Address-family-specific routines are provided to convert
+protocol-specific addresses to socket addresses. The value returned by
+these routines is a <em>socket-address record</em>, defined to have the
+following visible structure:
+</p>
+<blockquote><tt><br>
+(define-record&nbsp;socket-address<br>
+&nbsp;&nbsp;family)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;address&nbsp;family</tt></blockquote><p>
+The <tt>family</tt> is one of the following constants:
+</p>
+<blockquote><tt><br>
+address-family/unspecified<br>
+address-family/unix<br>
+address-family/internet</tt></blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1006"></a></p>
+<div align=left><tt>(unix-address-&gt;socket-address <i>pathname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>socket-address</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>unix-address-&gt;socket-address</tt> returns a <i>socket-address</i> based
+on the string <i>pathname</i>. There is a system dependent limit on the
+length of <i>pathname</i>.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1008"></a></p>
+<div align=left><tt>(internet-address-&gt;socket-address <i>host-address service-port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>socket-address</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>internet-address-&gt;socket-address</tt> returns a <i>socket-address</i> based
+on an integer <i>host-address</i> and an integer <i>service-port</i>.
+Besides being a 32-bit host address, an Internet host address can also
+be one of the following constants:
+<blockquote><tt><br>
+internet-address/any<br>
+internet-address/loopback<br>
+internet-address/broadcast</tt></blockquote><p>
+The use of <tt>internet-address/any</tt> is described below in
+<tt>bind-socket</tt>. <tt>internet-address/loopback</tt> is an address that
+always specifies the local machine. <tt>internet-address/broadcast</tt> is
+used for network broadcast communications.</p>
+<p>
+For information on obtaining a host's address, see the <tt>host-info</tt>
+function. 
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1010"></a></p>
+<div align=left><tt>(socket-address-&gt;unix-address <i>socket-address</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>pathname</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1012"></a><div align=left><tt>(socket-address-&gt;internet-address <i>socket-address</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[host-address service-port]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote><p>
+The routines <tt>socket-address-&gt;internet-address</tt> and
+<tt>socket-address-&gt;unix-address</tt> return the address-family-specific addresses.
+Be aware that most implementations don't correctly return anything more
+than an empty string for addresses in the Unix address-family.
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_4.4"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_4.4">4.4&nbsp;&nbsp;Socket primitives</a></h2><p>The procedures in this section are presented in the order in which a
+typical program will use them. Consult a text on network systems
+programming for more information on sockets.<a name="call_footnote_Temp_23"></a><a href="#footnote_Temp_23"><sup><small>12</small></sup></a>
+The last two tutorials are freely available as part of BSD. In the
+absence of these, your Unix manual pages for socket might be a good
+starting point for information.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1014"></a></p>
+<div align=left><tt>(connect-socket <i>socket socket-address</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+<tt>connect-socket</tt> sets up a connection from a <i>socket</i>
+to a remote <i>socket-address</i>. A connection has different meanings
+depending on the socket type. A stream socket must be connected before
+use. A datagram socket can be connected multiple times, but need not be
+connected at all if the remote address is specified with each
+<tt>send-message</tt>, described below. Also, datagram sockets
+may be disassociated from a remote address by connecting to a null
+remote address.
+</blockquote>
+<p></p>
+<p></p>
+<p><a name="node_idx_1016"></a></p>
+<div align=left><tt>(connect-socket-no-wait <i>socket socket-address</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1018"></a><div align=left><tt>(connect-socket-successful? <i>socket</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Just like <tt>connect-socket</tt>, <tt>connect-socket-no-wait</tt> sets up a
+connection from a <i>socket</i> to a remote <i>socket-address</i>.
+Unlike <tt>connect-socket</tt>, <tt>connect-socket-no-wait</tt> does not
+block if it cannot establish the connection immediately. Instead it
+will return <tt>#f</tt> at once. In this case a subsequent <tt>select</tt> on
+the output port of the socket will report the output port as ready
+as soon as the operation system has established the connection or as
+soon as setting up the connection led to an error. Afterwards, the
+procedure <tt>connect-socket-successful?</tt> can be used to test
+whether the connection has been established successfully or not.
+</blockquote>
+<p></p>
+<p></p>
+<p><a name="node_idx_1020"></a></p>
+<div align=left><tt>(bind-socket <i>socket socket-address</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+<tt>bind-socket</tt> assigns a certain local <i>socket-address</i> to a
+<i>socket</i>. Binding a socket reserves the local address. To receive
+connections after binding the socket, use <tt>listen-socket</tt> for stream
+sockets and <tt>receive-message</tt> for datagram sockets.<p>
+Binding an Internet socket with a host address of
+<tt>internet-address/any</tt> indicates that the caller does
+not care to specify from which local network interface connections are
+received. Binding an Internet socket with a service port number of zero
+indicates that the caller has no preference as to the port number
+assigned.</p>
+<p>
+Binding a socket in the Unix address family creates a socket special
+file in the file system that must be deleted before the address can be
+reused. See <tt>delete-file</tt>.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1022"></a></p>
+<div align=left><tt>(listen-socket <i>socket backlog</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+<tt>listen-socket</tt> allows a stream <i>socket</i> to start receiving connections,
+allowing a queue of up to <i>backlog</i> connection requests. Queued
+connections may be accepted by <tt>accept-connection</tt>.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1024"></a></p>
+<div align=left><tt>(accept-connection <i>socket</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[new-socket socket-address]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>accept-connection</tt> receives a connection on a <i>socket</i>, returning
+a new socket that can be used for this connection and the remote socket
+address associated with the connection.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1026"></a></p>
+<div align=left><tt>(socket-local-address <i>socket</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>socket-address</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1028"></a><div align=left><tt>(socket-remote-address <i>socket</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>socket-address</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Sockets can be associated with a local address or a remote address or
+both. <tt>socket-local-address</tt> returns the local <i>socket-address</i>
+record associated with <i>socket</i>. <tt>socket-remote-address</tt> returns
+the remote <i>socket-address</i> record associated with <i>socket</i>.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1030"></a></p>
+<div align=left><tt>(shutdown-socket <i>socket how-to</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote><p>
+<tt>shutdown-socket</tt> shuts down part of a full-duplex socket.
+The method of shutting done is specified by the <i>how-to</i> argument,
+one of:
+</p>
+<blockquote><tt><br>
+shutdown/receives<br>
+shutdown/sends<br>
+shutdown/sends+receives</tt></blockquote>
+</blockquote><p>
+</p>
+<a name="node_sec_4.5"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_4.5">4.5&nbsp;&nbsp;Performing input and output on sockets</a></h2><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1032"></a></p>
+<div align=left><tt>(receive-message <i>socket length [flags]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[string-or-<tt>#f</tt> socket-address]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1034"></a><div align=left><tt>(receive-message! <i>socket string [start] [end] [flags]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[count-or-<tt>#f</tt>  socket-address]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1036"></a><div align=left><tt>(receive-message/partial <i>socket length [flags]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[string-or-<tt>#f</tt> socket-address]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1038"></a><div align=left><tt>(receive-message!/partial <i>socket string [start] [end] [flags]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[count-or-<tt>#f</tt> socket-address]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<p></p>
+<p></p>
+<p><a name="node_idx_1040"></a></p>
+<div align=left><tt>(send-message <i>socket string [start] [end] [flags] [socket-address]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1042"></a><div align=left><tt>(send-message/partial <i>socket string [start] [end] [flags] [socket-address]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>count</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+</p>
+<blockquote>
+For most uses, standard input and output routines such as
+<tt>read-string</tt> and <tt>write-string</tt> should suffice.  However, in some
+cases an extended interface is required. The <tt>receive-message</tt> and
+<tt>send-message</tt> calls parallel the <tt>read-string</tt> and
+<tt>write-string</tt> calls with a similar naming scheme.<p>
+One additional feature of these routines is that <tt>receive-message</tt>
+returns the remote <i>socket-address</i> and <i>send-message</i> takes an
+optional remote
+<tt>socket-address</tt>. This allows a program to know the source of input
+from a datagram socket and to use a datagram socket for output without
+first connecting it.</p>
+<p>
+All of these procedures take an optional <i>flags</i> field. This
+argument is an integer bit-mask, composed by or'ing together the
+following constants:
+</p>
+<blockquote><tt><br>
+message/out-of-band<br>
+message/peek<br>
+message/dont-route</tt></blockquote><p>
+See <tt>read-string</tt> and <tt>write-string</tt> for a more detailed
+description of the arguments and return values.
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_4.6"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_4.6">4.6&nbsp;&nbsp;Socket options</a></h2><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1044"></a></p>
+<div align=left><tt>(socket-option <i>socket level option</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>value</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1046"></a><div align=left><tt>(set-socket-option <i>socket level option value</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+</p>
+<blockquote>
+<tt>socket-option</tt> and <tt>set-socket-option</tt> allow the inspection and
+modification, respectively, of several options available on sockets. The
+<i>level</i> argument specifies what protocol level is to be examined or
+affected. A level of <tt>level/socket</tt> specifies the highest possible
+level that is available on all socket types. A specific protocol number
+can also be used as provided by <tt>protocol-info</tt>, described below.<p>
+There are several different classes of socket options. The first class
+consists of boolean options which can be either true or false. Examples
+of this option type are:
+</p>
+<blockquote><tt><br>
+socket/debug<br>
+socket/accept-connect<br>
+socket/reuse-address<br>
+socket/keep-alive<br>
+socket/dont-route<br>
+socket/broadcast<br>
+socket/use-loop-back<br>
+socket/oob-inline<br>
+socket/use-privileged<br>
+socket/cant-signal<br>
+tcp/no-delay</tt></blockquote><p>
+Value options are another category of socket options. Options of this
+type are an integer value. Examples of this option type are:
+</p>
+<blockquote><tt><br>
+socket/send-buffer<br>
+socket/receive-buffer<br>
+socket/send-low-water<br>
+socket/receive-low-water<br>
+socket/error<br>
+socket/type<br>
+ip/time-to-live<br>
+tcp/max-segment</tt></blockquote><p>
+A third option type specifies how long for data to linger after a socket
+has been closed. There is only one option of this type:
+<tt>socket/linger</tt>. It is set with either <tt>#f</tt>to disable it or an
+integer number of seconds to linger and returns a value of the same type
+upon inspection.</p>
+<p>
+The fourth and final option type of this time is a timeout option. There
+are two examples of this option type: <tt>socket/send-timeout</tt> and
+<tt>socket/receive-timeout</tt>. These are set with a real number of
+microseconds resolution and returns a value of the same type upon
+inspection.</p>
+<p>
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_4.7"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_4.7">4.7&nbsp;&nbsp;Database-information entries</a></h2><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1048"></a></p>
+<div align=left><tt>(host-info <i>name-or-socket-address</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>host-info</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1050"></a><div align=left><tt>(network-info <i>name-or-socket-address</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>network-info or <tt>#f</tt></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1052"></a><div align=left><tt>(service-info <i>name-or-number [protocol-name]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>service-info or <tt>#f</tt></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1054"></a><div align=left><tt>(protocol-info <i>name-or-number</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>protocol-info or <tt>#f</tt></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+</p>
+<blockquote><p>
+<tt>host-info</tt> allows a program to look up a host entry based on either
+its string <i>name</i> or <i>socket-address</i>. The value returned by this
+routine is a <em>host-info record</em>, defined to have the following
+structure:
+</p>
+<blockquote><tt><br>
+(define-record&nbsp;host-info<br>
+&nbsp;&nbsp;name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Host&nbsp;name<br>
+&nbsp;&nbsp;aliases&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Alternative&nbsp;names<br>
+&nbsp;&nbsp;addresses)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Host&nbsp;addresses</tt></blockquote><p>
+<tt>host-info</tt> could fail and raise an error for one of the following
+reasons: 
+</p>
+<blockquote><tt><br>
+herror/host-not-found<br>
+herror/try-again<br>
+herror/no-recovery<br>
+herror/no-data<br>
+herror/no-address</tt></blockquote><p>
+<tt>network-info</tt> allows a program to look up a network entry based on either
+its string <i>name</i> or <i>socket-address</i>. The value returned by this
+routine is a <em>network-info record</em>, defined to have the following
+structure:
+</p>
+<blockquote><tt><br>
+(define-record&nbsp;network-info<br>
+&nbsp;&nbsp;name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Network&nbsp;name<br>
+&nbsp;&nbsp;aliases&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Alternative&nbsp;names<br>
+&nbsp;&nbsp;net)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Network&nbsp;number</tt></blockquote><p>
+<tt>service-info</tt> allows a program to look up a service entry based
+on either its string <i>name</i> or integer <i>port</i>. The value returned
+by this routine is a <em>service-info record</em>, defined to have the
+following structure:
+</p>
+<blockquote><tt><br>
+(define-record&nbsp;service-info<br>
+&nbsp;&nbsp;name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Service&nbsp;name<br>
+&nbsp;&nbsp;aliases&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Alternative&nbsp;names<br>
+&nbsp;&nbsp;port&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Port&nbsp;number<br>
+&nbsp;&nbsp;protocol)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Protocol&nbsp;name</tt></blockquote><p>
+<tt>protocol-info</tt> allows a program to look up a protocol entry based
+on either its string <i>name</i> or integer <i>number</i>. The value returned
+by this routine is a <em>protocol-info record</em>, defined to have the
+following structure:
+</p>
+<blockquote><tt><br>
+(define-record&nbsp;protocol-info<br>
+&nbsp;&nbsp;name&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Protocol&nbsp;name<br>
+&nbsp;&nbsp;aliases&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Alternative&nbsp;names<br>
+&nbsp;&nbsp;number)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Protocol&nbsp;number)</tt></blockquote><p>
+<tt>network-info</tt>, <tt>service-info</tt> and <tt>protocol-info</tt> return
+<tt>#f</tt>if the specified entity was not found.</p>
+<p>
+</p>
+</blockquote>
+
+<div class=footnoterule><hr></div><p></p>
+<div class=footnote><p><a name="footnote_Temp_23"></a><a href="#call_footnote_Temp_23"><sup><small>12</small></sup></a> 
+Some recommended ones are: </p>
+<p>
+</p>
+<ul><p>
+</p>
+<li><p>``Unix Network Programming'' by W. Richard Stevens</p>
+<p>
+</p>
+<li><p>``An Introductory 4.3BSD Interprocess Communication Tutorial.''
+(reprinted in UNIX Programmer's Supplementary Documents Volume 1, PS1:7)</p>
+<p>
+</p>
+<li><p>``An Advanced 4.3BSD Interprocess Communication Tutorial.''
+(reprinted in UNIX Programmer's Supplementary Documents Volume 1, PS1:8)</p>
+<p>
+</p>
+</ul><p>
+</p>
+</div>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-4.html">previous</a></span><span>, <a href="man-Z-H-6.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

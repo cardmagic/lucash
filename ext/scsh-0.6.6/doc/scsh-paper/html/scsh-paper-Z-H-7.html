@@ -1,0 +1,113 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-6.html">previous</a></span><span>, <a href="scsh-paper-Z-H-8.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_5"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_5">5&nbsp;&nbsp;The Tao of Scheme and Unix</a></h1><p>
+Most attempts at embedding shells in functional programming languages
+[<a href="scsh-paper-Z-H-17.html#node_bib_4">fsh</a>,&nbsp;<a href="scsh-paper-Z-H-17.html#node_bib_2">Ellis</a>]
+try to hide the difference between running a program and calling a procedure.
+That is, if the user tries
+</p>
+<blockquote><tt>(lpr &quot;notes.txt&quot;)</tt></blockquote>the shell will first treat <tt>lpr</tt> as a procedure to be called.
+If <tt>lpr</tt> isn't found in the variable environment, the shell will then
+do a path search of the file system for a program.
+This sort of transparency is in analogy to the function-binding mechanisms
+of traditional shells, such as ksh.<p>
+This is a fundamental error that has hindered these previous designs.
+Scsh, in contrast, is explicit about the distinction between 
+procedures and programs.
+In scsh, the programmer must know which are which -- the mechanisms
+for invocation are different for the two cases 
+(procedure call <em>versus</em> the <tt>(run . <i>epf</i>)</tt> special form),
+and the namespaces are different 
+(the program's lexical environment <em>versus</em>
+<tt>$PATH</tt> search in the file system).</p>
+<p>
+Linguistically separating these two mechanisms was an important design
+decision in the language.
+It was done because the two computational models are fundamentally different;
+any attempt to gloss over the distinctions would have made the semantics
+ugly and inconsistent.</p>
+<p>
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_7"></a>
+<div class=figure align=center><table width=100%><tr><td align=center><p></p>
+<p></p>
+<div align=center><table><tr><td>
+
+<table border=0><tr><td valign=top ><strong>Unix: </strong></td><td valign=top ><table border=0><tr><td valign=top >Computational agents are processes, </td></tr>
+<tr><td valign=top >communicate via byte streams.
+</td></tr></table> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><strong>Scheme: </strong></td><td valign=top ><table border=0><tr><td valign=top >Computational agents are procedures, </td></tr>
+<tr><td valign=top >communicate via procedure call/return.
+</td></tr></table>
+</td></tr></table>
+</td></tr></table></div>
+
+</td></tr>
+<tr><td align=center><b>Figure 4:</b>&nbsp;&nbsp;The Tao of Scheme and Unix</td></tr>
+<tr><td>
+
+
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p>
+</p>
+<p>
+There are two computational worlds here (figure&nbsp;<a href="#node_fig_Temp_7">4</a>),
+where the basic computational agents are procedures or processes.
+These agents are composed differently.
+In the world of applicative-order procedures, agents execute serially, 
+and are composed with function composition: <tt>(g (f x))</tt>.
+In the world of processes, agents execute concurrently 
+and are composed with pipes, in a data-flow network: <tt>f | g</tt>.
+A language with both of these computational structures, such as scsh, 
+must provide a way to interface them. {Note Normal order}
+In scsh, we have ``adapters'' for crossing between these paradigms:
+</p>
+<blockquote>
+
+<table border=1><tr><td valign=top  colspan=1> </td><td valign=top  colspan=1>Scheme
+</td><td valign=top  colspan=1>Unix </td></tr>
+<tr><td valign=top >
+Scheme&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td valign=top ><tt>(g (f x))</tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td valign=top ><tt>(&lt;&lt; ,x)</tt> </td></tr>
+<tr><td valign=top >
+Unix&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td><td valign=top ><tt>run/string</tt>,<tt>...</tt></td><td valign=top ><tt>f | g</tt> </td></tr>
+<tr><td valign=top >
+</td></tr></table>
+</blockquote>
+The <tt>run/string</tt> form and its cousins (section&nbsp;<a href="scsh-paper-Z-H-5.html#node_sec_3.5">3.5</a>)
+map process output to procedure input;
+the <tt>&lt;&lt;</tt> i/o redirection maps procedure output to process input.
+For example:
+<blockquote><tt><br>
+(run/string&nbsp;(nroff&nbsp;-ms)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;&lt;&nbsp;,(texinfo-&gt;nroff&nbsp;doc-string)))</tt></blockquote>
+By separating the two worlds, and then providing ways for them to
+cross-connect, scsh can cleanly accommodate the two paradigms within
+one notational framework.<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-6.html">previous</a></span><span>, <a href="scsh-paper-Z-H-8.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

@@ -1,0 +1,718 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-8.html">previous</a></span><span>, <a href="man-Z-H-10.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_8"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_8">Chapter 8</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_8">Awk, record I/O, and field parsing</a></h1><p></p>
+<p>
+Unix programs frequently process streams of records, 
+where each record is delimited by a newline, 
+and records are broken into fields with other delimiters
+(for example, the colon character in <tt>/etc/passwd</tt>).
+Scsh has procedures that allow the programmer to easily
+do this kind of processing.
+Scsh's field parsers can also be used to parse other kinds
+of delimited strings, such as colon-separated <code class=verbatim>$PATH</code> lists.
+These routines can be used with scsh's <tt>awk</tt> loop construct
+to conveniently perform pattern-directed computation over streams
+of records.</p>
+<p>
+</p>
+<a name="node_sec_8.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_8.1">8.1&nbsp;&nbsp;Record I/O and field parsing</a></h2><p></p>
+<p>
+The procedures in this section are used to read records from
+I/O streams and parse them into fields.
+A record is defined as text terminated by some delimiter (usually a newline).
+A record can be split into fields by using regular expressions in
+one of several ways: to <em>match</em> fields, to <em>separate</em> fields,
+or to <em>terminate</em> fields.
+The field parsers can be applied to arbitrary strings (one common use is
+splitting environment variables such as <tt>$PATH</tt> at colons into its
+component elements).</p>
+<p>
+The general delimited-input procedures described in
+chapter&nbsp;<a href="man-Z-H-8.html#node_chap_7">7</a> are also useful for reading simple records, 
+such as single lines, paragraphs of text, or strings terminated by specific
+characters.</p>
+<p>
+</p>
+<a name="node_sec_8.1.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_8.1.1">8.1.1&nbsp;&nbsp;Reading records</a></h3><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1310"></a></p>
+<div align=left><tt>(record-reader <i>[delims elide-delims? handle-delim]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Returns a procedure that reads records from a port. The
+procedure is invoked as follows:
+<blockquote><tt>(<i>reader</i> <i>[port]</i>) ---&gt; 
+<i><i>string</i> or eof</i></tt></blockquote>A record is a sequence of characters terminated by one of the characters
+in <i>delims</i> or eof. If <i>elide-delims?</i> is true, then a contiguous
+sequence of delimiter chars are taken as a single record delimiter.  If
+<i>elide-delims?</i> is false, then a delimiter char coming immediately
+after a delimiter char produces an empty-string record. The reader
+consumes the delimiting char(s) before returning from a read.<p>
+The <i>delims</i> set defaults to the set {newline}. 
+It may be a charset, string, character, or character predicate, 
+and is coerced to a charset. 
+The <i>elide-delims?</i> flag defaults to <tt>#f</tt>.</p>
+<p>
+The <i>handle-delim</i> argument controls what is done with the record's
+terminating delimiter.
+</p>
+<blockquote>
+<table border=0><tr><td valign=top ><tt>'trim</tt> </td><td valign=top >Delimiters are trimmed. (The default)</td></tr>
+<tr><td valign=top ><tt>'split</tt></td><td valign=top >Reader returns delimiter string as a second argument.
+If record is terminated by EOF, then the eof object is 
+returned as this second argument. </td></tr>
+<tr><td valign=top ><tt>'concat</tt> </td><td valign=top >The record and its delimiter are returned as
+a single string.
+</td></tr></table>
+</blockquote><p>
+The reader procedure returned takes one optional argument, the port
+from which to read, which defaults to the current input port. It returns
+a string or eof.
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_8.1.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_8.1.2">8.1.2&nbsp;&nbsp;Parsing fields</a></h3><p></p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1312"></a></p>
+<div align=left><tt>(field-splitter <i>[field num-fields]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1314"></a><div align=left><tt>(infix-splitter <i>[delim num-fields handle-delim]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1316"></a><div align=left><tt>(suffix-splitter <i>[delim num-fields handle-delim]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1318"></a><div align=left><tt>(sloppy-suffix-splitter <i>[delim num-fields handle-delim]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+These functions return a parser function that can be used as follows:
+<blockquote><tt>(<i>parser</i> <i>string</i> <i>[start]</i>) ---&gt;
+<i>string-list</i></tt></blockquote><p>
+The returned parsers split strings into fields defined
+by regular expressions.  You can parse by specifying a pattern that
+<em>separates</em> fields, a pattern that <em>terminates</em> fields, or
+a pattern that <em>matches</em> fields:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top >Procedure </td><td valign=top >Pattern </td></tr>
+<tr><td valign=top ><tt>field-splitter</tt> </td><td valign=top >matches fields  </td></tr>
+<tr><td valign=top ><tt>infix-splitter</tt> </td><td valign=top >separates fields </td></tr>
+<tr><td valign=top ><tt>suffix-splitter</tt></td><td valign=top >terminates fields </td></tr>
+<tr><td valign=top ><tt>sloppy-suffix-splitter</tt> </td><td valign=top >terminates fields
+</td></tr></table>
+</blockquote><p>
+These parser generators are controlled by a range of options, so that you
+can precisely specify what kind of parsing you want. However, these
+options default to reasonable values for general use.</p>
+<p>
+Defaults:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top ><i>delim</i> </td><td valign=top ><tt>(rx (| (+ white) eos))</tt>    </td><td valign=top >(suffix delimiter: white space or eos) </td></tr>
+<tr><td valign=top  colspan=1>                </td><td valign=top ><tt>(rx (+ white))</tt>   </td><td valign=top >(infix  delimiter: white space) </td></tr>
+<tr><td valign=top ><p>
+<i>field</i>    </p>
+</td><td valign=top ><code class=verbatim>(rx (+ (~ white)))</code>   </td><td valign=top >(non-white-space) </td></tr>
+<tr><td valign=top ><p>
+<i>num-fields</i> </p>
+</td><td valign=top ><code class=verbatim>#f</code> </td><td valign=top >(as many fields as possible) </td></tr>
+<tr><td valign=top ><p>
+<i>handle-delim</i> </p>
+</td><td valign=top ><code class=verbatim>'trim</code> </td><td valign=top >(discard delimiter chars)
+</td></tr></table>
+</blockquote>
+<tt>...</tt>which means: break the string at white space, discarding the
+white space, and parse as many fields as possible.<p>
+The <i>delim</i> parameter is a regular expression matching the text
+that occurs between fields.
+See chapter&nbsp;<a href="man-Z-H-7.html#node_chap_6">6</a> for information on regular expressions,
+and the <tt>rx</tt> form used to specify them.
+In the separator case, 
+it defaults to a pattern matching white space; 
+in the terminator case,
+it defaults to white space or end-of-string.</p>
+<p>
+The <i>field</i> parameter is a regular expression used
+to match fields. It defaults to non-white-space.</p>
+<p>
+The <i>delim</i> patterns may also be given as a string, 
+character, or char-set, which are coerced to regular expressions.
+So the following expressions are all equivalent,
+each producing a function that splits strings apart at colons:
+</p>
+<blockquote>
+<pre class=verbatim>(infix-splitter (rx &quot;:&quot;))
+(infix-splitter &quot;:&quot;)
+(infix-splitter #\:)
+(infix-splitter (char-set #\:))</pre><p>
+</p>
+</blockquote><p>
+The boolean <i>handle-delim</i> determines what to do with delimiters.
+</p>
+<blockquote><table border=0><tr><td valign=top ><tt>'trim</tt> </td><td valign=top >Delimiters are thrown away after parsing. (default) </td></tr>
+<tr><td valign=top ><tt>'concat</tt> </td><td valign=top >Delimiters are appended to the field preceding them. </td></tr>
+<tr><td valign=top ><tt>'split</tt> </td><td valign=top >Delimiters are returned as separate elements in
+the field list.
+</td></tr></table>
+</blockquote><p>
+The <i>num-fields</i> argument used to create the parser specifies how many
+fields to parse.  If <tt>#f</tt> (the default), the procedure parses them all. 
+If a positive integer <em>n</em>, exactly that many fields are parsed; it is an
+error if there are more or fewer than <em>n</em> fields in the record. If
+<i>num-fields</i> is a negative integer or zero, then |<em>n</em>| fields 
+are parsed, and the remainder of the string is returned in the last
+element of the field list; it is an error if fewer than |<em>n</em>| fields 
+can be parsed.</p>
+<p>
+The field parser produced is a procedure that can be employed as
+follows:
+</p>
+<blockquote><tt>(<i>parse</i> <i>string</i> <i>[start]</i>) ===&gt; <i>string-list</i></tt></blockquote>The optional <i>start</i> argument (default 0) specifies where in the string
+to begin the parse. It is an error if
+<i>start</i> &gt; <tt>(string-length <i>string</i>)</tt>.<p>
+The parsers returned by the four parser generators implement different
+kinds of field parsing:
+</p>
+<dl><dt></dt><dd>
+</dd><dt><b><tt>field-splitter</tt></b></dt><dd>
+The regular expression specifies the actual field.<p>
+</p>
+</dd><dt><b><tt>suffix-splitter</tt></b></dt><dd>
+Delimiters are interpreted as element <em>terminators</em>. 
+If vertical-bar is the the delimiter, then the string <tt>&quot;&quot;</tt>
+is the empty record <tt>()</tt>, <tt>&quot;foo|&quot;</tt> produces a one-field record
+<tt>(&quot;foo&quot;)</tt>, and <tt>&quot;foo&quot;</tt> is an error.<p>
+The syntax of suffix-delimited records is:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top ><i>&lt;.record.&gt;</i> </td><td valign=top >::=  </td><td valign=top ><tt>&quot;&quot;</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Empty record) </td></tr>
+<tr><td valign=top ></td><td valign=top >| </td><td valign=top ><i>&lt;.element.&gt;</i> <i>&lt;.delim.&gt;</i> 
+<i>&lt;.record.&gt;</i>
+</td></tr></table>
+</blockquote><p>
+It is an error if a non-empty record does not end with a delimiter.
+To make the last delimiter optional, make sure the delimiter regexp
+matches the end-of-string (sre <tt>eos</tt>).</p>
+<p>
+</p>
+</dd><dt><b><tt>infix-splitter</tt></b></dt><dd>
+Delimiters are interpreted as element <em>separators</em>. If comma is the
+delimiter, then the string <tt>&quot;foo,&quot;</tt> produces a two-field 
+record <tt>(&quot;foo&quot; &quot;&quot;)</tt>.<p>
+The syntax of infix-delimited records is:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top ><i>&lt;.record.&gt;</i> </td><td valign=top >::=  </td><td valign=top ><tt>&quot;&quot;</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Forced to be empty record) </td></tr>
+<tr><td valign=top ></td><td valign=top >| </td><td valign=top ><i>&lt;.real-infix-record.&gt;</i> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>&lt;.real-infix-record.&gt;</i> </td><td valign=top >::=  </td><td valign=top ><i>&lt;.element.&gt;</i> <i>&lt;.delim.&gt;</i>
+<i>&lt;.real-infix-record.&gt;</i> </td></tr>
+<tr><td valign=top ></td><td valign=top >| </td><td valign=top ><i>&lt;.element.&gt;</i>
+</td></tr></table>
+</blockquote><p>
+Note that separator semantics doesn't really allow for empty 
+records -- the straightforward grammar (<em>i.e.</em>, <i>&lt;.real-infix-record.&gt;</i>) 
+parses an empty string as a singleton list whose one field is the empty 
+string, <tt>(&quot;&quot;)</tt>, not as the empty record <tt>()</tt>. This is unfortunate, 
+since it means that infix string parsing doesn't make <tt>string-append</tt>
+and <tt>append</tt> isomorphic. For example,
+</p>
+<blockquote><tt>((infix-splitter &quot;:&quot;) (string-append <i>x</i> &quot;:&quot; <i>y</i>))</tt></blockquote>doesn't always equal
+<blockquote><tt>&nbsp;&nbsp;&nbsp;<br>
+(append&nbsp;((infix-splitter&nbsp;&quot;:&quot;)&nbsp;<i>x</i>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((infix-splitter&nbsp;&quot;:&quot;)&nbsp;<i>y</i>))</tt></blockquote>
+It fails when <i>x</i> or <i>y</i> are the empty string. 
+Terminator semantics <em>does</em> preserve a similar isomorphism.<p>
+However, separator semantics is frequently what other Unix software
+uses, so to parse their strings, we need to use it. For example,
+Unix <code class=verbatim>$PATH</code> lists have separator semantics. The path list 
+<tt>&quot;/bin:&quot;</tt> is broken up into <tt>(&quot;/bin&quot; &quot;&quot;)</tt>, not <tt>(&quot;/bin&quot;)</tt>. 
+Comma-separated lists should also be parsed this way.</p>
+<p>
+</p>
+</dd><dt><b><tt>sloppy-suffix</tt></b></dt><dd>
+The same as the <tt>suffix</tt> case, except that the parser will skip an
+initial delimiter string if the string begins with one instead of parsing 
+an initial empty field. This can be used, for example, to field-split a
+sequence of English text at white-space boundaries, where the string may
+begin or end with white space, by using regex
+<blockquote><tt>(rx&nbsp;(|&nbsp;(+&nbsp;white)&nbsp;eos))</tt></blockquote>
+(But you would be better off using <tt>field-splitter</tt> in this case.)
+</dd></dl><p>
+</p>
+</blockquote><p>
+Figure&nbsp;<a href="#node_fig_Temp_40">6</a> shows how the different parser grammars
+split apart the same strings.
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_40"></a>
+<div class=figure align=center><table width=100%><tr><td align=center>
+<div align=center><table><tr><td>
+<table border=0><tr><td valign=top >Record </td><td valign=top >: suffix </td><td valign=top ><code class=verbatim>:|$</code> suffix </td><td valign=top >: infix </td><td valign=top >non-: field </td></tr>
+<tr><td valign=top ><tt>&quot;&quot;</tt> </td><td valign=top ><tt>()</tt> </td><td valign=top ><tt>()</tt> </td><td valign=top ><tt>()</tt> </td><td valign=top ><tt>()</tt> </td></tr>
+<tr><td valign=top ><tt>&quot;:&quot;</tt> </td><td valign=top ><tt>(&quot;&quot;)</tt> </td><td valign=top ><tt>(&quot;&quot;)</tt> </td><td valign=top ><tt>(&quot;&quot; &quot;&quot;)</tt> </td><td valign=top ><tt>()</tt> </td></tr>
+<tr><td valign=top ><tt>&quot;foo:&quot;</tt> </td><td valign=top ><tt>(&quot;foo&quot;)</tt> </td><td valign=top ><tt>(&quot;foo&quot;)</tt> </td><td valign=top ><tt>(&quot;foo&quot; &quot;&quot;)</tt> </td><td valign=top ><tt>(&quot;foo&quot;)</tt> </td></tr>
+<tr><td valign=top ><tt>&quot;:foo&quot;</tt></td><td valign=top ><em>error</em> </td><td valign=top ><tt>(&quot;&quot; &quot;foo&quot;)</tt></td><td valign=top ><tt>(&quot;&quot; &quot;foo&quot;)</tt></td><td valign=top ><tt>(&quot;foo&quot;)</tt> </td></tr>
+<tr><td valign=top ><tt>&quot;foo:bar&quot;</tt> </td><td valign=top ><em>error</em> </td><td valign=top ><tt>(&quot;foo&quot; &quot;bar&quot;)</tt> </td><td valign=top ><tt>(&quot;foo&quot; &quot;bar&quot;)</tt> </td><td valign=top ><tt>(&quot;foo&quot; &quot;bar&quot;)</tt>
+</td></tr></table>
+</td></tr></table></div>
+
+</td></tr>
+<tr><td align=center><b>Figure 6:</b>&nbsp;&nbsp;Using different grammars to split records into fields.</td></tr>
+<tr><td>
+
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p>
+Having to choose between the different grammars requires you to decide
+what you want, but at least you can be precise about what you are parsing.
+Take fifteen seconds and think it out. Say what you mean; mean what you
+say.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1320"></a></p>
+<div align=left><tt>(join-strings <i>string-list [delimiter grammar]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+This procedure is a simple unparser -- it pastes strings together using
+the delimiter string. <p>
+The <i>grammar</i> argument is one of the symbols <tt>infix</tt> (the default)
+or <tt>suffix</tt>; it determines whether the
+delimiter string is used as a separator or as a terminator.</p>
+<p>
+The delimiter is the string used to delimit elements; it defaults to
+a single space <tt>&quot; &quot;</tt>.</p>
+<p>
+Example:
+</p>
+<blockquote><tt><br>
+(join-strings&nbsp;'(&quot;foo&quot;&nbsp;&quot;bar&quot;&nbsp;&quot;baz&quot;)&nbsp;&quot;:&quot;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;==&gt;&nbsp;&nbsp;&quot;foo:bar:baz&quot;</tt></blockquote>
+</blockquote><p>
+</p>
+<a name="node_sec_8.1.3"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_8.1.3">8.1.3&nbsp;&nbsp;Field readers</a></h3><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1322"></a></p>
+<div align=left><tt>(field-reader <i>[field-parser rec-reader]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>    
+This utility returns a procedure that reads records with field structure 
+from a port.
+The reader's interface is designed to make it useful in the <tt>awk</tt>
+loop macro (section&nbsp;<a href="#node_sec_8.2">8.2</a>).
+The reader is used as follows:
+<blockquote><tt>(<i>reader</i> <i>[port]</i>) ===&gt;  <i>[raw-record parsed-record]</i> or <i>[eof ()]</i></tt></blockquote><p>
+When the reader is applied to an input port (default: the current
+input port), it reads a record using <i>rec-reader</i>. If this record isn't
+the eof object, it is parsed with <i>field-parser</i>. These two 
+values -- the record, and its parsed representation -- are returned
+as multiple values from the reader.</p>
+<p>
+When called at eof, the reader returns [eof-object <tt>()</tt>].</p>
+<p>
+Although the record reader typically returns a string, and
+the field-parser typically takes a string argument, this is not
+required. The record reader can produce, and the field-parser consume,
+values of any type. However, the empty list returned as the
+parsed value on eof is hardwired into the field reader.</p>
+<p>
+For example, if port <tt>p</tt> is open on <tt>/etc/passwd</tt>, then
+</p>
+<blockquote><tt>((field-reader (infix-splitter &quot;:&quot; 7)) p)</tt></blockquote>returns two values:
+<blockquote><tt><br>
+&quot;dalbertz:mx3Uaqq0:107:22:David&nbsp;Albertz:/users/dalbertz:/bin/csh&quot;<br>
+(&quot;dalbertz&quot;&nbsp;&quot;mx3Uaqq0&quot;&nbsp;&quot;107&quot;&nbsp;&quot;22&quot;&nbsp;&quot;David&nbsp;Albertz&quot;&nbsp;&quot;/users/dalbertz&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;/bin/csh&quot;)</tt></blockquote>
+The <i>field-parser</i> defaults to the value of <tt>(field-splitter)</tt>,
+a parser that picks out sequences of non-white-space strings.<p>
+The <i>rec-reader</i> defaults to <tt>read-line</tt>.</p>
+<p>
+Figure&nbsp;<a href="#node_fig_Temp_41">7</a> shows <tt>field-reader</tt> being
+used to read different kinds of Unix records.</p>
+<p>
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_41"></a>
+<div class=figure align=center><table width=100%><tr><td align=center>
+<blockquote><tt><br>
+;;;&nbsp;/etc/passwd&nbsp;reader<br>
+(field-reader&nbsp;(infix-splitter&nbsp;&quot;:&quot;&nbsp;7))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;wandy:3xuncWdpKhR.:73:22:Wandy&nbsp;Saetan:/usr/wandy:/bin/csh<br>
+<br>
+;;;&nbsp;Two&nbsp;ls&nbsp;-l&nbsp;output&nbsp;readers<br>
+(field-reader&nbsp;(infix-splitter&nbsp;(rx&nbsp;(+&nbsp;white))&nbsp;8))<br>
+(field-reader&nbsp;(infix-splitter&nbsp;(rx&nbsp;(+&nbsp;white))&nbsp;-7))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;-rw-r--r--&nbsp;&nbsp;1&nbsp;shivers&nbsp;&nbsp;&nbsp;&nbsp;22880&nbsp;Sep&nbsp;24&nbsp;12:45&nbsp;scsh.scm<br>
+<br>
+;;;&nbsp;Internet&nbsp;hostname&nbsp;reader<br>
+(field-reader&nbsp;(field-splitter&nbsp;(rx&nbsp;(+&nbsp;(&nbsp;&nbsp;&quot;.&quot;)))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;stat.sinica.edu.tw<br>
+<br>
+;;;&nbsp;Internet&nbsp;IP&nbsp;address&nbsp;reader<br>
+(field-reader&nbsp;(field-splitter&nbsp;(rx&nbsp;(+&nbsp;(&nbsp;&nbsp;&quot;.&quot;)))&nbsp;4))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;18.24.0.241<br>
+<br>
+;;;&nbsp;Line&nbsp;of&nbsp;integers<br>
+(let&nbsp;((parser&nbsp;(field-splitter&nbsp;(rx&nbsp;(?&nbsp;(&quot;+-&quot;))&nbsp;(+&nbsp;digit)))))<br>
+&nbsp;&nbsp;(field-reader&nbsp;(lambda&nbsp;(s)&nbsp;(map&nbsp;string-&gt;number&nbsp;(parser&nbsp;s))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;18&nbsp;24&nbsp;0&nbsp;241<br>
+<br>
+;;;&nbsp;Same&nbsp;as&nbsp;above.<br>
+(let&nbsp;((reader&nbsp;(field-reader&nbsp;(field-splitter&nbsp;(rx&nbsp;(?&nbsp;(&quot;+-&quot;))&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;digit))))))<br>
+&nbsp;&nbsp;(lambda&nbsp;maybe-port&nbsp;(map&nbsp;string-&gt;number&nbsp;(apply&nbsp;reader&nbsp;maybe-port))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Yale&nbsp;beat&nbsp;harvard&nbsp;26&nbsp;to&nbsp;7.</tt></blockquote>
+</td></tr>
+<tr><td align=center><b>Figure 7:</b>&nbsp;&nbsp;Some examples of <tt>field-reader</tt></td></tr>
+<tr><td>
+
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_8.1.4"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_8.1.4">8.1.4&nbsp;&nbsp;Forward-progress guarantees and empty-string matches</a></h3><p>A loop that pulls text off a string by repeatedly matching a regexp 
+against that string can conceivably get stuck in an infinite loop if 
+the regexp matches the empty string. For example, the SREs
+<tt>bos</tt>, <tt>eos</tt>, <tt>(* any)</tt>, and <tt>(| &quot;foo&quot; (* (&nbsp; &quot;f&quot;)))</tt>
+can all match the empty string.</p>
+<p>
+The routines in this package that iterate through strings with regular
+expressions are careful to handle this empty-string case.
+If a regexp matches the empty string, the next search starts, not from
+the end of the match (which in the empty string case is also the 
+beginning -- that's the problem), but from the next character over.
+This is the correct behaviour. Regexps match the longest possible
+string at a given location, so if the regexp matched the empty string
+at location <em>i</em>, then it is guaranteed it could not have matched
+a longer pattern starting with character <em>i</em>. So we can safely begin
+our search for the next match at char <em>i</em> + 1.</p>
+<p>
+With this provision, every iteration through the loop makes some forward
+progress, and the loop is guaranteed to terminate.</p>
+<p>
+This has the effect you want with field parsing. For example, if you split
+a string with the empty pattern, you will explode the string into its
+individual characters:
+</p>
+<blockquote><tt>((suffix-splitter (rx)) &quot;foo&quot;) ===&gt;  (&quot;&quot; &quot;f&quot; &quot;o&quot; &quot;o&quot;)</tt></blockquote>However, even though this boundary case is handled correctly, we don't
+recommend using it. Say what you mean -- just use a field splitter:
+<blockquote><tt>((field-splitter (rx any)) &quot;foo&quot;) ===&gt;  (&quot;f&quot; &quot;o&quot; &quot;o&quot;)</tt></blockquote>Or, more efficiently,
+<blockquote><tt>((lambda (s) (map string (string-&gt;list s))) &quot;foo&quot;)</tt></blockquote><p>
+</p>
+<a name="node_sec_8.1.5"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_8.1.5">8.1.5&nbsp;&nbsp;Reader limitations</a></h3><p>Since all of the readers in this package require the ability to peek
+ahead one char in the input stream, they cannot be applied to raw 
+integer file descriptors, only Scheme input ports. This is because
+Unix doesn't support peeking ahead into input streams.</p>
+<p>
+</p>
+<a name="node_sec_8.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_8.2">8.2&nbsp;&nbsp;Awk</a></h2><p></p>
+<p>
+Scsh provides a loop macro and a set of field parsers that can
+be used to perform text processing very similar to the Awk programming
+language.
+The basic functionality of Awk is factored in scsh into its component
+parts.
+The control structure is provided by the <tt>awk</tt> loop macro;
+the text I/O and parsers are provided by the field-reader subroutine library
+(section&nbsp;<a href="#node_sec_8.1">8.1</a>).
+This factoring allows the programmer to compose the basic loop structure
+with any parser or input mechanism at all.
+If the parsers provided by the field-reader package are insufficient,
+the programmer can write a custom parser in Scheme and use it with
+equal ease in the awk framework.</p>
+<p>
+Awk-in-scheme is given by a loop macro called <tt>awk</tt>. It looks like
+this:
+</p>
+<blockquote><tt><br>
+(awk&nbsp;<i>&lt;.next-record.&gt;</i>&nbsp;<i>&lt;.record&amp;field-vars.&gt;</i><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<i>&lt;.counter.&gt;</i>]&nbsp;<i>&lt;.state-var-decls.&gt;</i><br>
+&nbsp;&nbsp;<i>&lt;.clause<sub>1</sub>.&gt;</i>&nbsp;<tt>...</tt>)<a name="node_idx_1324"></a></blockquote></tt><p>
+The body of the loop is a series of clauses, each one representing
+a kind of condition/action pair. The loop repeatedly reads a record,
+and then executes each clause whose condition is satisfied by the record.</p>
+<p>
+Here's an example that reads lines from port <tt>p</tt>
+and prints the line number and line of every line containing the
+string ``<tt>Church-Rosser</tt>'':
+</p>
+<blockquote><tt><br>
+(awk&nbsp;(read-line)&nbsp;(ln)&nbsp;lineno&nbsp;()<br>
+&nbsp;&nbsp;(&quot;Church-Rosser&quot;&nbsp;(format&nbsp;#t&nbsp;&quot;&nbsp;d:&nbsp;&nbsp;s&nbsp;%&quot;&nbsp;lineno&nbsp;ln)))</tt></blockquote>
+This example has just one clause in the loop body, the one that
+tests for matches against the regular expression ``<tt>Church-Rosser</tt>''.<p>
+The <i>&lt;.next-record.&gt;</i> form is an expression that is evaluated each time 
+through the loop to produce a record to process.
+This expression can return multiple values;
+these values are bound to the variables given in the 
+<i>&lt;.record&amp;field-vars.&gt;</i> list of variables.
+The first value returned is assumed to be the record;
+when it is the end-of-file object, the loop terminates.</p>
+<p>
+For example, let's suppose we want to read items from <tt>/etc/password</tt>,
+and we use the <tt>field-reader</tt> procedure to define a record parser for
+<tt>/etc/passwd</tt> entries:
+</p>
+<blockquote><tt>(define read-passwd (field-reader (infix-splitter &quot;:&quot; 7)))</tt></blockquote>binds <tt>read-passwd</tt> to a procedure that reads in a line of text when
+it is called, and splits the text at colons. It returns two values: 
+the entire line read, and a seven-element list of the split-out fields.
+(See section&nbsp;<a href="#node_sec_8.1">8.1</a> for more on <tt>field-reader</tt> and 
+<tt>infix-splitter</tt>.)<p>
+So if the <i>&lt;.next-record.&gt;</i> form in an <tt>awk</tt> expression is 
+<tt>(read-passwd)</tt>, then <i>&lt;.record&amp;field-vars.&gt;</i> must be a list of
+two variables, <em>e.g.</em>,
+</p>
+<blockquote><tt>(record field-vec)</tt></blockquote>since <tt>read-passwd</tt> returns two values.<p>
+Note that <tt>awk</tt> allows us to use <em>any</em> record reader we want in the
+loop, returning whatever number of values we like. These values
+don't have to be strings or string lists. The only requirement
+is that the record reader return the eof object as its first value
+when the loop should terminate.</p>
+<p>
+The <tt>awk</tt> loop allows the programmer to have loop variables. These are
+declared and initialised by the <i>&lt;.state-var-decls.&gt;</i> form, a
+</p>
+<blockquote><tt>((<i>var</i> <i>init-exp</i>) (<i>var</i> <i>init-exp</i>) <tt>...</tt>)</tt></blockquote>list rather like the <tt>let</tt> form. Whenever a clause in the loop body
+executes, it evaluates to as many values as there are state variables,
+updating them.<p>
+The optional <i>&lt;.counter.&gt;</i> variable is an iteration counter. 
+It is bound to 0 when the loop starts. 
+The counter is incremented each time a non-eof record is read.</p>
+<p>
+There are several kinds of loop clause. When evaluating the body of the
+loop, <tt>awk</tt> evaluates <em>all</em> the clauses sequentially. 
+Unlike <tt>cond</tt>, it does not stop after the first clause is satisfied; 
+it checks them all.</p>
+<p>
+</p>
+<ul><p>
+</p>
+<li><p><strong><tt>(<i>test</i> <i>body</i><sub>1</sub> <i>body</i><sub>2</sub> <tt>...</tt>)</tt></strong><br>
+
+If <i>test</i> is true, execute the body forms. The last body form
+is the value of the clause. The test and body forms are evaluated
+in the scope of the record and state variables.</p>
+<p>
+The <i>test</i> form can be one of:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top ><i>integer</i>: </td><td valign=top >The test is true for that iteration of the loop.
+The first iteration is #1. </td></tr>
+<tr><td valign=top ><p>
+<i>sre</i>: </p>
+</td><td valign=top >A regular expression, in SRE notation 
+(see chapter&nbsp;<a href="man-Z-H-7.html#node_chap_6">6</a>) can be used as
+a test. The test is successful if the pattern
+matches the record.
+In particular, note that any string is an SRE. </td></tr>
+<tr><td valign=top ><p>
+<tt>(when <i>expr</i>)</tt>: </p>
+</td><td valign=top >The body of a <tt>when</tt> test is evaluated as a
+Scheme boolean expression in the inner scope of the
+<tt>awk</tt> form. </td></tr>
+<tr><td valign=top ><p>
+<i>expr</i>: </p>
+</td><td valign=top >If the form is none of the above, it is treated as
+a Scheme expression -- in practice, the <tt>when</tt>
+keyword is only needed in cases where SRE/Scheme
+expression ambiguity might occur.
+</td></tr></table>
+</blockquote><p>
+</p>
+<li><p><strong></p>
+<table border=0><tr><td valign=top ><tt>(range   <i>start-test</i> <i>stop-test</i>  <i>body</i><sub>1</sub> <tt>...</tt>)</tt> </td></tr>
+<tr><td valign=top ><tt>(:range  <i>start-test</i> <i>stop-test</i>  <i>body</i><sub>1</sub> <tt>...</tt>)</tt>  </td></tr>
+<tr><td valign=top ><tt>(range:  <i>start-test</i> <i>stop-test</i>  <i>body</i><sub>1</sub> <tt>...</tt>)</tt>  </td></tr>
+<tr><td valign=top ><tt>(:range: <i>start-test</i> <i>stop-test</i>  <i>body</i><sub>1</sub> <tt>...</tt>)</tt>   
+</td></tr></table></strong><br>
+
+These clauses become activated when <i>start-test</i> is true; 
+they stay active on all further iterations until <i>stop-test</i>
+is true.<p>
+So, to print out the first ten lines of a file, we use the clause:
+</p>
+<blockquote><tt>(:range: 1 10 (display record))</tt></blockquote><p>
+The colons control whether or not the start and stop lines
+are processed by the clause. For example:
+</p>
+<blockquote><table border=0><tr><td valign=top ><tt>(range   1 5  <tt>...</tt>)</tt> </td><td valign=top >Lines  2 3 4 </td></tr>
+<tr><td valign=top ><tt>(:range  1 5  <tt>...</tt>)</tt>  </td><td valign=top >Lines 1 2 3 4           </td></tr>
+<tr><td valign=top ><tt>(range:  1 5  <tt>...</tt>)</tt>  </td><td valign=top >Lines  2 3 4 5 </td></tr>
+<tr><td valign=top ><tt>(:range: 1 5  <tt>...</tt>)</tt>    </td><td valign=top >Lines 1 2 3 4 5
+</td></tr></table>
+</blockquote><p>
+A line can trigger both tests, either simultaneously starting and
+stopping an active region, or simultaneously stopping one and starting
+a new one, so ranges can abut seamlessly.</p>
+<p>
+</p>
+<li><p><strong><tt>(else <i>body</i><sub>1</sub> <i>body</i><sub>2</sub> <tt>...</tt>)</tt></strong><br>
+
+If no other clause has executed since the top of the loop, or
+since the last <tt>else</tt> clause, this clause executes.</p>
+<p>
+</p>
+<li><p><strong><tt>(<i>test</i> =&gt; <i>exp</i>)</tt></strong><br>
+
+If evaluating <tt>test</tt> produces a true value, 
+apply <i>exp</i> to that value.
+If <i>test</i> is a regular expression, then <i>exp</i> is applied
+to the match data structure returned by the regexp match routine.</p>
+<p>
+</p>
+<li><p><strong><tt>(after <i>body</i><sub>1</sub> <tt>...</tt>)</tt></strong><br>
+
+This clause executes when the loop encounters EOF. The body forms
+execute in the scope of the state vars and the record-count var,
+if there are any. The value of the last body form is the value
+of the entire awk form.</p>
+<p>
+If there is no <tt>after</tt> clause, <tt>awk</tt> returns the loop's state
+variables as multiple values.
+</p>
+</ul><p></p>
+<p>
+</p>
+<a name="node_sec_8.2.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_8.2.1">8.2.1&nbsp;&nbsp;Examples</a></h3><p>Here are some examples of <tt>awk</tt> being used to process various types
+of input stream.</p>
+<p>
+</p>
+<blockquote><tt><br>
+(define&nbsp;$&nbsp;list-ref)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Saves&nbsp;typing.<br>
+<br>
+;;;&nbsp;Print&nbsp;out&nbsp;the&nbsp;name&nbsp;and&nbsp;home-directory&nbsp;of&nbsp;everyone&nbsp;in&nbsp;/etc/passwd:<br>
+(let&nbsp;((read-passwd&nbsp;(field-reader&nbsp;(infix-splitter&nbsp;&quot;:&quot;&nbsp;7))))<br>
+&nbsp;&nbsp;(call-with-input-file&nbsp;&quot;/etc/passwd&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(lambda&nbsp;(port)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(awk&nbsp;(read-passwd&nbsp;port)&nbsp;(record&nbsp;fields)&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(#t&nbsp;(format&nbsp;#t&nbsp;&quot;&nbsp;a's&nbsp;home&nbsp;directory&nbsp;is&nbsp;&nbsp;a&nbsp;%&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;($&nbsp;fields&nbsp;0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;($&nbsp;fields&nbsp;5)))))))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Print&nbsp;out&nbsp;the&nbsp;user-name&nbsp;and&nbsp;home-directory&nbsp;of&nbsp;everyone&nbsp;whose<br>
+;;;&nbsp;name&nbsp;begins&nbsp;with&nbsp;&quot;S&quot;<br>
+(let&nbsp;((read-passwd&nbsp;(field-reader&nbsp;(infix-splitter&nbsp;&quot;:&quot;&nbsp;7))))<br>
+&nbsp;&nbsp;(call-with-input-file&nbsp;&quot;/etc/passwd&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(lambda&nbsp;(port)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(awk&nbsp;(read-passwd&nbsp;port)&nbsp;(record&nbsp;fields)&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((:&nbsp;bos&nbsp;&quot;S&quot;)&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(format&nbsp;#t&nbsp;&quot;&nbsp;a's&nbsp;home&nbsp;directory&nbsp;is&nbsp;&nbsp;a&nbsp;%&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;($&nbsp;fields&nbsp;0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;($&nbsp;fields&nbsp;5)))))))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Read&nbsp;a&nbsp;series&nbsp;of&nbsp;integers&nbsp;from&nbsp;stdin.&nbsp;This&nbsp;expression&nbsp;evaluates<br>
+;;;&nbsp;to&nbsp;the&nbsp;number&nbsp;of&nbsp;positive&nbsp;numbers&nbsp;that&nbsp;were&nbsp;read.&nbsp;Note&nbsp;our<br>
+;;;&nbsp;&quot;record-reader&quot;&nbsp;is&nbsp;the&nbsp;standard&nbsp;Scheme&nbsp;READ&nbsp;procedure.<br>
+(awk&nbsp;(read)&nbsp;(i)&nbsp;&nbsp;&nbsp;((npos&nbsp;0))<br>
+&nbsp;&nbsp;((&gt;&nbsp;i&nbsp;0)&nbsp;(+&nbsp;npos&nbsp;1)))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Filter&nbsp;--&nbsp;pass&nbsp;only&nbsp;lines&nbsp;containing&nbsp;my&nbsp;name.<br>
+(awk&nbsp;(read-line)&nbsp;(line)&nbsp;()<br>
+&nbsp;&nbsp;(&quot;Olin&quot;&nbsp;(display&nbsp;line)&nbsp;(newline)))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Count&nbsp;the&nbsp;number&nbsp;of&nbsp;non-comment&nbsp;lines&nbsp;of&nbsp;code&nbsp;in&nbsp;my&nbsp;Scheme&nbsp;source.<br>
+(awk&nbsp;(read-line)&nbsp;(line)&nbsp;((nlines&nbsp;0))<br>
+&nbsp;&nbsp;((:&nbsp;bos&nbsp;(*&nbsp;white)&nbsp;&quot;;&quot;)&nbsp;&nbsp;nlines)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;A&nbsp;comment&nbsp;line.<br>
+&nbsp;&nbsp;(else&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;nlines&nbsp;1)))&nbsp;&nbsp;;&nbsp;Not&nbsp;a&nbsp;comment&nbsp;line.</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Read&nbsp;numbers,&nbsp;counting&nbsp;the&nbsp;evens&nbsp;and&nbsp;odds.<br>
+(awk&nbsp;(read)&nbsp;(val)&nbsp;((evens&nbsp;0)&nbsp;(odds&nbsp;0))<br>
+&nbsp;&nbsp;((&gt;&nbsp;val&nbsp;0)&nbsp;(display&nbsp;&quot;pos&nbsp;&quot;)&nbsp;&nbsp;(values&nbsp;evens&nbsp;odds))&nbsp;;&nbsp;Tell&nbsp;me&nbsp;about<br>
+&nbsp;&nbsp;((&lt;&nbsp;val&nbsp;0)&nbsp;(display&nbsp;&quot;neg&nbsp;&quot;)&nbsp;&nbsp;(values&nbsp;evens&nbsp;odds))&nbsp;;&nbsp;sign,&nbsp;too.<br>
+&nbsp;&nbsp;(else&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(display&nbsp;&quot;zero&nbsp;&quot;)&nbsp;(values&nbsp;evens&nbsp;odds))&nbsp;<br>
+<br>
+&nbsp;&nbsp;((even?&nbsp;val)&nbsp;(values&nbsp;(+&nbsp;evens&nbsp;1)&nbsp;odds))<br>
+&nbsp;&nbsp;(else&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(values&nbsp;evens&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(+&nbsp;odds&nbsp;1))))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Determine&nbsp;the&nbsp;max&nbsp;length&nbsp;of&nbsp;all&nbsp;the&nbsp;lines&nbsp;in&nbsp;the&nbsp;file.<br>
+(awk&nbsp;(read-line)&nbsp;(line)&nbsp;((max-len&nbsp;0))<br>
+&nbsp;&nbsp;(#t&nbsp;(max&nbsp;max-len&nbsp;(string-length&nbsp;line))))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;(This&nbsp;could&nbsp;also&nbsp;be&nbsp;done&nbsp;with&nbsp;PORT-FOLD:)<br>
+(port-fold&nbsp;(current-input-port)&nbsp;read-line<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(lambda&nbsp;(line&nbsp;maxlen)&nbsp;(max&nbsp;(string-length&nbsp;line)&nbsp;maxlen))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0)</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Print&nbsp;every&nbsp;line&nbsp;longer&nbsp;than&nbsp;80&nbsp;chars.<br>
+;;;&nbsp;Prefix&nbsp;each&nbsp;line&nbsp;with&nbsp;its&nbsp;line&nbsp;#.<br>
+(awk&nbsp;(read-line)&nbsp;(line)&nbsp;lineno&nbsp;()<br>
+&nbsp;&nbsp;((&gt;&nbsp;(string-length&nbsp;line)&nbsp;80)<br>
+&nbsp;&nbsp;&nbsp;(format&nbsp;#t&nbsp;&quot;&nbsp;d:&nbsp;&nbsp;s&nbsp;%&quot;&nbsp;lineno&nbsp;line)))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Strip&nbsp;blank&nbsp;lines&nbsp;from&nbsp;input.<br>
+(awk&nbsp;(read-line)&nbsp;(line)&nbsp;()<br>
+&nbsp;&nbsp;((&nbsp;&nbsp;white)&nbsp;&nbsp;&nbsp;(display&nbsp;line)&nbsp;(newline)))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Sort&nbsp;the&nbsp;entries&nbsp;in&nbsp;/etc/passwd&nbsp;by&nbsp;login&nbsp;name.<br>
+(for-each&nbsp;(lambda&nbsp;(entry)&nbsp;(display&nbsp;(cdr&nbsp;entry))&nbsp;(newline))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Out<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(sort&nbsp;(lambda&nbsp;(x&nbsp;y)&nbsp;(string&lt;?&nbsp;(car&nbsp;x)&nbsp;(car&nbsp;y)))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Sort<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;((read&nbsp;(field-reader&nbsp;(infix-splitter&nbsp;&quot;:&quot;&nbsp;7))))&nbsp;;&nbsp;In<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(awk&nbsp;(read)&nbsp;(line&nbsp;fields)&nbsp;((ans&nbsp;'()))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(#t&nbsp;(cons&nbsp;(cons&nbsp;($&nbsp;fields&nbsp;0)&nbsp;line)&nbsp;ans))))))</tt></blockquote><p>
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Prefix&nbsp;line&nbsp;numbers&nbsp;to&nbsp;the&nbsp;input&nbsp;stream.<br>
+(awk&nbsp;(read-line)&nbsp;(line)&nbsp;lineno&nbsp;()<br>
+&nbsp;&nbsp;(#t&nbsp;(format&nbsp;#t&nbsp;&quot;&nbsp;d:\t&nbsp;a&nbsp;%&quot;&nbsp;lineno&nbsp;line)))</tt></blockquote><p>
+</p>
+<a name="node_sec_8.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_8.3">8.3&nbsp;&nbsp;Backwards compatibility</a></h2><p>Previous scsh releases provided an <tt>awk</tt> form with a different syntax,
+designed around regular expressions written in Posix notation as strings,
+rather than SREs.</p>
+<p>
+This form is still available in a separate module for old code.
+It'll be documented in the next release of this manual. Dig around
+in the sources for it.
+
+</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-8.html">previous</a></span><span>, <a href="man-Z-H-10.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

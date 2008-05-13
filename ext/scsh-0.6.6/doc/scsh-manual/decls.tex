@@ -1,0 +1,278 @@
+\makeatletter   
+\def\ie{\mbox{\emph{i.e.}}}        % \mbox keeps the last period from
+\def\Ie{\mbox{\emph{I.e.}}}        % looking like an end-of-sentence.
+\def\eg{\mbox{\emph{e.g.}}}
+\def\Eg{\mbox{\emph{E.g.}}}
+\def\etc{{\em etc.}}
+
+\def\Lisp{\textsc{Lisp}}
+\def\CommonLisp{\textsc{Common Lisp}}
+\def\Ascii{\textsc{Ascii}}
+\def\Ansi{\textsc{Ansi}}
+\def\Unix{{Unix}} % Not smallcaps, according to Bart.
+\def\Scheme{{Scheme}}
+\def\scm{{Scheme 48}}
+\def\RnRS{R5RS}
+\def\Posix{\textsc{Posix}}
+
+\def\sharpf{\textnormal{\texttt{\#f}}}
+\def\sharpt{\textnormal{\texttt{\#t}}}
+\newcommand{\synteq}{\textnormal{::=}}
+
+\def\maketildeother{\catcode`\~=12}
+\def\maketildeactive{\catcode`\~=13}
+\def\~{\char`\~}
+
+\newcommand{\evalsto}{\ensuremath{\Rightarrow}}
+
+% One-line code examples
+%\newcommand{\codex}[1]%                One line, centred. Tight spacing.
+%  {$$\abovedisplayskip=.75ex plus 1ex minus .5ex%
+%     \belowdisplayskip=\abovedisplayskip%
+%     \abovedisplayshortskip=0ex plus .5ex%
+%     \belowdisplayshortskip=\abovedisplayshortskip%
+%     \hbox{\ttt #1}$$}
+%\newcommand{\codex}[1]{\begin{tightinset}\ex{#1}\end{tightinset}\ignorespaces}
+\newcommand{\codex}[1]{\begin{leftinset}\ex{#1}\end{leftinset}\ignorespaces}
+
+\def\widecode{\codeaux{\leftmargin=0pt\topsep=0pt}}
+\def\endwidecode{\endcodeaux}
+
+% For multiletter vars in math mode:
+\newcommand{\var}[1]{\mbox{\frenchspacing\it{#1}}}
+\newcommand{\vari}[2]{\ensuremath{\mbox{\it{#1}}_{#2}}}
+
+%% What you frequently want when you say \tt:
+\def\ttchars{\catcode``=13\@noligs\frenchspacing}
+\def\ttt{\normalfont\ttfamily\ttchars}
+
+% Works in math mode; all special chars remain special; cheaper than \cd.
+% Will not be correct size in super and subscripts, though.
+\newcommand{\ex}[1]{{\normalfont\texttt{\ttchars #1}}}
+
+\newenvironment{inset}
+ {\bgroup\parskip=1ex plus 1ex\begin{list}{}%
+        {\topsep=0pt\rightmargin\leftmargin}%
+        \item[]}%
+ {\end{list}\leavevmode\egroup\global\@ignoretrue}
+
+\newenvironment{leftinset}
+ {\bgroup\parskip=1ex plus 1ex\begin{list}{}%
+        {\topsep=0pt}%
+        \item[]}%
+ {\end{list}\leavevmode\egroup\global\@ignoretrue}
+
+\newenvironment{tightinset}
+ {\bgroup\parskip=0pt\begin{list}{}%
+        {\topsep=0pt\rightmargin\leftmargin}%
+        \item[]}%
+ {\end{list}\leavevmode\egroup\global\@ignoretrue}
+
+\newenvironment{tightleftinset}
+ {\bgroup\parskip=0pt\begin{list}{}%
+        {\topsep=0pt}%
+        \item[]}%
+ {\end{list}\leavevmode\egroup\global\@ignoretrue}
+
+\long\def\remark#1{\bgroup\small\begin{quote}\textsl{Remark: } #1\end{quote}\egroup}
+\newenvironment{remarkenv}{\bgroup\small\begin{quote}\textsl{Remark: }}%
+                          {\end{quote}\egroup}
+\newcommand{\oops}[1]{\bgroup\small\begin{quote}\textsl{Oops: } #1\end{quote}\egroup}
+
+\newcommand{\note}[1]{\{Note #1\}}
+
+\newcommand{\itum}[1]{\item{\bf #1}\\*}
+
+% For use in code. The \llap magicness makes the lambda exactly as wide as
+% the other chars in \tt; the \hskip shifts it right a bit so it doesn't
+% crowd the left paren -- which is necessary if \tt is cmtt.
+% Note that (\l{x y} (+ x y)) uses the same number of columns in TeX form
+% as it produces when typeset. This makes it easy to line up the columns
+% in your input. \l is bound to some useless command in LaTeX, so we have to
+% define it w/renewcommand.
+\let\oldl\l %Save the old \l on \oldl
+\renewcommand{\l}[1]{\ \llap{$\lambda$\hskip-.05em}\ (#1)}
+
+% This one is for the rare (lambda x ...) case -- it doesn't have the
+% column-invariant property. Oh, well.
+\newcommand{\lx}[1]{\ \llap{$\lambda$\hskip-.05em}\ {#1}}
+
+% For subcaptions
+\newcommand{\subcaption}[1]
+{\unskip\vspace{-2mm}\begin{center}\unskip\em#1\end{center}}
+
+%%% T release notes stuff
+\newlength{\notewidth}
+\setlength{\notewidth}{\textwidth}
+\addtolength{\notewidth}{-1.25in}
+
+%\newcommand{\remark} [1]
+%  {\par\vspace{\parskip}
+%   \parbox[t]{.75in}{\sc Remark:}
+%   \parbox[t]{\notewidth}{\em #1}
+%   \vspace{\parskip}
+%   }
+
+\newenvironment{optiontable}%
+  {\begin{tightinset}\renewcommand{\arraystretch}{1.5}%
+   \begin{tabular}{@{}>{\ttt}ll@{}}}%
+  {\end{tabular}\end{tightinset}}%
+
+\newenvironment{desctable}[1]%
+  {\begin{inset}\renewcommand{\arraystretch}{1.5}%
+   \begin{tabular}{lp{#1}}}%
+  {\end{tabular}\end{inset}}
+
+\def\*{{\ttt *}}
+
+% Names of things
+
+\newcommand{\keyword} [1]{\index{#1}{\normalfont\textsf{#1}}}
+
+% \ex{#1} and also generates an index entry.
+\newcommand{\exi}[1]{\index{#1@\texttt{#1}}\ex{#1}}
+\newcommand{\indextt}[1]{\index{#1@\texttt{#1}}}
+
+
+\newcommand{\evalto}{$\Longrightarrow$\ }
+\renewcommand{\star}{$^*$\/}
+\newcommand{\+}{$^+$}
+
+% Semantic domains,  used to indicate the type of a value
+
+\newcommand{\sem}{\normalfont\itshape}   %semantic font
+\newcommand{\semvar}[1]{\textit{#1}}     %semantic font
+\newcommand{\synvar}[1]{\textrm{\textit{$\left<\right.$#1$\left.\right>$}}}  %syntactic font
+\newcommand{\type}{\sem}
+\newcommand{\zeroormore}[1]{{\sem #1$_1$ \ldots  #1$_n$}}
+\newcommand{\oneormore}[1]{{\sem #1$_1$ #1$_2$ \ldots #1$_n$}}
+
+\newcommand{\proc}        {{\sem procedure}}
+\newcommand{\boolean}     {{\sem boolean}}
+\newcommand{\true}        {{\sem true}}
+\newcommand{\false}       {{\sem false}}
+
+\newcommand{\num}         {{\sem number}}
+\newcommand{\fixnum}      {{\sem fixnum}}
+\newcommand{\integer}     {{\sem integer}}
+\newcommand{\real}        {{\sem real}}
+
+\newcommand{\character}   {{\sem character}}
+\newcommand{\str}         {{\sem string}}
+\newcommand{\sym}         {{\sem symbol}}
+
+\newcommand{\location}    {{\sem location}}
+\newcommand{\object}      {{\sem object}}
+
+\newcommand{\error}       {{\sem error}}
+\newcommand{\syntaxerror} {{\sem syntax error}}
+\newcommand{\readerror}   {{\sem read error}}
+\newcommand{\undefined}   {{\sem undefined}}
+\newcommand{\noreturn}    {{\sem no return value}}
+
+\newcommand{\port}        {{\sem port}}
+
+% semantic variables
+
+\newcommand{\identifier}  {{\sem identifier}}
+\newcommand{\identifiers} {\zeroormore{\<ident>}}
+\newcommand{\expr}        {{\sem expression}}
+\newcommand{\body}        {{\sem body}}
+\newcommand{\valueofbody} {{\sem value~of~body}}
+\newcommand{\emptylist}   {{\sem empty~list}}
+\newcommand{\car}         {\keyword{car}}
+\newcommand{\cdr}         {\keyword{cdr}}
+\newcommand{\TMPDIR}{\texttt{\$TMPDIR}}
+
+% generally useful things
+
+% For line-breaking \tt stuff.
+\renewcommand{\=}{\discretionary{-}{}{-}}
+\newcommand{\ob}{\discretionary{}{}{}} % Optional break.
+
+\newcommand{\indx}[1]{#1 \index{ #1 }}
+%\newcommand{\gloss}[1]{#1 \glossary{ #1 }}
+
+% This lossage produces #2 if #1 is zero length, otw #3.
+% We use it to conditionally add a space between the procedure and
+% the args in procedure prototypes, but only if there are any args--
+% we want to produce "(read)", not "(read )".
+\newlength{\voidlen}
+\newcommand{\testvoid}[3]{\settowidth\voidlen{#1}\ifdim\voidlen>0in{#3}\else{#2}\fi}
+
+
+% Typeset a definition prototype line, e.g.:
+% (cons <arg1> <arg2>) -> pair                    procedure
+%
+% Five args are: proc-name args ret-value(s) type index-entry
+\newcommand{\dfnix}[5]
+  {\hbox to \linewidth{\ttchars%
+     {\ttt(#1\testvoid{#2}{}{\ }{\sem{#2}}\testvoid{#2}{}{\/})\hskip 1em minus
+0.5em$\longrightarrow$\hskip 1em minus 0.5em{\sem{#3}}\hfill\quad\textnormal{#4}}}\index{#5}}
+
+\newcommand{\dfnx}[4] {\dfnix{#1}{#2}{#3}{#4}{#1@\texttt{#1}}}
+
+\newcommand{\dfn}  {\par\medskip\dfnx}  % Takes 4 args, actually.
+\newcommand{\dfni} {\par\medskip\dfnix} % Takes 5 args, actually.
+
+\newcommand{\defvar}     {\par\medskip\defvarx} % Takes 4 args, actually.
+\newcommand{\defvarx}[2]%
+  {\index{#1}
+   \hbox to \linewidth{\ttchars{{\ttt{#1}} \hfill #2}}}%
+
+% Typeset the protocol line, then do the following descriptive text indented.
+% If you want to group two procs together, do the first one with a \dfn, 
+% then the second one, and the documentation, with a \defndescx.
+
+% This one doesn't put whitespace above. Use it immediately after a \dfn
+% to group two prototype lines together.
+\newenvironment{dfndescx}[4]%           
+    {\dfnx{#1}{#2}{#3}{#4}\begin{desc}}{\end{desc}}
+
+\newenvironment{dfndesc}[4]             % This one puts whitespace above.
+  {\par\medskip\begin{dfndescx}{#1}{#2}{#3}{#4}}
+  {\end{dfndescx}}    
+
+\newenvironment{desc}%
+    {\nopagebreak[2]%
+     \smallskip
+     \bgroup\begin{list}{}{\topsep=0pt\parskip=0pt}\item[]}
+    {\end{list}\leavevmode\egroup\global\@ignoretrue}
+
+\def\defun#1#2#3{\dfn{#1}{#2}{#3}{procedure}}  % preskip
+\newcommand{\defunx}[3]{\dfnx{#1}{#2}{#3}{procedure}} % no skip
+
+\newenvironment{defundescx}[3]%
+    {\begin{dfndescx}{#1}{#2}{#3}{procedure}}
+    {\end{dfndescx}}
+
+\newenvironment{defundesc}[3]%
+    {\begin{dfndesc}{#1}{#2}{#3}{procedure}}
+    {\end{dfndesc}}
+
+
+\newenvironment{column}{\begin{tabular}[t]{@{}l@{}}}{\end{tabular}}
+
+\newenvironment{exampletable}%
+    {\begin{leftinset}%
+       \newcommand{\header}[1]{\multicolumn{2}{@{}l@{}}{##1}\\}%
+       \newcommand{\splitline}[2]%
+                {\multicolumn{2}{@{}l@{}}{##1}\\\multicolumn{2}{@{}l@{}}{\qquad\evalto\quad{##2}}}
+       \begin{tabular}{@{}l@{\quad\evalto\quad}l@{}}}%
+    {\end{tabular}\end{leftinset}}
+
+% Put on blank lines in a code env to allow a pagebreak.
+\newcommand{\cb}{\pagebreak[0]}
+
+\newenvironment{boxedcode}
+        {\begin{inset}\tabular{|l|}\hline}
+        {\\ \hline \end{tabular}\end{inset}}
+
+% A ragged-right decl that doesn't redefine \\ -- for use in tables.
+\newcommand{\raggedrightparbox}{\let\temp=\\\raggedright\let\\=\temp}
+
+\newenvironment{boxedfigure}[1]%
+        {\begin{figure}[#1]\begin{boxedminipage}{\linewidth}\vskip 1.5ex}
+        {\end{boxedminipage}\end{figure}}
+
+\makeatother

@@ -1,0 +1,33 @@
+%&latex -*- latex -*-
+
+\documentclass{report}
+\usepackage{code,boxedminipage,draftfooters,palatino,ct,makeidx,
+            headings,mantitle,array,matter,mysize10}
+
+\parskip = 3pt plus 3pt
+\sloppy
+
+\input{decls}
+%%% End preamble
+
+\begin{document}
+
+\begin{tabular}{ll}
+{\begin{codebox}[b]
+define structure web server
+   open scsh
+        scheme
+        net-hax
+        
+   file web\end{codebox}}
+&
+{\begin{codebox}[b]
+(define-structure web-server
+  (open scheme
+        scsh
+        net-hax
+        \vdots)
+  (file web))\end{codebox}}\\
+\end{tabular}
+
+\end{document}    

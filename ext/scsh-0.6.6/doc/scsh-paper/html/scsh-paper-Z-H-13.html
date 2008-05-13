@@ -1,0 +1,134 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-12.html">previous</a></span><span>, <a href="scsh-paper-Z-H-14.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_11"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_11">11&nbsp;&nbsp;Other programming languages</a></h1><p>
+Having seen the design of scsh, 
+we can now compare it to other approaches in some detail.</p>
+<p>
+</p>
+<a name="node_sec_11.1"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_11.1">11.1&nbsp;&nbsp;Functional languages</a></h2><p>The design of scsh could be ported without much difficulty
+to any language that provides first-class procedures, GC, and exceptions,
+such as C<small>O</small><small>M</small><small>M</small><small>O</small><small>N</small> L<small>I</small><small>S</small><small>P</small> or ML.
+However, Scheme's syntactic extensibility (macros) plays an important
+role in making the shell features convenient to use.
+In this respect, Scheme and C<small>O</small><small>M</small><small>M</small><small>O</small><small>N</small> L<small>I</small><small>S</small><small>P</small> are better choices than ML.
+Using the <tt>fork/pipe</tt> procedure with a series of closures
+involves more low-level detail than 
+using scsh's <tt>(| <i><em>p</em><em>f</em></i><sub>1</sub> <tt>...</tt> <i><em>p</em><em>f</em></i><sub><em>n</em></sub>)</tt>
+process form with the closures implied.
+Good notations suppress unnecessary detail.</p>
+<p>
+The payoff for using a language such as ML would come not with small
+shell scripts, but with larger programs, where the power provided by the
+module system and the static type checking would come into play.</p>
+<p>
+</p>
+<a name="node_sec_11.2"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_11.2">11.2&nbsp;&nbsp;Shells</a></h2><p>Traditional Unix shells, such as sh, have no advantage at all as
+scripting languages.</p>
+<p>
+</p>
+<a name="node_sec_Temp_12"></a>
+<h3><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_12">Escaping the least common denominator trap</a></h3><p>One of the attractions of scsh is that it is a Unix shell that isn't
+constrained by the limits of Unix's uniform ``least common denominator''
+representation of data as a text string.
+Since the standard medium of interchange at the shell level is A<small>S</small><small>C</small><small>I</small><small>I</small>
+byte strings, shell programmers are forced to parse and reparse data, often
+with tools of limited power.
+For example, to determine the number of files in a directory, a shell
+programmer typically uses an expression of the form <tt>ls | wc -l</tt>.
+This traditional idiom is in fact buggy: Unix files are allowed to contain
+newlines in their names, which would defeat the simple <tt>wc</tt> parser.
+Scsh, on the other hand, gives the programmer direct access to the system
+calls, and employs a much richer set of data structures.
+Scsh's <tt>directory-files</tt> procedure returns a <em>list</em> of strings,
+directly taken from the system call.
+There is no possibility of a parsing error.</p>
+<p>
+As another example, consider the problem of determining if a file has its
+setuid bit set.
+The shell programmer must grep the text-string output of <tt>ls -l</tt> 
+for the ``s'' character in the right position.
+Scsh gives the programmer direct access to the <tt>stat()</tt> system call,
+so that the question can be directly answered.</p>
+<p>
+</p>
+<a name="node_sec_Temp_13"></a>
+<h3><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_13">Computation granularity and impedance matching</a></h3><p>Sh and csh provide minimal computation facilities on the assumption that all
+real computation will happen in C programs invoked from the shell.
+This is a granularity assumption.
+As long as the individual units of computation are large, then the cost of
+starting up a separate program is amortised over the actual computation.
+However, when the user wants to do something simple -- <em>e.g.</em>, split an X
+<code class=verbatim>$DISPLAY</code> string at the colon,
+count the number of files in a directory, 
+or lowercase a string -- then the overhead of program invocation
+swamps the trivial computation being performed.
+One advantage of using a real programming language for the shell language is
+that we can get a wider-range ``impedance match'' of computation to process
+overhead.
+Simple computations can be done in the shell; 
+large grain computations can still be spawned off
+to other programs if necessary.</p>
+<p>
+</p>
+<a name="node_sec_11.3"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_11.3">11.3&nbsp;&nbsp;New-generation scripting languages</a></h2><p>A newer generation of scripting languages has been supplanting sh in Unix.
+Systems such as perl and tcl provide many of the advantages of scsh for
+programming shell scripts [<a href="scsh-paper-Z-H-17.html#node_bib_7">perl</a>,&nbsp;<a href="scsh-paper-Z-H-17.html#node_bib_12">tcl</a>].
+However, they are still limited by weak linguistic features.
+Perl and tcl still deal with the world primarily in terms of strings,
+which is both inefficient and expressively limiting.
+Scsh makes the full range of Scheme data types available to the programmer:
+lists, records, floating point numbers, procedures, and so forth.
+Further, the abstraction mechanisms in perl and tcl are also much more limited
+than Scheme's lexically scoped, first-class procedures and lambda expressions.
+As convenient as tcl and perl are, they are in no sense full-fledged
+general systems-programming languages: you would not, for example, want
+to write an optimizing compiler in tcl.
+Scsh is Scheme, hence a powerful, full-featured general programming tool.</p>
+<p>
+It is, however, instructive to consider the reasons for the popular success of
+tcl and perl.
+I would argue that good design is necessary but insufficient for
+a successful tool.
+Tcl and perl are successful because they are more than just competently 
+designed; 
+critically, they are also available on the Net in turn-key forms, 
+with solid documentation.
+A potential user can just down-load and compile them.
+Scheme, on the other hand, has existed in multiple mutually-incompatible
+implementations that are not widely portable, do not portably address
+systems issues, and are frequently poorly documented.
+A contentious and standards-cautious Scheme community has not standardised
+on a record datatype or exception facility for the language,
+features critical for systems programming.
+Scheme solves the hard problems, but punts the necessary, simpler ones.
+This has made Scheme an impractical systems tool,
+banishing it to the realm of pedagogical programming languages.
+Scsh, together with Scheme 48, fills in these lacunae.
+Its facilities may not be the ultimate solutions,
+but they are useable technology: clean, consistent, portable and documented.</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-12.html">previous</a></span><span>, <a href="scsh-paper-Z-H-14.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

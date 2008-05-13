@@ -1,0 +1,59 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-10.html">previous</a></span><span>, <a href="scsh-paper-Z-H-12.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_9"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_9">9&nbsp;&nbsp;Size</a></h1><p>
+Scsh can justifiably be criticised for being a florid design.
+There are a lot of features -- perhaps too many.
+The optional arguments to many procedures, the implicit backquoting, and
+the syntax/procedure equivalents are all easily synthesized by the user.
+For example, <tt>port-&gt;strings</tt>, <tt>run/strings*</tt>, <tt>run/sexp*</tt>, 
+and <tt>run/sexps*</tt> are all trivial compositions and curries of other base
+procedures.
+The <tt>run/strings</tt> and <tt>run/sexps</tt> forms are easily
+written as macros, or simply written out by hand.
+Not only does scsh provide the basic <tt>file-attributes</tt> procedure
+(<em>i.e.</em>, the <tt>stat()</tt> system call),
+it also provides a host of derived procedures: <tt>file-owner</tt>, <tt>file-mode</tt>,
+<tt>file-directory?</tt>, and so forth.
+Still, my feeling is that it is easier and clearer to read
+</p>
+<blockquote><tt>(filter file-directory? (directory-files))</tt></blockquote>than
+<blockquote><tt><br>
+(filter&nbsp;(lambda&nbsp;(fname)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(eq?&nbsp;'directory&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fileinfo:type&nbsp;(file-attributes&nbsp;fname))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(directory-files))</tt></blockquote>
+A full library can make for clearer user code.<p>
+One measure of scsh's design is that the source code consists of
+a large number of small procedures: the source code for scsh has 448
+top-level definitions; the definitions have an average length of 5 lines of
+code.
+That is, scsh is constructed by connecting together a lot of
+small, composable parts, instead of designing one inflexible monolithic
+structure.
+These small parts can also be composed and abstracted by the programmer
+into his own computational structures.
+Thus the total functionality of scsh is greater than more traditional
+large systems.</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-10.html">previous</a></span><span>, <a href="scsh-paper-Z-H-12.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

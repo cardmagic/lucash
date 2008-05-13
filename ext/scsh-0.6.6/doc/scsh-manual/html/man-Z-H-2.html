@@ -1,0 +1,450 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-1.html">previous</a></span><span>, <a href="man-Z-H-3.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_1"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_1">Chapter 1</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_1">Introduction</a></h1><p>This is the reference manual for scsh, 
+a Unix shell that is embedded within Scheme.
+Scsh is a Scheme system designed for writing useful standalone Unix
+programs and shell scripts -- it spans a wide range of application,
+from ``script'' applications usually handled with perl or sh,
+to more standard systems applications usually written in C.</p>
+<p>
+Scsh comes built on top of Scheme 48, and has two components:
+a process notation for running programs and setting up pipelines
+and redirections, 
+and a complete syscall library for low-level access to the operating system.
+This manual gives a complete description of scsh.
+A general discussion of the design principles behind scsh can be found
+in a companion paper, ``A Scheme Shell.''</p>
+<p>
+</p>
+<a name="node_sec_1.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.1">1.1&nbsp;&nbsp;Copyright &amp; source-code license</a></h2><p>Scsh is open source. The complete sources come with the standard
+distribution, which can be downloaded off the net.
+Scsh has an ideologically hip, BSD-style license.</p>
+<p>
+We note that the code is a rich source for other Scheme implementations
+to mine. Not only the <em>code</em>, but the <em>APIs</em> are available
+for implementors working on Scheme environments for systems programming.
+These APIs represent years of work, and should provide a big head-start
+on any related effort. (Just don't call it ``scsh,'' unless it's
+<em>exactly</em> compliant with the scsh interfaces.)</p>
+<p>
+Take all the code you like; we'll just write more.</p>
+<p>
+</p>
+<a name="node_sec_1.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.2">1.2&nbsp;&nbsp;Obtaining scsh</a></h2><p>Scsh is distributed via net publication.
+We place new releases at well-known network sites,
+and allow them to propagate from there.
+We currently release scsh to the following Internet sites:
+</p>
+<blockquote><div align=left><table><tr><td>
+
+<tt><a href="ftp://ftp.scsh.net/pub/scsh">ftp://ftp.scsh.net/pub/scsh</a></tt> <br>
+<tt><a href="http://prdownloads.sourceforge.net/scsh/">http://prdownloads.sourceforge.net/scsh/</a></tt> <br>
+</td></tr></table></div>
+
+</blockquote>
+Each should have a compressed tar file of the entire scsh release,
+which includes all the source code and the manual, 
+and a separate file containing just this manual in Postscript form,
+for those who simply wish to read about the system.<p>
+However, nothing is certain for long on the Net.
+Probably the best way to get a copy of scsh is to use a network 
+resource-discovery tool, such as archie, 
+to find ftp servers storing scsh tar files.
+Take the set of sites storing the most recent release of scsh,
+choose one close to your site, and download the tar file.</p>
+<p>
+</p>
+<a name="node_sec_1.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.3">1.3&nbsp;&nbsp;Building scsh</a></h2><p>Scsh currently runs on a fairly large set of Unix systems, including
+Linux, FreeBSD, OpenBSD, NetBSD, MacOS X, SunOS, Solaris, AIX, NeXTSTEP, Irix, and HP-UX.
+We use the Gnu project's autoconfig tool to generate self-configuring
+shell scripts that customise the scsh Makefile for different OS variants.
+This means that if you use one of the common Unix implementations,
+building scsh should require exactly the following steps:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top ><tt>gunzip scsh.tar.gz</tt> </td><td valign=top ><em>Uncompress the release tar file.</em> </td></tr>
+<tr><td valign=top ><tt>untar xfv scsh.tar</tt> </td><td valign=top ><em>Unpack the source code.</em>          </td></tr>
+<tr><td valign=top ><tt>cd scsh-0.6.x</tt> </td><td valign=top ><em>Move to the source directory.</em>    </td></tr>
+<tr><td valign=top ><tt>./configure</tt> </td><td valign=top ><em>Examine host; build Makefile.</em>    </td></tr>
+<tr><td valign=top ><tt>make</tt> </td><td valign=top ><em>Build system.</em>
+</td></tr></table>
+</blockquote>
+When you are done, you should have a virtual machine compiled in
+file <tt>scshvm</tt>, and a heap image in file <tt>scsh/scsh.image</tt>.
+Typing
+<blockquote><tt><br>
+make&nbsp;install<br>
+</tt></blockquote>
+will install these programs in your installation directory
+(by default, <tt>/usr/local</tt>), along with a small stub startup
+binary, <tt>scsh</tt>.<p>
+If you don't have the patience to do this, you can start up
+a Scheme shell immediately after the initial make by simply
+saying
+</p>
+<blockquote><tt>./scshvm -o ./scshvm -i scsh/scsh.image</tt></blockquote>See chapter&nbsp;<a href="man-Z-H-12.html#node_chap_11">11</a> for full details on installation
+locations and startup options.<p>
+It is not too difficult to port scsh to another Unix platform if your
+OS is not supported by the current release.
+See the release notes for more details on how to do this.</p>
+<p>
+</p>
+<a name="node_sec_1.4"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.4">1.4&nbsp;&nbsp;Caveats</a></h2><p>It is important to note what scsh is <em>not</em>, as well as what it is.
+Scsh, in the current release, is primarily designed for the writing of
+shell scripts -- programming.
+It is not a very comfortable system for interactive command use: 
+the current release lacks job control, command-line editing, a terse,
+convenient command syntax, and it does not read in an initialisation
+file analogous to <tt>.login</tt> or <tt>.profile</tt>.
+We hope to address all of these issues in future releases;
+we even have designs for several of these features;
+but the system as-released does not currently provide these features.</p>
+<p>
+</p>
+<a name="node_sec_1.5"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.5">1.5&nbsp;&nbsp;Naming conventions</a></h2><p>Scsh follows a general naming scheme that consistently employs a set of
+abbreviations.
+This is intended to make it easier to remember the names of things.
+Some of the common ones are:
+</p>
+<dl><dt></dt><dd>
+</dd><dt><b><tt>fdes</tt></b></dt><dd> 
+Means ``file descriptor,'' a small integer used in Unix
+to represent I/O channels.<p>
+</p>
+</dd><dt><b><tt><tt>...</tt>*</tt></b></dt><dd>
+A given bit of functionality sometimes comes in two related forms, 
+the first being a <em>special form</em> that contains a body of 
+Scheme code to be executed in some context, 
+and the other being a <em>procedure</em> that takes a procedural
+argument (a ``thunk'') to be called in the same context.
+The procedure variant is named by taking the name of the special form,
+and appending an asterisk. For example:
+<blockquote><tt><br>
+;;;&nbsp;Special&nbsp;form:<br>
+(with-cwd&nbsp;&quot;/etc&quot;<br>
+&nbsp;&nbsp;(for-each&nbsp;print-file&nbsp;(directory-files))<br>
+&nbsp;&nbsp;(display&nbsp;&quot;All&nbsp;done&quot;))<br>
+<br>
+;;;&nbsp;Procedure:<br>
+(with-cwd*&nbsp;&quot;/etc&quot;<br>
+&nbsp;&nbsp;(lambda&nbsp;()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(for-each&nbsp;print-file&nbsp;(directory-files))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(display&nbsp;&quot;All&nbsp;done&quot;)))</tt></blockquote><p>
+</p>
+</dd><dt><b><tt><i>action</i>/<i>modifier</i></tt></b></dt><dd>
+The infix ``<tt>/</tt>'' is pronounced ``with,'' as in 
+<tt>exec/env</tt> -- ``exec with environment.''<p>
+</p>
+</dd><dt><b><tt>call/<tt>...</tt></tt></b></dt><dd> 
+Procedures that call their argument on some computed value
+are usually named ``<tt>call/<tt>...</tt></tt>,'' <em>e.g.</em>,
+<tt>(call/fdes <i>port</i> <i>proc</i>)</tt>, which calls <i>proc</i>
+on <i>port</i>'s file descriptor, returning whatever <i>proc</i>
+returns. The abbreviated name means ``call with file descriptor.''<p>
+</p>
+</dd><dt><b><tt>with-<tt>...</tt></tt></b></dt><dd>
+Procedures that call their argument, and special forms that execute
+their bodies in some special dynamic context frequently have
+names of the form <tt>with-<tt>...</tt></tt>. For example, 
+<tt>(with-env <i>env</i> <i>body</i><sub>1</sub> <tt>...</tt>)</tt> and 
+<tt>(with-env* <i>env</i> <i>thunk</i>)</tt>. These forms set
+the process environment body, execute their body or thunk,
+and then return after resetting the environment to its original
+state. <p>
+</p>
+</dd><dt><b><tt>create-</tt></b></dt><dd>
+Procedures that create objects in the file system (files, directories,
+temp files, fifos, <em>etc.</em>), begin with <tt>create-<tt>...</tt></tt>.<p>
+</p>
+</dd><dt><b><tt>delete-</tt></b></dt><dd>
+Procedures that delete objects from the file system (files, 
+directories, temp files, fifos, <em>etc.</em>), begin with <tt>delete-<tt>...</tt></tt>.<p>
+</p>
+</dd><dt><b><tt><i>record</i>:<i>field</i></tt></b></dt><dd>
+Procedures that access fields of a record are usually written
+with a colon between the name of the record and the name of the
+field, as in <tt>user-info:home-dir</tt>.<p>
+</p>
+</dd><dt><b><tt>%<tt>...</tt></tt></b></dt><dd>
+A percent sign is used to prefix lower-level scsh primitives
+that are not commonly used.<p>
+</p>
+</dd><dt><b><tt>-info</tt></b></dt><dd>
+Data structures packaging up information about various OS
+entities frequently end in <tt>...</tt><tt>-info</tt>. Examples:
+<tt>user-info</tt>, <tt>file-info</tt>, <tt>group-info</tt>, and <tt>host-info</tt>.<p>
+</p>
+</dd></dl><p>
+Enumerated constants from some set <i>s</i> are usually named
+<tt><i>s</i>/<i>const</i><sub>1</sub></tt>, <tt><i>s</i>/<i>const</i><sub>2</sub></tt>, <tt>...</tt>.
+For example, the various Unix signal integers have the names
+<tt>signal/cont</tt>, <tt>signal/kill</tt>, <tt>signal/int</tt>, <tt>signal/hup</tt>, 
+and so forth.</p>
+<p>
+</p>
+<a name="node_sec_1.6"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.6">1.6&nbsp;&nbsp;Lexical issues</a></h2><p>Scsh's lexical syntax is just R5RS Scheme, with the following
+exceptions.</p>
+<p>
+</p>
+<a name="node_sec_1.6.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_1.6.1">1.6.1&nbsp;&nbsp;Extended symbol syntax</a></h3><p>Scsh's symbol syntax differs from R5RS Scheme in the following ways:
+</p>
+<ul>
+<li><p>In scsh, symbol case is preserved by <tt>read</tt> and is significant on
+symbol comparison. This means 
+</p>
+<blockquote><tt>(run (less Readme))</tt></blockquote>displays the right file.<p>
+</p>
+<li><p>``<tt>-</tt>'' and ``<tt>+</tt>'' are allowed to begin symbols. 
+So the following are legitimate symbols:
+</p>
+<blockquote><tt>-O2 -geometry +Wn</tt></blockquote><p>
+</p>
+<li><p>``<tt>|</tt>'' and ``<tt>.</tt>'' are symbol constituents.
+This allows <tt>|</tt> for the pipe symbol, and <tt>..</tt> for the parent-directory
+symbol. (Of course, ``<tt>.</tt>'' alone is not a symbol, but a 
+dotted-pair marker.)</p>
+<p>
+</p>
+<li><p>A symbol may begin with a digit.
+So the following are legitimate symbols:
+</p>
+<blockquote><tt>9x15 80x36-3+440</tt></blockquote></ul><p></p>
+<p>
+</p>
+<a name="node_sec_1.6.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_1.6.2">1.6.2&nbsp;&nbsp;Extended string syntax</a></h3><p>Scsh strings are allowed to contain the A<small>N</small><small>S</small><small>I</small> C escape sequences
+such as <code class=verbatim>\n</code> and <code class=verbatim>\161</code>.</p>
+<p>
+</p>
+<a name="node_sec_1.6.3"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_1.6.3">1.6.3&nbsp;&nbsp;Block comments and executable interpreter-triggers</a></h3><p>Scsh allows source files to begin with a header of the form
+</p>
+<blockquote><tt>#!/usr/local/bin/scsh -s</tt></blockquote>The Unix operating system treats source files beginning with the headers
+of this form specially; 
+they can be directly executed by the operating system
+(see chapter&nbsp;<a href="man-Z-H-12.html#node_chap_11">11</a> for information on how to use this feature).
+The scsh interpreter ignores this special header by treating <tt>#!</tt> as a
+comment marker similar to <tt>;</tt>. 
+When the scsh reader encounters <tt>#!</tt>, it skips characters until it finds
+the closing sequence
+newline/exclamation-point/sharp-sign/newline.<p>
+Although the form of the <tt>#!</tt> read-macro was chosen to support
+interpreter-triggers for executable Unix scripts,
+it is a general block-comment sequence and can be used as such
+anywhere in a scsh program.</p>
+<p>
+</p>
+<a name="node_sec_1.6.4"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_1.6.4">1.6.4&nbsp;&nbsp;Here-strings</a></h3><p>The read macro  <tt>#&lt;</tt> is used to introduce ``here-strings''
+in programs, similar to the <tt>&lt;&lt;</tt> ``here document'' redirections
+provided by sh and csh.
+There are two kinds of here-string, character-delimited and line-delimited;
+they are both introduced by the <tt>#&lt;</tt> sequence.</p>
+<p>
+</p>
+<a name="node_sec_1.6.4.1"></a>
+<h4><a href="man-Z-H-1.html#node_toc_node_sec_1.6.4.1">1.6.4.1&nbsp;&nbsp;Character-delimited here-strings</a></h4><p>A <em>character-delimited</em> here-string has the form 
+</p>
+<blockquote><tt>#&lt;<em>x</em>...stuff...<em>x</em></tt></blockquote>where <em>x</em> is any single character 
+(except <tt>&lt;</tt>, see below),
+which is used to delimit the string bounds.
+Some examples:
+<blockquote>
+<table border=0><tr><td valign=top >Here-string syntax              </td><td valign=top >Ordinary string syntax </td></tr>
+<tr><td valign=top ><code class=verbatim>#&lt;|Hello, world.|</code>        </td><td valign=top ><code class=verbatim>&quot;Hello, world.&quot;</code>        </td></tr>
+<tr><td valign=top ><code class=verbatim>#&lt;!&quot;Ouch,&quot; he said.!</code>     </td><td valign=top ><code class=verbatim>&quot;\&quot;Ouch,\&quot; he said.&quot;</code>
+</td></tr></table>
+</blockquote>
+There is no interpretation of characters within the here-string;
+the characters are all copied verbatim.<p>
+</p>
+<a name="node_sec_1.6.4.2"></a>
+<h4><a href="man-Z-H-1.html#node_toc_node_sec_1.6.4.2">1.6.4.2&nbsp;&nbsp;Line-delimited here-strings</a></h4><p>If the sequence begins &quot;<tt>#&lt;&lt;</tt>&quot; then it introduces a <em>line-delimited</em>
+here-string.
+These are similar to the ``here documents'' of sh and csh.
+Line-delimited here-strings are delimited by the rest of the text line that
+follows the &quot;<tt>#&lt;&lt;</tt>&quot; sequence. 
+For example:</p>
+<p>
+</p>
+<blockquote><tt><br>
+#&lt;&lt;FOO<br>
+Hello,&nbsp;there.<br>
+This&nbsp;is&nbsp;read&nbsp;by&nbsp;Scheme&nbsp;as&nbsp;a&nbsp;string,<br>
+terminated&nbsp;by&nbsp;the&nbsp;first&nbsp;occurrence<br>
+of&nbsp;newline-F-O-O-newline&nbsp;or&nbsp;newline-F-O-O-eof.<br>
+FOO</tt></blockquote>
+Thus, 
+<blockquote><tt><br>
+#&lt;&lt;foo<br>
+Hello,&nbsp;world.<br>
+foo</tt></blockquote>
+is the same thing as
+<blockquote><tt>&quot;Hello, world.&quot;</tt></blockquote><p>
+Line-delimited here-strings are useful for writing down long, constant
+strings -- such as long, multi-line <tt>format</tt> strings, 
+or arguments to Unix programs, <em>e.g.</em>,
+</p>
+<blockquote><tt><br>
+;;&nbsp;Free&nbsp;up&nbsp;some&nbsp;disk&nbsp;space&nbsp;for&nbsp;my&nbsp;netnews&nbsp;files.<br>
+(run&nbsp;(csh&nbsp;-c&nbsp;#&lt;&lt;EOF<br>
+cd&nbsp;/urops<br>
+rm&nbsp;-rf&nbsp;*<br>
+echo&nbsp;All&nbsp;done.<br>
+<br>
+EOF<br>
+))</tt></blockquote><p>
+The advantage they have over the double-quote syntax 
+(<em>e.g.</em>, <tt>&quot;Hello, world.&quot;</tt>)
+is that there is no need to backslash-quote special characters internal
+to the string, such as the double-quote or backslash characters.</p>
+<p>
+The detailed syntax of line-delimited here-strings is as follows.
+The characters &quot;<tt>#&lt;&lt;</tt>&quot; begin the here-string.  
+The characters between the &quot;<tt>#&lt;&lt;</tt>&quot; and the next newline are the
+<em>delimiter line</em>. 
+All characters between the &quot;<tt>#&lt;&lt;</tt>&quot; and the next newline comprise the
+delimiter line -- including any white space. 
+The body of the string begins on the following line,
+and is terminated by a line of text which exactly matches the
+delimiter line.  
+This terminating line can be ended by either a newline or end-of-file.
+Absolutely no interpretation is done on the input string.  
+Control characters, white space, quotes, backslash -- everything
+is copied as-is.  
+The newline immediately preceding the terminating delimiter line is
+not included in the result string
+(leave an extra blank line if you need to put a final
+newline in the here-string -- see the example above).  
+If EOF is encountered before reading the end of the here-string, 
+an error is signalled.</p>
+<p>
+</p>
+<a name="node_sec_1.6.5"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_1.6.5">1.6.5&nbsp;&nbsp;Dot</a></h3><p>It is unfortunate that the single-dot token, ``<tt>.</tt>'', is both
+a fundamental Unix file name and a deep, primitive syntactic token
+in Scheme -- it means the following will not parse correctly in scsh:
+</p>
+<blockquote><tt>(run/strings (find . -name *.c -print))</tt></blockquote>You must instead quote the dot: 
+<blockquote><tt>(run/strings (find &quot;.&quot; -name *.c -print))</tt></blockquote><p>
+When you write shell scripts that manipulate the file system,
+keep in mind the special status of the dot token.</p>
+<p>
+</p>
+<a name="node_sec_1.7"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.7">1.7&nbsp;&nbsp;Record types and the <tt>define-record</tt> form</a></h2><p>
+<a name="node_idx_2"></a></p>
+<p>
+Scsh's interfaces occasionally provide data in structured record types;
+an example is the <tt>file-info</tt> record whose various fields describe the size,
+protection, last date of modification, and other pertinent data for a
+particular file.
+These record types are described in this manual using the <tt>define-record</tt>
+notation, which looks like the following:
+</p>
+<blockquote><tt><br>
+(define-record&nbsp;ship<br>
+&nbsp;&nbsp;x<br>
+&nbsp;&nbsp;y<br>
+&nbsp;&nbsp;(size&nbsp;100))</tt></blockquote>
+This form defines a <i>ship</i> record, with three fields: 
+its x and y coordinates, and its size.
+The values of the <i>x</i> and <i>y</i> fields are specified as parameters
+to the ship-building procedure, <tt>(make-ship <i>x</i> <i>y</i>)</tt>, 
+and the <i>size</i> field is initialised to 100.
+All told, the <tt>define-record</tt> form above defines the following procedures:
+<div align=center><table><tr><td>
+
+<table border=1><tr><td valign=top  colspan=1>Procedure </td><td valign=top  colspan=1>Definition </td></tr>
+<tr><td valign=top >(make-ship <i>x</i> <i>y</i>) </td><td valign=top >Create a new <i>ship</i> record. </td></tr>
+<tr><td valign=top >(ship:x <i>ship</i>)     </td><td valign=top >Retrieve the <i>x</i> field. </td></tr>
+<tr><td valign=top >(ship:y <i>ship</i>)     </td><td valign=top >Retrieve the <i>y</i> field. </td></tr>
+<tr><td valign=top >(ship:size <i>ship</i>)  </td><td valign=top >Retrieve the <i>size</i> field. </td></tr>
+<tr><td valign=top >(set-ship:x <i>ship</i> <i>new-x</i>) </td><td valign=top >Assign the <i>x</i> field. </td></tr>
+<tr><td valign=top >(set-ship:y <i>ship</i> <i>new-y</i>) </td><td valign=top >Assign the <i>y</i> field. </td></tr>
+<tr><td valign=top >(set-ship:size <i>ship</i> <i>new-size</i>) </td><td valign=top >Assign the <i>size</i> field. </td></tr>
+<tr><td valign=top >(modify-ship:x <i>ship</i> <i>xfun</i>) </td><td valign=top >Modify <i>x</i> field with <i>xfun</i>. </td></tr>
+<tr><td valign=top >(modify-ship:y <i>ship</i> <i>yfun</i>) </td><td valign=top >Modify <i>y</i> field with <i>yfun</i>. </td></tr>
+<tr><td valign=top >(modify-ship:size <i>ship</i> <i>sizefun</i>) </td><td valign=top >Modify <i>size</i> field with <i>sizefun</i>. </td></tr>
+<tr><td valign=top >(ship? <i>object</i>)    </td><td valign=top >Type predicate. </td></tr>
+<tr><td valign=top >(copy-ship <i>ship</i>) </td><td valign=top >Shallow-copy of the record. </td></tr>
+<tr><td valign=top ></td></tr></table>
+</td></tr></table></div>
+
+<p>
+An implementation of <tt>define-record</tt> is available as a macro for Scheme
+programmers to define their own record types; 
+the syntax is accessed by opening the package <tt>defrec-package</tt>, which
+exports the single syntax form <tt>define-record</tt>. 
+See the source code for the <tt>defrec-package</tt> module 
+for further details of the macro.</p>
+<p>
+You must open this package to access the form.
+Scsh does not export a record-definition package by default as there are
+several from which to choose.
+Besides the <tt>define-record</tt> macro, which Shivers prefers<a name="call_footnote_Temp_2"></a><a href="#footnote_Temp_2"><sup><small>1</small></sup></a>, you might instead wish to employ the notationally-distinct
+<tt>define-record-type</tt> macro that Jonathan Rees 
+prefers<a name="call_footnote_Temp_3"></a><a href="#footnote_Temp_3"><sup><small>2</small></sup></a>.
+It can be found in the 
+<tt>define-record-types</tt> structure.</p>
+<p>
+Alternatively, you may define your own, of course.</p>
+<p>
+</p>
+<a name="node_sec_1.8"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_1.8">1.8&nbsp;&nbsp;A word about Unix standards</a></h2><p>``The wonderful thing about Unix standards is that there are so many
+to choose from.''
+You may be totally bewildered about the multitude of various standards that
+exist.
+Rest assured that nowhere in this manual will you encounter an attempt
+to spell it all out for you;
+you could not read and internalise such a twisted account without
+bleeding from the nose and ears.</p>
+<p>
+However, you might keep in mind the following simple fact: of all the
+standards, P<small>O</small><small>S</small><small>I</small><small>X</small> is the least common denominator.
+So when this manual repeatedly refers to P<small>O</small><small>S</small><small>I</small><small>X</small>, the point is ``the
+thing we are describing should be portable just about anywhere.''
+Scsh sticks to P<small>O</small><small>S</small><small>I</small><small>X</small> when at all possible; its major departure is
+symbolic links, which aren't in P<small>O</small><small>S</small><small>I</small><small>X</small> (see -- it 
+really <em>is</em> a least common denominator).</p>
+<p>
+
+</p>
+<p>
+</p>
+<div class=footnoterule><hr></div><p></p>
+<div class=footnote><p><a name="footnote_Temp_2"></a><a href="#call_footnote_Temp_2"><sup><small>1</small></sup></a> He wrote
+it.</p>
+<p><a name="footnote_Temp_3"></a><a href="#call_footnote_Temp_3"><sup><small>2</small></sup></a> He wrote it.</p>
+</div>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-1.html">previous</a></span><span>, <a href="man-Z-H-3.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

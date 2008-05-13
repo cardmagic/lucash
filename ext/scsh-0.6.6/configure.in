@@ -1,0 +1,421 @@
+dnl Process this file with autoconf to produce a configure script.
+dnl
+dnl We might want AC_WORDS_BIGENDIAN in the future.
+dnl We might want AC_CHAR_UNSIGNED in the future.
+dnl
+
+define(S48_POSIX_LIBC, [dnl
+echo checking for RISC/OS POSIX library lossage
+if test -f /usr/posix/usr/lib/libc.a; then
+  LIBS="${LIBS} /usr/posix/usr/lib/libc.a"
+fi
+])dnl
+dnl
+dnl Run AC_PROG_CC, but don't accept it's changes to CFLAGS.
+dnl For some insane reason, it sets CFLAGS to either `-O' or `-g -O' for gcc.
+dnl I don't want the silly -g (because if you are using nlist, you can't strip
+dnl the binary), I want -O2 for gcc and -O for other C compilers.
+define(S48_PROG_CC, [dnl
+	oldCFLAGS="$CFLAGS"
+	AC_PROG_CC
+	if test "z$oldCFLAGS" = z; then
+		if test "z$GCC" = z; then
+			CFLAGS='-O'
+		else
+			CFLAGS='-O2'
+		fi
+	fi
+])dnl
+dnl
+dnl Linux/ELF systems need the -rdynamic flag when linking so that
+dnl dlsym() can find symbols in the executable.
+dnl Note, on some Sun's, you can link with -rdynamic but the resulting
+dnl a.out always core dumps.
+define(S48_RDYNAMIC, [dnl
+	AC_MSG_CHECKING([link with -rdynamic])
+	AC_RUN_IFELSE(AC_LANG_PROGRAM([
+#include <stdio.h> 
+#include <dlfcn.h>
+int export_test = 0;],
+[
+#ifndef RTLD_LAZY
+#define RTLD_LAZY 0
+#endif
+
+#ifndef RTLD_GLOBAL
+#define RTLD_GLOBAL 0
+#endif
+
+	void *dlhandle;
+	void *intp;
+	char *err;
+
+	dlhandle = dlopen(NULL, RTLD_LAZY | RTLD_GLOBAL);
+
+	if ((err = dlerror()) != NULL) {
+		return 1;
+	}
+
+	(void *)intp = dlsym(dlhandle, "export_test");
+	
+	if ((err = dlerror()) != NULL) {
+		return 1;
+	}
+
+	return 0;
+
+
+]),
+		[AC_MSG_RESULT(no)],
+		[AC_MSG_RESULT(yes)
+			LDFLAGS="$LDFLAGS -rdynamic"])
+])dnl
+dnl
+define(S48_USCORE, [dnl
+	AC_MSG_CHECKING([underscore before symbols])
+	echo 'main() { return 0; } fnord() {}' >conftest.c
+	if ${CC} ${CFLAGS} ${CPPFLAGS} ${LDFLAGS} -o a.out conftest.c ${LIBS} &&
+	nm a.out | grep _fnord >/dev/null; then
+		AC_MSG_RESULT([yes])
+		AC_DEFINE(USCORE, 1, [Define to 1 if symbols start with _])
+	else
+		AC_MSG_RESULT([no])
+	fi
+	rm -f conftest.c a.out
+])dnl
+dnl
+dnl -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+AC_DEFUN(SCSH_TZNAME,[
+  AC_MSG_CHECKING(for tzname)
+  AC_CACHE_VAL(scsh_cv_tzname,[
+    AC_TRY_COMPILE([#include <time.h>], 
+		   [return (int) tzname;],
+                   scsh_cv_tzname=yes,
+                   scsh_cv_tzname=no)])
+  AC_MSG_RESULT($scsh_cv_tzname)
+  if test $scsh_cv_tzname = yes; then
+    AC_DEFINE(HAVE_TZNAME)
+  fi
+])
+
+dnl -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+AC_DEFUN(SCSH_ELF, [
+  AC_MSG_CHECKING(for ELF)
+  AC_CACHE_VAL(scsh_cv_elf,[
+    touch conftest.c
+    if ${CC} -v -o a.out conftest.c 2>&1 | grep -q __ELF__ ; then
+      scsh_cv_elf=yes
+    else
+      scsh_cv_elf=no
+    fi])
+  AC_MSG_RESULT($scsh_cv_elf)
+  rm -f conftest.c a.out
+])
+dnl -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+AC_DEFUN(SCSH_SIG_NRS, [
+  AC_MSG_RESULT([defining signal constants])	
+  ${CC} -o scsh_aux scsh/scsh_aux.c
+  AC_DEFINE_UNQUOTED(SIGNR_1, `./scsh_aux 1`, [scsh interrupt for signal 1])
+  AC_DEFINE_UNQUOTED(SIGNR_2, `./scsh_aux 2`, [scsh interrupt for signal 2])
+  AC_DEFINE_UNQUOTED(SIGNR_3, `./scsh_aux 3`, [scsh interrupt for signal 3])
+  AC_DEFINE_UNQUOTED(SIGNR_4, `./scsh_aux 4`, [scsh interrupt for signal 4])
+  AC_DEFINE_UNQUOTED(SIGNR_5, `./scsh_aux 5`, [scsh interrupt for signal 5])
+  AC_DEFINE_UNQUOTED(SIGNR_6, `./scsh_aux 6`, [scsh interrupt for signal 6])
+  AC_DEFINE_UNQUOTED(SIGNR_7, `./scsh_aux 7`, [scsh interrupt for signal 7])
+  AC_DEFINE_UNQUOTED(SIGNR_8, `./scsh_aux 8`, [scsh interrupt for signal 8])
+  AC_DEFINE_UNQUOTED(SIGNR_9, `./scsh_aux 9`, [scsh interrupt for signal 9])
+  AC_DEFINE_UNQUOTED(SIGNR_10, `./scsh_aux 10`, [scsh interrupt for signal 10])
+  AC_DEFINE_UNQUOTED(SIGNR_11, `./scsh_aux 11`, [scsh interrupt for signal 11])
+  AC_DEFINE_UNQUOTED(SIGNR_12, `./scsh_aux 12`, [scsh interrupt for signal 12])
+  AC_DEFINE_UNQUOTED(SIGNR_13, `./scsh_aux 13`, [scsh interrupt for signal 13])
+  AC_DEFINE_UNQUOTED(SIGNR_14, `./scsh_aux 14`, [scsh interrupt for signal 14])
+  AC_DEFINE_UNQUOTED(SIGNR_15, `./scsh_aux 15`, [scsh interrupt for signal 15])
+  AC_DEFINE_UNQUOTED(SIGNR_16, `./scsh_aux 16`, [scsh interrupt for signal 16])
+  AC_DEFINE_UNQUOTED(SIGNR_17, `./scsh_aux 17`, [scsh interrupt for signal 17])
+  AC_DEFINE_UNQUOTED(SIGNR_18, `./scsh_aux 18`, [scsh interrupt for signal 18])
+  AC_DEFINE_UNQUOTED(SIGNR_19, `./scsh_aux 19`, [scsh interrupt for signal 19])
+  AC_DEFINE_UNQUOTED(SIGNR_20, `./scsh_aux 20`, [scsh interrupt for signal 20])
+  AC_DEFINE_UNQUOTED(SIGNR_21, `./scsh_aux 21`, [scsh interrupt for signal 21])
+  AC_DEFINE_UNQUOTED(SIGNR_22, `./scsh_aux 22`, [scsh interrupt for signal 22])
+  AC_DEFINE_UNQUOTED(SIGNR_23, `./scsh_aux 23`, [scsh interrupt for signal 23])
+  AC_DEFINE_UNQUOTED(SIGNR_24, `./scsh_aux 24`, [scsh interrupt for signal 24])
+  AC_DEFINE_UNQUOTED(SIGNR_25, `./scsh_aux 25`, [scsh interrupt for signal 25])
+  AC_DEFINE_UNQUOTED(SIGNR_26, `./scsh_aux 26`, [scsh interrupt for signal 26])
+  AC_DEFINE_UNQUOTED(SIGNR_27, `./scsh_aux 27`, [scsh interrupt for signal 27])
+  AC_DEFINE_UNQUOTED(SIGNR_28, `./scsh_aux 28`, [scsh interrupt for signal 28])
+  AC_DEFINE_UNQUOTED(SIGNR_29, `./scsh_aux 29`, [scsh interrupt for signal 29])
+  AC_DEFINE_UNQUOTED(SIGNR_30, `./scsh_aux 30`, [scsh interrupt for signal 30])
+  AC_DEFINE_UNQUOTED(SIGNR_31, `./scsh_aux 31`, [scsh interrupt for signal 31])
+  rm -f scsh_aux scsh_aux.exe	
+])
+dnl -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+AC_DEFUN(SCSH_LINUX_STATIC_DEBUG, [
+  case "$host" in
+    *-*-linux* )
+    AC_MSG_CHECKING(for broken Linux that needs -static with -g)
+    AC_CACHE_VAL(scsh_cv_linux_static_debug,[
+      AC_TRY_LINK([],
+  		  [],
+  		  scsh_cv_linux_static_debug=no,
+  		  scsh_cv_linux_static_debug=yes)])
+    AC_MSG_RESULT($scsh_cv_linux_static_debug)
+    if test $scsh_cv_linux_static_debug = yes; then
+      LDFLAGS="-static ${LDFLAGS}"
+    fi
+  ;;
+  esac
+])
+
+dnl -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+AC_DEFUN(SCSH_CONST_SYS_ERRLIST,[
+  AC_MSG_CHECKING(for const sys_errlist)
+  AC_CACHE_VAL(scsh_cv_const_sys_errlist,[
+    AC_TRY_COMPILE([#include <errno.h>
+                    #include <unistd.h>], 
+		   [const extern char *sys_errlist[];],
+                   scsh_cv_const_sys_errlist=yes,
+                   scsh_cv_const_sys_errlist=no)])
+  AC_MSG_RESULT($scsh_cv_const_sys_errlist)
+  if test $scsh_cv_const_sys_errlist = yes; then
+    AC_DEFINE(HAVE_CONST_SYS_ERRLIST, 1, [const char* sys_errlist])
+  fi
+])
+
+dnl -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+AC_DEFUN(SCSH_SOCKLEN_T,[
+     AC_MSG_CHECKING(for socklen_t)
+     AC_TRY_COMPILE([#include <sys/socket.h>
+                     socklen_t x;
+                    ],[],[AC_MSG_RESULT(yes)],[
+                          AC_TRY_COMPILE([#include <sys/socket.h>
+                                          int accept (int, struct sockaddr *, size_t *);
+                                         ],[],[
+                                              AC_MSG_RESULT(size_t)
+                                         AC_DEFINE(socklen_t,
+					size_t, [Define to type of socklen_t])], [
+                   AC_MSG_RESULT(int)
+                   AC_DEFINE(socklen_t,int)])])
+])
+dnl -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+AC_INIT(c/scheme48vm.c)
+     AC_CONFIG_HEADER(c/sysdep.h)
+     AC_CANONICAL_HOST
+     S48_PROG_CC
+     SCSH_SIG_NRS
+     AC_ISC_POSIX
+     SCSH_LINUX_STATIC_DEBUG	
+     dnl set the cross-compile flag before we try anything.
+     AC_TRY_RUN([int main() { return 0;}], [], [], [true])
+     AC_PROG_INSTALL
+     AC_PROG_RANLIB
+     AC_C_CONST
+
+     AC_C_BIGENDIAN
+     if test $ac_cv_c_bigendian = no ; then
+       ENDIAN=little
+     else
+       ENDIAN=big
+     fi
+
+     AR=${AR-"ar cq"}
+     TMPDIR=${TMPDIR-"/var/tmp"}
+     case "$host" in
+  ## CX/UX
+  m88k-harris-cxux* )
+    dir=cxux
+    CC="cc -Xa"
+    CFLAGS="-O"
+    LDFLAGS="-O -Wl,-Bexport"
+    AC_DEFINE(HAVE_HARRIS, 1, [Define to 1 on m88k-harris-cxux])
+  ;;
+    
+  ## DEC Ultrix
+  mips-dec-ultrix* )
+    AC_MSG_ERROR("Ultrix is not supported.")
+  ;;
+
+  ## HP 9000 series 700 and 800, running HP/UX
+  hppa*-hp-hpux* )
+    dir=hpux
+    LDFLAGS="-Wl,-E"
+    if test ${CC} = cc; then
+      CFLAGS="-Ae -O +Obb1800"
+    fi
+    AC_DEFINE(_HPUX_SOURCE, 1, [Define to 1 to compile on HP/UX])
+    AC_DEFINE(hpux, 1, [Define to 1 on HP/UX])
+    AC_DEFINE(_XOPEN_SOURCE_EXTENDED, 1, [Define to 1 to compile on HP/UX])
+  ;;
+ 
+  ## IBM AIX
+     rs6000-ibm-aix*|powerpc-ibm-aix* )
+     dir=aix
+     LDFLAGS="-O"
+     if test ${CC} = gcc; then
+       LDFLAGS_AIX="-Xlinker -bexport:exportlist.aix"
+     else
+       LDFLAGS_AIX="-bexport:exportlist.aix"
+     fi
+     CFLAGS="-O"
+     AIX_P="exportlist.aix"
+     ;;
+
+  ## Linux
+  *-*-linux* )
+  dir=linux
+  # gross, but needed for some older a.out systems for 0.4.x
+  LIBS=-lc
+  SCSH_ELF
+  ;;
+
+  ## NetBSD and FreeBSD ( and maybe 386BSD also)
+  *-*-*bsd*|*-*-darwin* )
+  dir=bsd
+  SCSH_ELF
+  ;;
+
+  ## NeXT
+  *-next-* )
+    dir=next
+    CC="$CC -posix"
+    AC_DEFINE(HAVE_SIGACTION)
+  ;;
+  
+  ## SGI IRIX
+  mips-sgi-irix* )
+    dir=irix
+    S48_CFLAG_CKR
+    INSTALL='$(srcdir)/install-sh'
+  ;;
+
+  ## SunOS
+  sparc*-sun-sunos* )
+   dir=sunos
+  ;;
+  
+  ## Solaris - Sparc and i386
+    *-*-solaris* )
+    dir=solaris
+    AC_DEFINE(HAVE_NLIST)
+    ;;
+  
+  ## NT - cygwin32
+  *-*-cygwin* )
+    AC_DEFINE(CYGWIN, 1, [Define to 1 on cygwin])
+    dir=cygwin32
+    EXEEXT=".exe"
+  ;;
+  
+  ## The GNU Hurd
+  *-*-gnu* )
+  machine=gnu
+  SCSH_ELF
+  ;;
+
+  ## Generic Configuration
+  * )
+  dir=generic
+  echo "WARNING: "
+  echo "WARNING: Using generic configuration."
+  echo "WARNING: See doc/porting.txt for more information."
+  echo "WARNING: "
+  ;;
+esac
+     (cd $srcdir/scsh &&  rm -rf machine && ln -s $dir machine)
+
+     AC_CHECK_LIB(m, main)
+     AC_CHECK_LIB(dl, main)
+     AC_CHECK_LIB(mld, main)
+     AC_CHECK_LIB(nsl, main)
+     AC_CHECK_LIB(gen, main)
+     AC_CHECK_LIB(socket, main)
+     AC_CHECK_LIB(sun, getpwnam)
+     AC_CHECK_LIB(c, crypt, [true], AC_CHECK_LIB(crypt, crypt))
+     dnl Solaris 2.3 seems to need -lelf for nlist().  (tnx Bryan O'Sullivan)
+     AC_CHECK_LIB(elf, main)
+     S48_POSIX_LIBC
+     AC_CONST
+     AC_RETSIGTYPE
+     AC_CHECK_HEADERS(libgen.h sys/timeb.h posix/time.h sys/select.h nlist.h)
+     AC_CHECK_HEADERS(sys/un.h)
+     AC_CHECK_HEADERS(crypt.h)	
+     AC_CHECK_FUNCS(gettimeofday ftime nlist select setitimer sigaction vasprintf)
+     SCSH_SOCKLEN_T	
+     AC_CHECK_FUNC(dlopen, [AC_DEFINE(HAVE_DLOPEN, 
+				1, [Define to 1 if the interface to the dynamic linker exists])
+                            have_dlopen="yes"],
+			   [AC_CHECK_FUNC(nlist, [AC_LIBOBJ([c/fake/libdl1])],
+	       					 [AC_LIBOBJ([c/fake/libdl2])])
+                            have_dlopen="no"])
+     AC_CHECK_FUNCS(socket chroot)
+     AC_CHECK_FUNC(strerror, AC_DEFINE(HAVE_STRERROR, 
+					1, [Define to 1 if you have the strerror function]),
+			      [AC_LIBOBJ([c/fake/strerror])])
+
+     AC_CHECK_FUNC(seteuid, [AC_DEFINE(HAVE_SETEUID, 
+					1, [Define to 1 if you have the seteuid function])],
+ 	[AC_CHECK_FUNC(setreuid, [AC_DEFINE(HAVE_SETREUID, 
+						1, [Define to 1 if you have the setreuid function])],
+ 	[AC_MSG_ERROR("Neither setegid nor setregid defined. Cannot continue.")])])
+
+     AC_CHECK_FUNC(setegid, [AC_DEFINE(HAVE_SETEGID, 
+					1, [Define to 1 if you have the setegid function])],
+ 	[AC_CHECK_FUNC(setregid, [AC_DEFINE(HAVE_SETREGID, 
+						1, [Define to 1 if you have the setregid function])], 
+         	[AC_MSG_ERROR("Neither setegid nor setregid defined. Cannot continue.")])])
+
+
+     AC_CHECK_MEMBER(struct nlist.n_name,
+	[AC_DEFINE(NLIST_HAS_N_NAME, 1, [Define to 1 if struct nlist.n_name exists])],,
+	[#include <nlist.h>])
+     AC_MSG_CHECKING([__NEXT__])
+     AC_TRY_LINK(,[
+#ifdef	__NeXT__
+return 0;
+#else
+fail
+#endif
+],
+		CC="$CC -posix"
+		AC_DEFINE(HAVE_SIGACTION)
+		AC_MSG_RESULT([yes]),
+		AC_MSG_RESULT([no]))
+     S48_USCORE
+     if test $have_dlopen = yes; then
+        S48_RDYNAMIC
+     fi
+     AC_STRUCT_TIMEZONE
+     AC_CHECK_MEMBER(struct tm.tm_gmtoff,
+	AC_DEFINE(HAVE_GMTOFF, 1, [Define to 1 if struct tm has member tm_gmtoff]))
+	
+     SCSH_CONST_SYS_ERRLIST	
+     CFLAGS1=${CFLAGS}
+
+     lib_dirs_list='("${prefix}/lib/scsh/modules")'
+     AC_ARG_WITH(lib-dirs-list,
+                 AC_HELP_STRING([--with-lib-dirs-list],
+                                [list of default scsh library directories (default ("$prefix/lib/scsh/modules"))]),
+                 lib_dirs_list="$withval")
+
+     AC_SUBST(lib_dirs_list)
+
+     AC_SUBST(CFLAGS)
+     AC_SUBST(LDFLAGS)
+	
+
+     AC_SUBST(AIX_P)
+     AC_SUBST(AR)
+     AC_SUBST(CC)
+     AC_SUBST(CFLAGS)
+     AC_SUBST(CFLAGS1)
+     AC_SUBST(EXEEXT)
+     AC_SUBST(ENDIAN)
+     AC_SUBST(LDFLAGS)
+     AC_SUBST(LDFLAGS_AIX)
+     AC_SUBST(LIBS)
+     AC_SUBST(TMPDIR)
+
+    
+AC_CONFIG_FILES(Makefile scsh/endian.scm scsh-config)
+AC_CONFIG_COMMANDS([scsh-config+x],[chmod +x scsh-config])
+AC_OUTPUT
+

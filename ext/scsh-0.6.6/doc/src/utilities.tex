@@ -1,0 +1,792 @@
+
+% Still to do:
+%  list utilities
+%  rest of big-util
+%  destructure
+%  format (?)
+
+\chapter{Libraries}
+
+Use the
+\link*{\code{,open} command}
+[\code{,open} command (section~\Ref{})]{module-command-guide}
+ or
+\link*{the module language}
+[the module language (chapter~\Ref)]{module-guide}
+ to open the structures described below.
+
+\section{ASCII character encoding}
+\label{ascii-procedures}
+
+These are in the structure \code{ascii}.
+
+\begin{protos}
+\proto{char->ascii}{ char}{integer}
+\proto{ascii->char}{ integer}{char}
+\end{protos}
+\noindent
+These are identical to \code{char->integer} and \code{integer->char} except that
+ they use the
+\link{ASCII encoding}[ASCII encoding (appendix~\Ref)]{ascii-chart}.
+
+\begin{protos}
+\constproto{ascii-limit}{integer}
+\constproto{ascii-whitespaces}{list of integers}
+\end{protos}
+\code{Ascii-limit} is one more than the largest value that \code{char->ascii}
+ may return.
+\code{Ascii-whitespaces} is a list of the ASCII values of whitespace characters
+ (space, horizontal tab, line feed (= newline), vertical tab, form feed, and
+ carriage return).
+
+\section{Bitwise integer operations}
+
+These functions use the two's-complement representation for integers.
+There is no limit to the number of bits in an integer.
+They are in the structures \code{bitwise} and \code{big-scheme}.
+
+\begin{protos}
+\proto{bitwise-and}{ integer integer}{integer}
+\proto{bitwise-ior}{ integer integer}{integer}
+\proto{bitwise-xor}{ integer integer}{integer}
+\proto{bitwise-not}{ integer} {integer}
+\end{protos}
+\noindent
+These perform various logical operations on integers on a bit-by-bit
+basis. `\code{ior}' is inclusive OR and `\code{xor}' is exclusive OR.
+
+\begin{protos}
+\proto{arithmetic-shift}{ integer bit-count}{integer}
+\end{protos}
+\noindent Shifts the integer by the given bit count, which must be an integer,
+ shifting left for positive counts and right for negative ones.
+Shifting preserves the integer's sign.
+
+\begin{protos}
+\proto{bit-count}{ integer}{integer}
+\end{protos}
+\noindent Counts the number of bits set in the integer.
+If the argument is negative a bitwise NOT operation is performed
+ before counting.
+
+\section{Byte vectors}
+
+These are homogeneous vectors of small integers ($0 \le i \le 255$).
+The functions that operate on them are analogous to those for vectors.
+They are in the structure \code{byte-vectors}.
+
+\begin{protos}
+\proto{byte-vector?}{ value}{boolean}
+\proto{make-byte-vector}{ k fill}{byte-vector}
+\proto{byte-vector}{ i \ldots}{byte-vector}
+\proto{byte-vector-length}{ byte-vector}{integer}
+\proto{byte-vector-ref}{ byte-vector k}{integer}
+\protonoresult{byte-vector-set!}{ byte-vector k i}
+\end{protos}
+
+\section{Cells}
+
+These hold a single value and are useful when a simple indirection is
+ required.
+The system uses these to hold the values of lexical variables that
+ may be \code{set!}.
+
+\begin{protos}
+\proto{cell?}{ value}{boolean}
+\proto{make-cell}{ value}{cell}
+\proto{cell-ref}{ cell}{value}
+\protonoresult{cell-set!}{ cell value}
+\end{protos}
+
+\section{Queues}
+
+These are ordinary first-in, first-out queues.
+The procedures are in structure \code{queues}.
+
+\begin{protos}
+\proto{make-queue}{}{queue}
+\proto{queue?}{ value}{boolean}
+\proto{queue-empty?}{ queue}{boolean}
+\protonoresult{enqueue!}{ queue value}
+\proto{dequeue!}{ queue}{value}
+\end{protos}
+\noindent 
+\code{Make-queue} creates an empty queue, \code{queue?} is a predicate for
+ identifying queues, \code{queue-empty?} tells you if a queue is empty,
+ \code{enqueue!} and \code{dequeue!} add and remove values.
+
+\begin{protos}
+\proto{queue-length}{ queue}{integer}
+\proto{queue->list}{ queue}{values}
+\proto{list->queue}{ values}{queue}
+\proto{delete-from-queue!}{ queue value}{boolean}
+\end{protos}
+\noindent
+\code{Queue-length} returns the number of values in \var{queue}.
+\code{Queue->list} returns the values in \var{queue} as a list, in the
+ order in which the values were added.
+\code{List->queue} returns a queue containing \var{values}, preserving
+ their order.
+\code{Delete-from-queue} removes the first instance of \var{value} from
+ \code{queue}, using \code{eq?} for comparisons.
+\code{Delete-from-queue} returns \code{\#t} if \var{value} is found and
+ \code{\#f} if it is not.
+
+\section{Arrays}
+
+These provide N-dimensional, zero-based arrays and
+ are in the structure \code{arrays}.
+The array interface is derived from one invented by Alan Bawden.
+
+\begin{protos}
+\proto{make-array}{ value dimension$_0$ \ldots}{array}
+\proto{array}{ dimensions element$_0$ \ldots}{array}
+\proto{copy-array}{ array}{array}
+\end{protos}
+\noindent
+\code{Make-array} makes a new array with the given dimensions, each of which
+ must be a non-negative integer.
+Every element is initially set to \cvar{value}.
+\code{Array} Returns a new array with the given dimensions and elements.
+\cvar{Dimensions} must be a list of non-negative integers, 
+The number of elements should be the equal to the product of the
+ dimensions.
+The elements are stored in row-major order.
+\begin{example}
+(make-array 'a 2 3) \evalsto \{Array 2 3\}
+
+(array '(2 3) 'a 'b 'c 'd 'e 'f)
+    \evalsto \{Array 2 3\}
+\end{example}
+
+\code{Copy-array} returns a copy of \cvar{array}.
+The copy is identical to the \cvar{array} but does not share storage with it.
+
+\begin{protos}
+\proto{array?}{ value}{boolean}
+\end{protos}
+\noindent
+Returns \code{\#t} if \cvar{value} is an array.
+
+\begin{protos}
+\proto{array-ref}{ array index$_0$ \ldots}{value}
+\protonoresult{array-set!}{ array value index$_0$ \ldots}
+\proto{array->vector}{ array}{vector}
+\proto{array-dimensions}{ array}{list}
+\end{protos}
+\noindent
+\code{Array-ref} returns the specified array element and \code{array-set!}
+ replaces the element with \cvar{value}.
+\begin{example}
+(let ((a (array '(2 3) 'a 'b 'c 'd 'e 'f)))
+  (let ((x (array-ref a 0 1)))
+    (array-set! a 'g 0 1)
+    (list x (array-ref a 0 1))))
+    \evalsto '(b g)
+\end{example}
+
+\code{Array->vector} returns a vector containing the elements of \cvar{array}
+ in row-major order.
+\code{Array-dimensions} returns the dimensions of
+ the array as a list.
+
+\begin{protos}
+\proto{make-shared-array}{ array linear-map dimension$_0$ \ldots}{array}
+\end{protos}
+\noindent
+\code{Make-shared-array} makes a new array that shares storage with \cvar{array}
+ and uses \cvar{linear-map} to map indexes to elements.
+\cvar{Linear-map} must accept as many arguments as the number of
+ \cvar{dimension}s given and must return a list of non-negative integers
+ that are valid indexes into \cvar{array}.
+<\begin{example}
+(array-ref (make-shared-array a f i0 i1 ...)
+           j0 j1 ...)
+\end{example}
+is equivalent to
+\begin{example}
+(apply array-ref a (f j0 j1 ...))
+\end{example}
+
+As an example, the following function makes the transpose of a two-dimensional
+ array:
+\begin{example}
+(define (transpose array)
+  (let ((dimensions (array-dimensions array)))
+    (make-shared-array array
+                       (lambda (x y)
+                         (list y x))
+                       (cadr dimensions)
+                       (car dimensions))))
+
+(array->vector
+  (transpose
+    (array '(2 3) 'a 'b 'c 'd 'e 'f)))
+      \evalsto '(a d b e c f)
+\end{example}
+
+\section{Records}
+\label{records}
+
+New types can be constructed using the \code{define-record-type} macro
+ from the \code{define-record-types} structure
+The general syntax is:
+\begin{example}
+(define-record-type \cvar{tag} \cvar{type-name}
+  (\cvar{constructor-name} \cvar{field-tag} \ldots)
+  \cvar{predicate-name}
+  (\cvar{field-tag} \cvar{accessor-name} [\cvar{modifier-name}])
+  \ldots)
+\end{example}
+This makes the following definitions:
+\begin{protos}
+\constprotonoindex{\cvar{type-name}}{type}
+\protonoindex{\cvar{constructor-name}}{ field-init \ldots}{type-name}
+\protonoindex{\cvar{predicate-name}}{ value}{boolean}
+\protonoindex{\cvar{accessor-name}}{ type-name}{value}
+\protonoresultnoindex{\cvar{modifier-name}}{ type-name value}
+\end{protos}
+\noindent
+\cvar{Type-name} is the record type itself, and can be used to
+ specify a print method (see below).
+\cvar{Constructor-name} is a constructor that accepts values
+ for the fields whose tags are specified.
+\cvar{Predicate-name} is a predicate that returns \code{\#t} for
+ elements of the type and \code{\#f} for everything else.
+The \cvar{accessor-name}s retrieve the values of fields,
+ and the \cvar{modifier-name}'s update them.
+\cvar{Tag} is used in printing instances of the record type and
+ the \cvar{field-tag}s are used in the inspector and to match
+ constructor arguments with fields.
+
+\begin{protos}
+\protonoresult{define-record-discloser}{ type discloser}
+\end{protos}
+\noindent
+\code{Define-record-discloser} determines how
+ records of type \cvar{type} are printed.
+\cvar{Discloser} should be procedure which takes a single
+ record of type \cvar{type} and returns a list whose car is
+ a symbol.
+The record will be printed as the value returned by \cvar{discloser}
+ with curly braces used instead of the usual parenthesis.
+
+For example
+\begin{example}
+(define-record-type pare :pare
+  (kons x y)
+  pare?
+  (x kar set-kar!)
+  (y kdr))
+\end{example}
+ defines \code{kons} to be a constructor, \code{kar} and \code{kdr} to be
+ accessors, \code{set-kar!} to be a modifier, and \code{pare?} to be a predicate
+ for a new type of object.
+The type itself is named \code{:pare}.
+\code{Pare} is a tag used in printing the new objects.
+
+By default, the new objects print as \code{\#\{Pare\}}.
+The print method can be modified using \code{define-record-discloser}:
+\begin{example}
+(define-record-discloser :pare
+  (lambda (p) `(pare ,(kar p) ,(kdr p))))
+\end{example}
+ will cause the result of \code{(kons 1 2)} to print as
+ \code{\#\{Pare 1 2\}}.
+
+\link*{\code{Define-record-resumer}}
+ [\code{Define-record-resumer} (section~\Ref{})]
+ {sec:hibernation}
+ can be used to control how records are stored in heap images.
+
+\subsection{Low-level access to records}
+
+Records are implemented using primitive objects exactly analogous
+ to vectors.
+Every record has a record type (which is another record) in the first slot.
+Note that use of these procedures, especially \code{record-set!}, breaks
+ the record abstraction described above; caution is advised.
+
+These procedures are in the structure \code{records}.
+
+\begin{protos}
+\proto{make-record}{ n value}{record}
+\proto{record}{ value \ldots}{record-vector}
+\proto{record?}{ value}{boolean}
+\proto{record-length}{ record}{integer}
+\proto{record-type}{ record}{value}
+\proto{record-ref}{ record i}{value}
+\protonoresult{record-set!}{ record i value}
+\end{protos}
+\noindent
+These the same as the standard \code{vector-} procedures except that they
+ operate on records.
+The value returned by \code{record-length} includes the slot holding the
+ record's type.
+\code{(record-type \cvar{x})} is equivalent to \code{(record-ref \cvar{x} 0)}.
+
+\subsection{Record types}
+
+Record types are themselves records of a particular type (the first slot
+ of \code{:record-type} points to itself).
+A record type contains four values: the name of the record type, a list of
+ the names its fields, and procedures for disclosing and resuming records
+ of that type.
+Procedures for manipulating them are in the structure \code{record-types}.
+
+\begin{protos}
+\proto{make-record-type}{ name field-names}{record-type}
+\proto{record-type?}{ value}{boolean}
+\proto{record-type-name}{ record-type}{symbol}
+\proto{record-type-field-names}{ record-type}{symbols}
+\end{protos}
+\noindent
+
+\begin{protos}
+\proto{record-constructor}{ record-type field-names}{procedure}
+\proto{record-predicate}{ record-type}{procedure}
+\proto{record-accessor}{ record-type field-name}{procedure}
+\proto{record-modifier}{ record-type field-name}{procedure}
+\end{protos}
+\noindent
+These procedures construct the usual record-manipulating procedures.
+\code{Record-constructor} returns a constructor that is passed the initial
+ values for the fields specified and returns a new record.
+\code{Record-predicate} returns a predicate that return true when passed
+ a record of type \cvar{record-type} and false otherwise.
+\code{Record-accessor} and \code{record-modifier} return procedures that
+ reference and set the given field in records of the approriate type.
+
+\begin{protos}
+\protonoresult{define-record-discloser}{ record-type discloser}
+\protonoresult{define-record-resumer}{ record-type resumer}
+\end{protos}
+\noindent
+\noindent \code{Record-types} is the initial exporter of
+ \code{define-record-discloser}
+ (re-exported by \code{define-record-types} described above)
+ and
+ \code{define-record-resumer}
+ (re-exported by
+ \link*{\code{external-calls}}
+       [\code{external-calls} (section~\Ref{})]
+       {sec:hibernation}).
+
+The procedures described in this section can be used to define new
+ record-type-defining macros.
+\begin{example}
+(define-record-type pare :pare
+  (kons x y)
+  pare?
+  (x kar set-kar!)
+  (y kdr))
+\end{example}
+is (sematically) equivalent to
+\begin{example}
+(define :pare (make-record-type 'pare '(x y)))
+(define kons (record-constructor :pare '(x y)))
+(define kar (record-accessor :pare 'x))
+(define set-kar! (record-modifier :pare 'x))
+(define kdr (record-accessor :pare 'y))
+\end{example}
+
+The ``(semantically)'' above is because \code{define-record-type} adds
+ declarations, which allows the type checker to detect some misuses of records,
+ and uses more efficient definitions for the constructor, accessors, and
+ modifiers.
+Ignoring the declarations, which will have to wait for another edition of
+ the manual, what the above example actually expands into is:
+\begin{example}
+(define :pare (make-record-type 'pare '(x y)))
+(define (kons x y) (record :pare x y))
+(define (kar r) (checked-record-ref r :pare 1))
+(define (set-kar! r new)
+  (checked-record-set! r :pare 1 new))
+(define (kdr r) (checked-record-ref r :pare 2))
+\end{example} 
+\code{Checked-record-ref} and \code{Checked-record-set!} are
+ low-level procedures that check the type of the
+ record and access or modify it using a single VM instruction.
+
+\section{Finite record types}
+
+The structure \code{finite-types} has
+ two macros for defining `finite' record types.
+These are record types for which there are a fixed number of instances,
+ all of which are created at the same time as the record type itself.
+The syntax for defining an enumerated type is:
+\begin{example}
+(define-enumerated-type \cvar{tag} \cvar{type-name}
+  \cvar{predicate-name}
+  \cvar{vector-of-instances-name}
+  \cvar{name-accessor}
+  \cvar{index-accessor}
+  (\cvar{instance-name} \ldots))
+\end{example}
+This defines a new record type, bound to \cvar{type-name}, with as many
+ instances as there are \cvar{instance-name}'s.
+\cvar{Vector-of-instances-name} is bound to a vector containing the instances
+ of the type in the same order as the \cvar{instance-name} list.
+\cvar{Tag} is bound to a macro that when given an \cvar{instance-name} expands
+ into an expression that returns corresponding instance.
+The name lookup is done at macro expansion time.
+\cvar{Predicate-name} is a predicate for the new type.
+\cvar{Name-accessor} and \cvar{index-accessor} are accessors for the
+ name and index (in \cvar{vector-of-instances}) of instances of the type.
+
+\begin{example}
+(define-enumerated-type color :color
+  color?
+  colors
+  color-name
+  color-index
+  (black white purple maroon))
+
+(color-name (vector-ref colors 0)) \evalsto black
+(color-name (color white))         \evalsto white
+(color-index (color purple))       \evalsto 2
+\end{example}
+
+Finite types are enumerations that allow the user to add additional
+ fields in the type.
+The syntax for defining a finite type is:
+\begin{example}
+(define-finite-type \cvar{tag} \cvar{type-name}
+  (\cvar{field-tag} \ldots)
+  \cvar{predicate-name}
+  \cvar{vector-of-instances-name}
+  \cvar{name-accessor}
+  \cvar{index-accessor}
+  (\cvar{field-tag} \cvar{accessor-name} [\cvar{modifier-name}])
+  \ldots
+  ((\cvar{instance-name} \cvar{field-value} \ldots)
+   \ldots))
+\end{example}
+The additional fields are specified exactly as with \code{define-record-type}.
+The field arguments to the constructor are listed after the \cvar{type-name};
+ these do not include the name and index fields.
+The form ends with the names and the initial field values for
+ the instances of the type.
+The instances are constructed by applying the (unnamed) constructor to
+ these initial field values.
+The name must be first and 
+ the remaining values must match the \cvar{field-tag}s in the constructor's
+ argument list.
+
+%This differs from \code{define-record-type} in the following ways:
+%\begin{itemize}
+%\item No name is specified for the constructor, but the field arguments
+% to the constructor are listed.
+%\item The \cvar{vector-of-instances-name} is added; it will be bound
+% to a vector containing all of the instances of the type.
+%These are constructed by applying the (unnamed) constructor to the
+% initial field values at the end of the form.
+%\item There are names for accessors for two required fields, name
+% and index.
+%These fields are not settable, and are not to be included
+% in the argument list for the constructor.
+%\item The form ends with the names and the initial field values for
+% the instances of the type.
+%The name must be first.
+%The remaining values must match the \cvar{field-tag}s in the constructor's
+% argument list.
+%\item \cvar{Tag} is bound to a macro that maps \cvar{instance-name}s to the
+% the corresponding instance of the vector.
+%The name lookup is done at macro-expansion time.
+%\end{itemize}
+
+\begin{example}
+(define-finite-type color :color
+  (red green blue)
+  color?
+  colors
+  color-name
+  color-index
+  (red   color-red)
+  (green color-green)
+  (blue  color-blue)
+  ((black    0   0   0)
+   (white  255 255 255)
+   (purple 160  32 240)
+   (maroon 176  48  96)))
+
+(color-name (color black))         \evalsto black
+(color-name (vector-ref colors 1)) \evalsto white
+(color-index (color purple))       \evalsto 2
+(color-red (color maroon))         \evalsto 176
+\end{example}
+
+\section{Hash tables}
+
+These are generic hash tables, and are in the structure \code{tables}.
+Strictly speaking they are more maps than tables, as every table has a
+ value for every possible key (for that type of table).
+All but a finite number of those values are \code{\#f}.
+
+\begin{protos}
+\proto{make-table}{}{table}
+\proto{make-symbol-table}{}{symbol-table}
+\proto{make-string-table}{}{string-table}
+\proto{make-integer-table}{}{integer-table}
+\proto{make-table-maker}{ compare-proc hash-proc}{procedure}
+\protonoresult{make-table-immutable!}{ table}
+\end{protos}
+\noindent
+The first four functions listed make various kinds of tables.
+\code{Make-table} returns a table whose keys may be symbols, integer,
+ characters, booleans, or the empty list (these are also the values
+ that may be used in \code{case} expressions).
+As with \code{case}, comparison is done using \code{eqv?}.
+The comparison procedures used in symbol, string, and integer tables are
+ \code{eq?}, \code{string=?}, and \code{=}.
+
+\code{Make-table-maker} takes two procedures as arguments and returns
+ a nullary table-making procedure.
+\cvar{Compare-proc} should be a two-argument equality predicate.
+\cvar{Hash-proc} should be a one argument procedure that takes a key
+ and returns a non-negative integer hash value.
+If \code{(\cvar{compare-proc} \cvar{x} \cvar{y})} returns true,
+ then \code{(= (\cvar{hash-proc} \cvar{x}) (\cvar{hash-proc} \cvar{y}))}
+ must also return true.
+For example, \code{make-integer-table} could be defined
+ as \code{(make-table-maker = abs)}.
+
+\code{Make-table-immutable!} prohibits future modification to its argument.
+
+\begin{protos}
+\proto{table?}{ value}{boolean}
+\proto{table-ref}{ table key}{value or {\tt \#f}}
+\protonoresult{table-set!}{ table key value}
+\protonoresult{table-walk}{ procedure table}
+\end{protos}
+\noindent
+\code{Table?} is the predicate for tables.
+\code{Table-ref} and \code{table-set!} access and modify the value of \cvar{key}
+ in \cvar{table}.
+\code{Table-walk} applies \cvar{procedure}, which must accept two arguments,
+ to every associated key and non-\code{\#f} value in \code{table}.
+
+\begin{protos}
+\proto{default-hash-function}{ value}{integer}
+\proto{string-hash}{ string}{integer}
+\end{protos}
+\noindent
+\code{Default-hash-function} is the hash function used in the tables
+ returned by \code{make-table}, and \code{string-hash} it the one used
+ by \code{make-string-table}.
+
+\section{Port extensions}
+
+These procedures are in structure \code{extended-ports}.
+
+\begin{protos}
+\proto{make-string-input-port}{ string}{input-port}
+\proto{make-string-output-port}{}{output-port}
+\proto{string-output-port-output}{ string-output-port}{string}
+\end{protos}
+\noindent \code{Make-string-input-port} returns an input port that
+ that reads characters from the supplied string.  An end-of-file
+ object is returned if the user reads past the end of the string.
+\code{Make-string-output-port} returns an output port that saves
+ the characters written to it.
+These are then returned as a string by \code{string-output-port-output}.
+
+\begin{example}
+(read (make-string-input-port "(a b)"))
+    \evalsto '(a b)
+
+(let ((p (make-string-output-port)))
+  (write '(a b) p)
+  (let ((s (string-output-port-output p)))
+    (display "c" p)
+    (list s (string-output-port-output p))))
+    \evalsto '("(a b)" "(a b)c")
+\end{example}
+
+\begin{protos}
+\protonoresult{limit-output}{ output-port n procedure}
+\end{protos}
+\noindent
+\var{Procedure} is called on an output port.
+Output written to that port is copied to \var{output-port} until \var{n}
+ characters have been written, at which point \code{limit-output} returns.
+If \var{procedure} returns before writing \var{n} characters, then
+ \code{limit-output} also returns at that time, regardless of how many
+ characters have been written.
+
+\begin{protos}
+\proto{make-tracking-input-port}{ input-port}{input-port}
+\proto{make-tracking-output-port}{ output-port}{output-port}
+\proto{current-row}{ port}{integer or {\tt \#f}}
+\proto{current-column}{ port}{integer or {\tt \#f}}
+\protonoresult{fresh-line}{ output-port}
+\end{protos}
+\noindent \code{Make-tracking-input-port} and \code{make-tracking-output-port}
+ return ports that keep track of the current row and column and
+ are otherwise identical to their arguments.
+Closing a tracking port does not close the underlying port.
+\code{Current-row} and \code{current-column} return
+  \var{port}'s current read or write location.
+They return \code{\#f} if \var{port} does not keep track of its location.
+\code{Fresh-line} writes a newline character to \var{output-port} if
+ \code{(current-row \cvar{port})} is not 0.
+
+\begin{example}
+(define p (open-output-port "/tmp/temp"))
+(list (current-row p) (current-column p))
+    \evalsto '(0 0)
+(display "012" p)
+(list (current-row p) (current-column p))
+    \evalsto '(0 3)
+(fresh-line p)
+(list (current-row p) (current-column p))
+    \evalsto '(1 0)
+(fresh-line p)
+(list (current-row p) (current-column p))
+    \evalsto '(1 0)
+\end{example}
+
+\section{Fluid bindings}
+
+These procedures implement dynamic binding and are in structure \code{fluids}.
+A \cvar{fluid} is a cell whose value can be bound dynamically.
+Each fluid has a top-level value that is used when the fluid
+ is unbound in the current dynamic environment.
+
+\begin{protos}
+\proto{make-fluid}{ value}{fluid}
+\proto{fluid}{ fluid}{value}
+\proto{let-fluid}{ fluid value thunk}{value(s)}
+\proto{let-fluids}{ fluid$_0$ value$_0$  fluid$_1$ value$_1$ \ldots thunk}{value(s)}
+\end{protos}
+\noindent
+\code{Make-fluid} returns a new fluid with \cvar{value} as its initial
+ top-level value.
+\code{Fluid} returns \code{fluid}'s current value.
+\code{Let-fluid} calls \code{thunk}, with \cvar{fluid} bound to \cvar{value}
+ until \code{thunk} returns.
+Using a continuation to throw out of the call to \code{thunk} causes
+ \cvar{fluid} to revert to its original value, while throwing back
+ in causes \cvar{fluid} to be rebound to \cvar{value}.
+\code{Let-fluid} returns the value(s) returned by \cvar{thunk}.
+\code{Let-fluids} is identical to \code{let-fluid} except that it binds
+ an arbitrary number of fluids to new values.
+
+\begin{example}
+(let* ((f (make-fluid 'a))
+       (v0 (fluid f))
+       (v1 (let-fluid f 'b
+             (lambda ()
+               (fluid f))))
+       (v2 (fluid f)))
+  (list v0 v1 v2))
+  \evalsto '(a b a)
+\end{example}
+
+\begin{example}
+(let ((f (make-fluid 'a))
+      (path '())
+      (c \#f))
+  (let ((add (lambda ()
+               (set! path (cons (fluid f) path)))))
+    (add)
+    (let-fluid f 'b
+      (lambda ()
+        (call-with-current-continuation
+          (lambda (c0)
+            (set! c c0)))
+        (add)))
+    (add)
+    (if (< (length path) 5)
+        (c)
+        (reverse path))))
+  \evalsto '(a b a b a)
+\end{example}
+
+\section{Shell commands}
+
+Structure \code{c-system-function} provides access to the C \code{system()}
+ function.
+
+\begin{protos}
+\proto{have-system?}{}{boolean}
+\proto{system}{ string}{integer}
+\end{protos}
+\noindent
+\code{Have-system?} returns true if the underlying C implementation
+ has a command processor.
+\code{(System \cvar{string})} passes \cvar{string} to the C
+ \code{system()} function and returns the result.
+
+\begin{example}
+(begin
+  (system "echo foo > test-file")
+  (call-with-input-file "test-file" read))
+\evalsto 'foo
+\end{example}
+
+
+\section{SRFIs}
+
+`SRFI' stands for `Scheme Request For Implementation'.
+An SRFI is a description of an extension to standard Scheme.
+Draft and final SRFI documents, a FAQ, and other information about SRFIs
+ can be found at the
+\xlink{SRFI web site}[ at \code{http://srfi.schemers.org}]
+{http://srfi.schemers.org}.
+
+Scheme~48 includes implementations of the following (final) SRFIs:
+\begin{itemize}
+\item SRFI 1 -- List Library
+\item SRFI 2 -- \code{and-let*}
+\item SRFI 5 -- \code{let} with signatures and rest arguments
+\item SRFI 6 -- Basic string ports
+\item SRFI 7 -- Program configuration
+\item SRFI 8 -- \code{receive}
+\item SRFI 9 -- Defining record types
+\item SRFI 11 -- Syntax for receiving multiple values 
+\item SRFI 13 -- String Library
+\item SRFI 14 -- Character-Set Library (see note below)
+\item SRFI 16 -- Syntax for procedures of variable arity
+\item SRFI 17 -- Generalized \code{set!}
+\item SRFI 23 -- Error reporting mechanism
+\end{itemize}
+Documentation on these can be found at the web site mentioned above.
+
+SRFI~14 includes the procedure \code{->char-set} which is not a standard
+ Scheme identifier (in R$^5$RS the only required identifier starting
+ with \code{-} is \code{-} itself).
+In the Scheme~48 version of SRFI~14 we have renamed \code{->char-set}
+ as \code{x->char-set}.
+
+The SRFI bindings can be accessed either by opening the appropriate structure
+ (the structure \code{srfi-}\cvar{n} contains SRFI \cvar{n})
+ or by loading structure \code{srfi-7} and then using
+ the \code{,load-srfi-7-program} command to load an SRFI 7-style program.
+The syntax for the command is
+\begin{example}
+\code{,load-srfi-7-program \cvar{name} \cvar{filename}}
+\end{example}
+This creates a new structure and associated package, binds the structure
+ to \cvar{name} in the configuration package, and then loads the program
+ found in \cvar{filename} into the package.
+
+As an example, if the file \code{test.scm} contains
+\begin{example}
+(program (code (define x 10)))
+\end{example}
+this program can be loaded as follows:
+\begin{example}
+> ,load-package srfi-7
+> ,load-srfi-7-program test test.scm
+[test]
+> ,in test
+test> x
+10
+test> 
+\end{example}
+
+%\W \chapter*{Index}
+%\W \htmlprintindex
+%\T \input{doc.ind}
+

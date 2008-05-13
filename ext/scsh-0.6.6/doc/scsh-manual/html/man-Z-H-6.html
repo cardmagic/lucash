@@ -1,0 +1,587 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-5.html">previous</a></span><span>, <a href="man-Z-H-7.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_5"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_5">Chapter 5</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_5">Strings and characters</a></h1><p>Strings are the basic communication medium for Unix processes, so a
+Unix programming environment must have reasonable facilities for manipulating 
+them.
+Scsh provides a powerful set of procedures for processing strings and
+characters.
+Besides the the facilities described in this chapter, scsh also provides
+</p>
+<ul>
+<li><p><strong>Regular expressions (chapter&nbsp;<a href="man-Z-H-7.html#node_chap_6">6</a>)</strong><br>
+
+A complete regular-expression system.</p>
+<p>
+</p>
+<li><p><strong>Field parsing, delimited record I/O and the awk loop
+(chapter&nbsp;<a href="man-Z-H-9.html#node_chap_8">8</a>)</strong><br>
+
+These procedures let you read in chunks of text delimited by selected 
+characters, and
+parse each record into fields based on regular expressions
+(for example, splitting a string at every occurrence of colon or
+white-space).
+The <tt>awk</tt> form allows you to loop over streams of these records 
+in a convenient way.</p>
+<p>
+</p>
+<li><p><strong>The SRFI-13 string libraries</strong><br>
+
+This pair of libraries contains procedures that create, fold, iterate over,
+search, compare, assemble, cut, hash, case-map, and otherwise manipulate 
+strings. 
+They are provided by the <tt>string-lib</tt> and <tt>string-lib-internals</tt> 
+packages, and are also available in the default <tt>scsh</tt> package.</p>
+<p>
+More documentation on these procedures can be found at URLs
+</p>
+<blockquote>
+<a href="http://srfi.schemers.org/srfi-13/srfi-13.html">http://srfi.schemers.org/srfi-13/srfi-13.html</a><br>
+<a href="http://srfi.schemers.org/srfi-13/srfi-13.txt">http://srfi.schemers.org/srfi-13/srfi-13.txt</a>
+</blockquote><p>
+</p>
+<li><p><strong>The SRFI-14 character-set library</strong><br>
+
+This library provides a set-of-characters abstraction, which is frequently
+useful when searching, parsing, filtering or otherwise operating on
+strings and character data. The SRFI is provided by the <tt>char-set-lib</tt>
+package; it's bindings are also available in the default <tt>scsh</tt> package.</p>
+<p>
+More documentation on this library can be found at URLs
+</p>
+<blockquote>
+<a href="http://srfi.schemers.org/srfi-14/srfi-14.html">http://srfi.schemers.org/srfi-14/srfi-14.html</a><br>
+<a href="http://srfi.schemers.org/srfi-14/srfi-14.txt">http://srfi.schemers.org/srfi-14/srfi-14.txt</a>
+</blockquote><p>
+</p>
+</ul><p></p>
+<p>
+</p>
+<a name="node_sec_5.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_5.1">5.1&nbsp;&nbsp;Manipulating file names</a></h2><p></p>
+<p>
+These procedures do not access the file-system at all; they merely operate
+on file-name strings. Much of this structure is patterned after the gnu emacs
+design. Perhaps a more sophisticated system would be better, something
+like the pathname abstractions of C<small>O</small><small>M</small><small>M</small><small>O</small><small>N</small> L<small>I</small><small>S</small><small>P</small> or MIT Scheme. However,
+being Unix-specific, we can be a little less general. </p>
+<p>
+</p>
+<a name="node_sec_5.1.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_5.1.1">5.1.1&nbsp;&nbsp;Terminology</a></h3><p>These procedures carefully adhere to the P<small>O</small><small>S</small><small>I</small><small>X</small> standard for file-name
+resolution, which occasionally entails some slightly odd things.
+This section will describe these rules, and give some basic terminology.</p>
+<p>
+A <em>file-name</em> is either the file-system root (``/''), 
+or a series of slash-terminated directory components, followed by
+a a file component.
+Root is the only file-name that may end in slash.
+Some examples:
+</p>
+<div align=center><table><tr><td>
+
+<table border=0><tr><td valign=top >File name            </td><td valign=top >Dir components        </td><td valign=top >File component </td></tr>
+<tr><td valign=top ><tt>src/des/main.c</tt>  </td><td valign=top ><tt>(&quot;src&quot; &quot;des&quot;)</tt>    </td><td valign=top ><tt>&quot;main.c&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>/src/des/main.c</tt> </td><td valign=top ><tt>(&quot;&quot; &quot;src&quot; &quot;des&quot;)</tt> </td><td valign=top ><tt>&quot;main.c&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>main.c</tt>          </td><td valign=top ><tt>()</tt>               </td><td valign=top ><tt>&quot;main.c&quot;</tt> </td></tr>
+<tr><td valign=top ></td></tr></table>
+</td></tr></table></div>
+<p>
+Note that the relative filename <tt>src/des/main.c</tt> and the absolute filename
+<tt>/src/des/main.c</tt> are distinguished by the presence of the root component
+<tt>&quot;&quot;</tt> in the absolute path.</p>
+<p>
+Multiple embedded slashes within a path have the same meaning as 
+a single slash.
+More than two leading slashes at the beginning of a path have the same
+meaning as a single leading slash -- they indicate that the file-name
+is an absolute one, with the path leading from root.
+However, P<small>O</small><small>S</small><small>I</small><small>X</small> permits the OS to give special meaning to 
+<em>two</em> leading slashes.
+For this reason, the routines in this section do not simplify two leading
+slashes to a single slash.</p>
+<p>
+A file-name in <em>directory form</em> is either a file-name terminated by 
+a slash, <em>e.g.</em>, ``<tt>/src/des/</tt>'', or the empty string, ``''.
+The empty string corresponds to the current working directory, 
+whose file-name is dot (``<tt>.</tt>'').
+Working backwards from the append-a-slash rule, 
+we extend the syntax of P<small>O</small><small>S</small><small>I</small><small>X</small> file-names to define the empty string
+to be a file-name form of the root directory ``<tt>/</tt>''.
+(However, ``<tt>/</tt>'' is also acceptable as a file-name form for root.)
+So the empty string has two interpretations: 
+as a file-name form, it is the file-system root;
+as a directory form, it is the current working directory.
+Slash is also an ambiguous form: <tt>/</tt> is both a directory-form and
+a file-name form.</p>
+<p>
+The directory form of a file-name is very rarely used.
+Almost all of the procedures in scsh name directories by giving
+their file-name form (without the trailing slash), not their directory form.
+So, you say ``<tt>/usr/include</tt>'', and ``<tt>.</tt>'', not
+``<tt>/usr/include/</tt>'' and ``''.
+The sole exceptions are
+<tt>file-name-as-directory</tt> and <tt>directory-as-file-name</tt>,
+whose jobs are to convert back-and-forth between these forms,
+and <tt>file-name-directory</tt>, whose job it is to split out the
+directory portion of a file-name.
+However, most procedures that expect a directory argument will coerce
+a file-name in directory form to file-name form if it does not have
+a trailing slash.
+Bear in mind that the ambiguous case, empty string, will be
+interpreted in file-name form, <em>i.e.</em>, as root.</p>
+<p>
+</p>
+<a name="node_sec_5.1.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_5.1.2">5.1.2&nbsp;&nbsp;Procedures</a></h3><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1056"></a></p>
+<div align=left><tt>(file-name-directory? <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1058"></a><div align=left><tt>(file-name-non-directory? <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+These predicates return true if the string is in directory form, or
+file-name form (see the above discussion of these two forms).
+Note that they both return true on the ambiguous case of empty string,
+which is both a directory (current working directory), and a file name 
+(the file-system root).
+<div align=center><table><tr><td>
+
+<table border=0><tr><td valign=top >File name </td><td valign=top ><tt><tt>...</tt>-directory?</tt> </td><td valign=top ><tt><tt>...</tt>-non-directory?</tt> </td></tr>
+<tr><td valign=top ><tt>&quot;src/des&quot;</tt>  </td><td valign=top ><tt><tt>#f</tt></tt> </td><td valign=top ><tt><tt>#t</tt></tt> </td></tr>
+<tr><td valign=top ><tt>&quot;src/des/&quot;</tt> </td><td valign=top ><tt><tt>#t</tt></tt> </td><td valign=top ><tt><tt>#f</tt></tt> </td></tr>
+<tr><td valign=top ><tt>&quot;/&quot;</tt>        </td><td valign=top ><tt><tt>#t</tt></tt> </td><td valign=top ><tt><tt>#f</tt></tt> </td></tr>
+<tr><td valign=top ><tt>&quot;.&quot;</tt>        </td><td valign=top ><tt><tt>#f</tt></tt> </td><td valign=top ><tt><tt>#t</tt></tt> </td></tr>
+<tr><td valign=top ><tt>&quot;&quot;</tt>         </td><td valign=top ><tt><tt>#t</tt></tt> </td><td valign=top ><tt><tt>#t</tt></tt>
+</td></tr></table>
+</td></tr></table></div>
+
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1060"></a><div align=left><tt>(file-name-as-directory <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Convert a file-name to directory form.
+Basically, add a trailing slash if needed:
+<table border=0><tr><td valign=top ><tt>(file-name-as-directory &quot;src/des&quot;)</tt>  </td><td valign=top ><tt>&quot;src/des/&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-as-directory &quot;src/des/&quot;)</tt> </td><td valign=top ><tt>&quot;src/des/&quot;</tt> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>.</tt>, <tt>/</tt>, and <tt>&quot;&quot;</tt> are special:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><tt>(file-name-as-directory &quot;.&quot;)</tt> </td><td valign=top ><tt>&quot;&quot;</tt>  </td></tr>
+<tr><td valign=top ><tt>(file-name-as-directory &quot;/&quot;)</tt> </td><td valign=top ><tt>&quot;/&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-as-directory &quot;&quot;)</tt>  </td><td valign=top ><tt>&quot;/&quot;</tt>
+</td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1062"></a><div align=left><tt>(directory-as-file-name <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Convert a directory to a simple file-name.
+Basically, kill a trailing slash if one is present:
+<table border=0><tr><td valign=top ><tt>(directory-as-file-name &quot;foo/bar/&quot;)</tt> </td><td valign=top ><tt>&quot;foo/bar&quot;</tt> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>/</tt> and <tt>&quot;&quot;</tt> are special:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><tt>(directory-as-file-name &quot;/&quot;)</tt> </td><td valign=top ><tt>&quot;/&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(directory-as-file-name &quot;&quot;)</tt>  </td><td valign=top ><tt>&quot;.&quot;</tt> (<em>i.e.</em>, the cwd) </td></tr>
+<tr><td valign=top ></td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1064"></a><div align=left><tt>(file-name-absolute? <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Does <i>fname</i> begin with a root or <tt>~</tt> component?
+(Recognising <tt>~</tt> as a home-directory specification
+is an extension of P<small>O</small><small>S</small><small>I</small><small>X</small> rules.)
+<table border=0><tr><td valign=top ><tt>(file-name-absolute? &quot;/usr/shivers&quot;)</tt>        </td><td valign=top ><tt>#t</tt>  </td></tr>
+<tr><td valign=top ><tt>(file-name-absolute? &quot;src/des&quot;)</tt>             </td><td valign=top ><tt>#f</tt>  </td></tr>
+<tr><td valign=top ><tt>(file-name-absolute? &quot;~/src/des&quot;)</tt>          </td><td valign=top ><tt>#t</tt>  </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left>Non-obvious case:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><tt>(file-name-absolute? &quot;&quot;)</tt>                    </td><td valign=top ><tt>#t</tt> (<em>i.e.</em>, root)
+</td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1066"></a><div align=left><tt>(file-name-directory <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> or false</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Return the directory component of <i>fname</i> in directory form.
+If the file-name is already in directory form, return it as-is.
+<table border=0><tr><td valign=top ><tt>(file-name-directory &quot;/usr/bdc&quot;)</tt>   </td><td valign=top ><tt>&quot;/usr/&quot;</tt>  </td></tr>
+<tr><td valign=top ><tt>(file-name-directory &quot;/usr/bdc/&quot;)</tt> </td><td valign=top ><tt>&quot;/usr/bdc/&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-directory &quot;bdc/.login&quot;)</tt> </td><td valign=top ><tt>&quot;bdc/&quot;</tt>       </td></tr>
+<tr><td valign=top ><tt>(file-name-directory &quot;main.c&quot;)</tt>      </td><td valign=top ><tt>&quot;&quot;</tt> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left>Root has no directory component:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><tt>(file-name-directory &quot;/&quot;)</tt>           </td><td valign=top ><tt>&quot;&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-directory &quot;&quot;)</tt>            </td><td valign=top ><tt>&quot;&quot;</tt>
+</td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1068"></a><div align=left><tt>(file-name-nondirectory <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Return non-directory component of fname.
+<table border=0><tr><td valign=top ><tt>(file-name-nondirectory &quot;/usr/ian&quot;)</tt> </td><td valign=top ><tt>&quot;ian&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-nondirectory &quot;/usr/ian/&quot;)</tt>  </td><td valign=top ><tt>&quot;&quot;</tt>       </td></tr>
+<tr><td valign=top ><tt>(file-name-nondirectory &quot;ian/.login&quot;)</tt> </td><td valign=top ><tt>&quot;.login&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-nondirectory &quot;main.c&quot;)</tt>         </td><td valign=top ><tt>&quot;main.c&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-nondirectory &quot;&quot;)</tt>               </td><td valign=top ><tt>&quot;&quot;</tt> </td></tr>
+<tr><td valign=top ><tt>(file-name-nondirectory &quot;/&quot;)</tt>              </td><td valign=top ><tt>&quot;/&quot;</tt>
+</td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1070"></a><div align=left><tt>(split-file-name <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Split a file-name into its components.
+<table border=0><tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>(split-file-name &quot;src/des/main.c&quot;)</tt>&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><div align=left><tt>(&quot;src&quot; &quot;des&quot; &quot;main.c&quot;)</tt>&nbsp;</div>
+      </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>(split-file-name &quot;/src/des/main.c&quot;)</tt>&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><div align=left><tt>(&quot;&quot; &quot;src&quot; &quot;des&quot; &quot;main.c&quot;)</tt>&nbsp;</div>
+   </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>(split-file-name &quot;main.c&quot;)</tt>&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><div align=left><tt>(&quot;main.c&quot;)</tt>&nbsp;</div>
+ </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>(split-file-name &quot;/&quot;)</tt>&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><div align=left><tt>(&quot;&quot;)</tt>&nbsp;</div>
+
+</td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1072"></a><div align=left><tt>(path-list-&gt;file-name <i>path-list [dir]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Inverse of <tt>split-file-name</tt>.
+<blockquote><tt><br>
+(path-list-&gt;file-name&nbsp;'(&quot;src&quot;&nbsp;&quot;des&quot;&nbsp;&quot;main.c&quot;))&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;==&gt;&nbsp;&nbsp;&quot;src/des/main.c&quot;<br>
+(path-list-&gt;file-name&nbsp;'(&quot;&quot;&nbsp;&quot;src&quot;&nbsp;&quot;des&quot;&nbsp;&quot;main.c&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;==&gt;&nbsp;&nbsp;&quot;/src/des/main.c&quot;<br>
+[0]<br>
+Optional&nbsp;<i>dir</i>&nbsp;arg&nbsp;anchors&nbsp;relative&nbsp;path-lists:<br>
+(path-list-&gt;file-name&nbsp;'(&quot;src&quot;&nbsp;&quot;des&quot;&nbsp;&quot;main.c&quot;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;/usr/shivers&quot;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;==&gt;&nbsp;&nbsp;&quot;/usr/shivers/src/des/main.c&quot;</tt></blockquote>
+The optional <i>dir</i> argument is usefully <tt>(cwd)</tt>.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1074"></a><div align=left><tt>(file-name-extension <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Return the file-name's extension.
+<table border=0><tr><td valign=top ><tt>(file-name-extension &quot;main.c&quot;)</tt>          </td><td valign=top ><tt>&quot;.c&quot;</tt>    </td></tr>
+<tr><td valign=top ><tt>(file-name-extension &quot;main.c.old&quot;)</tt>      </td><td valign=top ><tt>&quot;.old&quot;</tt>  </td></tr>
+<tr><td valign=top ><tt>(file-name-extension &quot;/usr/shivers&quot;)</tt>    </td><td valign=top ><tt>&quot;&quot;</tt>
+</td></tr></table>
+<table border=0><tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left>Weird cases:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><tt>(file-name-extension &quot;foo.&quot;)</tt>            </td><td valign=top ><tt>&quot;.&quot;</tt>     </td></tr>
+<tr><td valign=top ><tt>(file-name-extension &quot;foo..&quot;)</tt>           </td><td valign=top ><tt>&quot;.&quot;</tt>
+</td></tr></table>
+<table border=0><tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left>Dot files are not extensions:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><tt>(file-name-extension &quot;/usr/shivers/.login&quot;)</tt> </td><td valign=top ><tt>&quot;&quot;</tt>
+</td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1076"></a><div align=left><tt>(file-name-sans-extension <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Return everything but the extension.
+<table border=0><tr><td valign=top ><tt>(file-name-sans-extension &quot;main.c&quot;)</tt>            </td><td valign=top ><tt>&quot;main&quot;</tt>   </td></tr>
+<tr><td valign=top ><tt>(file-name-sans-extension &quot;main.c.old&quot;)</tt>        </td><td valign=top ><tt>&quot;main.c&quot;&quot;</tt> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>(file-name-sans-extension &quot;/usr/shivers&quot;)</tt>&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><div align=left><tt>&quot;/usr/shivers&quot;</tt>&nbsp;</div>
+
+</td></tr></table>
+<table border=0><tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left>Weird cases:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><tt>(file-name-sans-extension &quot;foo.&quot;)</tt>      </td><td valign=top ><tt>&quot;foo&quot;</tt>    </td></tr>
+<tr><td valign=top ><tt>(file-name-sans-extension &quot;foo..&quot;)</tt>     </td><td valign=top ><tt>&quot;foo.&quot;</tt>   </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left>Dot files are not extensions:&nbsp;</div>
+</td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>(file-name-sans-extension &quot;/usr/shivers/.login&quot;)</tt>&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><div align=left><tt>&quot;/usr/shivers/.login</tt>&nbsp;</div>
+
+</td></tr></table><p>
+Note that appending the results of <tt>file-name-extension</tt> and 
+<tt>file-name-sans-extension</tt> in all cases produces the original file-name.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1078"></a><div align=left><tt>(parse-file-name <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[dir name extension]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Let <em>f</em> be <tt>(file-name-nondirectory <i>fname</i>)</tt>.
+This function returns the three values:
+<ul>
+<li><p><tt>(file-name-directory <i>fname</i>)</tt>
+</p>
+<li><p><tt>(file-name-sans-extension <i>f</i>))</tt>
+</p>
+<li><p><tt>(file-name-extension <i>f</i>)</tt>
+</p>
+</ul><p>
+The inverse of <tt>parse-file-name</tt>, in all cases, is <tt>string-append</tt>.
+The boundary case of <tt>/</tt> was chosen to preserve this inverse.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1080"></a><div align=left><tt>(replace-extension <i>fname ext</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>This procedure replaces <i>fname</i>'s extension with <i>ext</i>.
+It is exactly equivalent to 
+<blockquote><tt>(string-append (file-name-sans-extension <i>fname</i>) <i>ext</i>)</tt></blockquote></blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1082"></a></p>
+<div align=left><tt>(simplify-file-name <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Removes leading and internal occurrences of dot. 
+A trailing dot is left alone, as the parent could be a symlink.
+Removes internal and trailing double-slashes.
+A leading double-slash is left alone, in accordance with P<small>O</small><small>S</small><small>I</small><small>X</small>.
+However, triple and more leading slashes are reduced to a single slash,
+in accordance with P<small>O</small><small>S</small><small>I</small><small>X</small>.
+Double-dots (parent directory) are left alone, in case they come after
+symlinks or appear in a <tt>/../<i>machine</i>/<tt>...</tt></tt> ``super-root'' form
+(which P<small>O</small><small>S</small><small>I</small><small>X</small> permits).
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1084"></a></p>
+<div align=left><tt>(resolve-file-name <i>fname [dir]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+<ul>
+<li><p>Do <tt>~</tt> expansion.
+</p>
+<li><p>If <i>dir</i> is given,
+convert a relative file-name to an absolute file-name,
+relative to directory <i>dir</i>.
+</p>
+</ul><p>
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1086"></a><div align=left><tt>(expand-file-name <i>fname [dir]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Resolve and simplify the file-name.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1088"></a><div align=left><tt>(absolute-file-name <i>fname [dir]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Convert file-name <i>fname</i> into an absolute file name,
+relative to directory <i>dir</i>, which defaults to the current
+working directory. The file name is simplified before being
+returned.<p>
+This procedure does not treat a leading tilde character specially.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1090"></a><div align=left><tt>(home-dir <i>[user]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote><tt>home-dir</tt> returns <i>user</i>'s home directory. 
+<i>User</i> defaults to the current user.<p>
+</p>
+<table border=0><tr><td valign=top ><tt>(home-dir)</tt>          </td><td valign=top ><tt>&quot;/user1/lecturer/shivers&quot;</tt>  </td></tr>
+<tr><td valign=top ><tt>(home-dir &quot;ctkwan&quot;)</tt> </td><td valign=top ><tt>&quot;/user0/research/ctkwan&quot;</tt>
+</td></tr></table>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1092"></a><div align=left><tt>(home-file <i>[user] fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Returns file-name <i>fname</i> relative to <i>user</i>'s home directory;
+<i>user</i> defaults to the current user.
+<table border=0><tr><td valign=top ><tt>(home-file &quot;man&quot;)</tt>            </td><td valign=top ><tt>&quot;/usr/shivers/man&quot;</tt>        </td></tr>
+<tr><td valign=top ><tt>(home-file &quot;fcmlau&quot; &quot;man&quot;)</tt>   </td><td valign=top ><tt>&quot;/usr/fcmlau/man&quot;</tt>
+</td></tr></table>
+</blockquote><p>
+The general <tt>substitute-env-vars</tt> string procedure, 
+defined in the previous section,
+is also frequently useful for expanding file-names.</p>
+<p>
+</p>
+<a name="node_sec_5.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_5.2">5.2&nbsp;&nbsp;Other string manipulation facilities</a></h2><p></p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_1094"></a><div align=left><tt>(substitute-env-vars <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>Replace occurrences of environment variables with their values.
+An environment variable is denoted by a dollar sign followed by
+alphanumeric chars and underscores, or is surrounded by braces.<p>
+</p>
+<table border=0><tr><td valign=top ></td></tr>
+<tr><td valign=top ><div align=left><tt>(substitute-env-vars &quot;$USER/.login&quot;)</tt>&nbsp;</div>
+</td></tr>
+<tr><td valign=top ><div align=left><tt>&quot;shivers/.login&quot;</tt>&nbsp;</div>
+  </td></tr>
+<tr><td valign=top ><tt>(substitute-env-vars &quot;${USER}_log&quot;)</tt>  </td><td valign=top ><tt>&quot;shivers_log&quot;</tt>
+</td></tr></table>
+</blockquote><p>
+</p>
+<a name="node_sec_5.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_5.3">5.3&nbsp;&nbsp;ASCII encoding</a></h2><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1096"></a></p>
+<div align=left><tt>(char-&gt;ascii <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>integer</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1098"></a><div align=left><tt>(ascii-&gt;char <i><i>integer</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>character</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+These are identical to <tt>char-&gt;integer</tt> and <tt>integer-&gt;char</tt> except that
+they use the A<small>S</small><small>C</small><small>I</small><small>I</small> encoding.
+</blockquote><p>
+</p>
+<a name="node_sec_5.4"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_5.4">5.4&nbsp;&nbsp;Character predicates</a></h2><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1100"></a></p>
+<div align=left><tt>(char-letter? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1102"></a><div align=left><tt>(char-lower-case? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1104"></a><div align=left><tt>(char-upper-case? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1106"></a><div align=left><tt>(char-title-case? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1108"></a><div align=left><tt>(char-digit? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1110"></a><div align=left><tt>(char-letter+digit? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1112"></a><div align=left><tt>(char-graphic? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1114"></a><div align=left><tt>(char-printing? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1116"></a><div align=left><tt>(char-whitespace? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1118"></a><div align=left><tt>(char-blank? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1120"></a><div align=left><tt>(char-iso-control? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1122"></a><div align=left><tt>(char-punctuation? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1124"></a><div align=left><tt>(char-hex-digit? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<a name="node_idx_1126"></a><div align=left><tt>(char-ascii? <i><i>character</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+Each of these predicates tests for membership in one of the standard
+character sets provided by the SRFI-14 character-set library.
+Additionally, the following redundant bindings are provided for R5RS
+compatibility:
+<blockquote>
+<table border=0><tr><td valign=top >R5RS name </td><td valign=top >scsh definition </td></tr>
+<tr><td valign=top ><tt>char-alphabetic?</tt>   </td><td valign=top ><tt>char-letter+digit?</tt> </td></tr>
+<tr><td valign=top ><tt>char-numeric?</tt>      </td><td valign=top ><tt>char-digit?</tt>        </td></tr>
+<tr><td valign=top ><tt>char-alphanumeric?</tt> </td><td valign=top ><tt>char-letter+digit?</tt>
+</td></tr></table>
+</blockquote>
+</blockquote><p>
+</p>
+<a name="node_sec_5.5"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_5.5">5.5&nbsp;&nbsp;Deprecated character-set procedures</a></h2><p></p>
+<p>
+The SRFI-13 character-set library grew out of an earlier library developed
+for scsh. 
+However, the SRFI standardisation process introduced incompatibilities with 
+the original scsh bindings.
+The current version of scsh provides the library 
+<tt>obsolete-char-set-lib</tt>, which contains the old bindings found in
+previous releases of scsh.
+The following table lists the members of this library, along with 
+the equivalent SRFI-13 binding. This obsolete library is deprecated and
+<em>not</em> open by default in the standard <tt>scsh</tt> environment;
+new code should use the SRFI-13 bindings.
+</p>
+<blockquote>
+<table border=0><tr><td valign=top >Old <tt>obsolete-char-set-lib</tt>      </td><td valign=top >SRFI-13 <tt>char-set-lib</tt> </td></tr>
+<tr><td valign=top ><p>
+<tt>char-set-members</tt>               </p>
+</td><td valign=top ><tt>char-set-&gt;list</tt> </td></tr>
+<tr><td valign=top ><tt>chars-&gt;char-set</tt>                </td><td valign=top ><tt>list-&gt;char-set</tt> </td></tr>
+<tr><td valign=top ><tt>ascii-range-&gt;char-set</tt>          </td><td valign=top ><tt>ucs-range-&gt;char-set</tt> (not exact) </td></tr>
+<tr><td valign=top ><tt>predicate-&gt;char-set</tt>            </td><td valign=top ><tt>char-set-filter</tt> (not exact) </td></tr>
+<tr><td valign=top ><tt>char-set-every</tt>?                </td><td valign=top ><tt>char-set-every</tt> </td></tr>
+<tr><td valign=top ><tt>char-set-any</tt>?                  </td><td valign=top ><tt>char-set-any</tt> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>char-set-invert</tt>                </td><td valign=top ><tt>char-set-complement</tt> </td></tr>
+<tr><td valign=top ><tt>char-set-invert</tt>!               </td><td valign=top ><tt>char-set-complement!</tt> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>char-set:alphabetic</tt>            </td><td valign=top ><tt>char-set:letter</tt> </td></tr>
+<tr><td valign=top ><tt>char-set:numeric</tt>               </td><td valign=top ><tt>char-set:digit</tt> </td></tr>
+<tr><td valign=top ><tt>char-set:alphanumeric</tt>          </td><td valign=top ><tt>char-set:letter+digit</tt> </td></tr>
+<tr><td valign=top ><tt>char-set:control</tt>               </td><td valign=top ><tt>char-set:iso-control</tt>
+</td></tr></table>
+</blockquote>
+Note also that the <tt>-&gt;char-set</tt> procedure no longer handles a predicate
+argument.<p>
+
+</p>
+<p>
+</p>
+<p>
+</p>
+<p>
+</p>
+<p>
+</p>
+<p>
+</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-5.html">previous</a></span><span>, <a href="man-Z-H-7.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

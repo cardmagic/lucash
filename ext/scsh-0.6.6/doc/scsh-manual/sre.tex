@@ -1,0 +1,1441 @@
+%latex -*- latex -*-
+% Many of the \object's should be \values or something.
+% look for "...", *...*, hand-inset code blocks
+
+%\documentclass[twoside]{report}
+%\usepackage{code,boxedminipage,makeidx,palatino,ct,
+%            headings,mantitle,array,matter,mysize10}
+
+\newcommand{\anglequote}[1]{{$<\!\!<$}#1$>\!\!>$}
+
+% Style issues
+%\parskip = 3pt plus 3pt
+%\sloppy
+
+%\input{decls}
+%\begin{document}
+
+%\mainmatter
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Pattern-matching strings with regular expressions}
+\label{chapt:sre}
+
+Scsh provides a rich facility for matching regular-expression patterns 
+in strings.
+The system is composed of several pieces:
+\begin{itemize}
+
+\item An s-expression notation for writing down general regular expressions.
+  In most systems, regexp patterns are encoded as string literals, such
+  as \verb+"g(oo|ee)se"+. 
+  In scsh, they are written using s-expressions, such as
+      \verb+(: "g" (| "oo" "ee") "se")+, and are called \emph{sre's}. 
+  The sre notation has several
+  advantages over the traditional string-based notation. It's more expressive,
+  can be commented, and can be indented to expose the structure of the form.
+
+\item An abstract data type (ADT) representation for regexp values.
+  Traditional regular-expression systems compute regular expressions
+  from run-time values using strings. This can be awkward. Scsh, instead,
+  provides a separate data type for regexps, with a set of basic constructor
+  and accessor functions; regular expressions can be dynamically computed
+  and manipulated using these functions.
+
+\item Some tools that work on the regexp ADT: case-sensitve to case-insensitive
+  regexp transform, a regexp simplifier, and so forth.
+
+\item Parsers and unparsers that can convert between external representations
+  and the regexp ADT. The supported external representations are
+  \begin{itemize}
+      \item Posix strings
+      \item S-expression notation (that is, sre's)
+  \end{itemize}
+  Being able to convert regexps to Posix strings allows implementations
+  to implement regexp matching using standard Posix C-based engines.
+
+\item Macro support for the s-expression notation.
+  The \ex{rx} macro provides a new special form that allows you to embed
+  regexps in the s-expression notation within a Scheme program. Evaluating
+  the macro form produces a regexp ADT value which can be used by
+  Scheme pattern-matching procedures and other regexp consumers.
+
+\item Pattern-matching and searching procedures.
+  Spencer's Posix regexp engine is linked in to the runtime; the
+  regexp code uses this engine to provide text matching.
+\end{itemize}
+  
+The regexp language supported is a complete superset of Posix functionality,
+providing:
+\begin{itemize}
+\item sequencing and choice (\ex{|})
+\item repetition (\ex{*}, \ex{+}, \ex{?}, \ex{\{$m$,$n$\}})
+\item character classes (\eg, \ex{[aeiou]}) and wildcard (\ex{.})
+\item beginning/end of string anchors (\verb|^|, \verb|$|)
+\item case-sensitivity control
+\item submatch-marking
+\end{itemize}
+
+
+\section{Summary SRE syntax}
+The following figures give a summary of the SRE syntax; 
+the next section is a friendlier tutorial introduction.
+
+\newlength{\foolength}
+\def\srecomment#1{\multicolumn{2}{l}%
+                  {\qquad\setlength{\foolength}{\textwidth}%
+                   \addtolength{\textwidth}{-4em}\begin{tabular}{p{\textwidth}}#1\end{tabular}}}
+\begin{boxedfigure}{tbhp}
+\begin{tabular}{lp{3in}}
+\var{string} &
+    Literal match---interpreted relative to
+    the current case-sensitivity lexical context
+    (default is case-sensitive) \\
+\\
+\ex{(\var{string1} \var{string2} {\ldots})}  &
+    Set of chars, \eg, \ex{("abc" "XYZ")}.
+    Interpreted relative to the current
+    case-sensitivity lexical context. \\
+\\
+\ex{(* \var{sre} {\ldots})} & 0 or more matches \\
+\ex{(+ \var{sre} {\ldots})}     & 1 or more matches \\
+\ex{(? \var{sre} {\ldots})}     & 0 or 1 matches \\
+\ex{(= \var{n} \var{sre} {\ldots})}     & \var{n} matches \\
+\ex{(>= \var{n} \var{sre} {\ldots})}    & \var{n} or more matches \\
+\ex{(** \var{n} \var{m} \var{sre} {\ldots})}    & \var{n} to \var{m} matches \\
+\srecomment{
+    \var{N} and \var{m} are Scheme expressions producing non-negative
+    integers. \\
+    \var{M} may also be \ex{\#f}, meaning ``infinity.''} \\
+\\
+\ex{(| \var{sre} {\ldots})}     & Choice (\ex{or} is \RnRS{} symbol; \\
+\ex{(or \var{sre} {\ldots})}    & \ex{|} is not specified by \RnRS{}.) \\
+\\
+\ex{(:   \var{sre} {\ldots})}   & Sequence (\ex{seq} is legal \\
+\ex{(seq \var{sre} {\ldots})}   & Common Lisp symbol) \\
+\\
+\ex{(submatch \var{sre} {\ldots})}      & Numbered submatch \\
+\\
+\ex{(dsm \var{pre} \var{post} \var{sre} {\ldots})}      & Deleted submatches \\
+    \srecomment{\var{Pre} and \var{post} are numerals.} \\
+\\
+\ex{(uncase \var{sre} {\ldots})}        & Case-folded match \\
+\ex{(w/case   \var{sre} {\ldots})}      & Introduce a lexical case-sensitivity \\
+\ex{(w/nocase \var{sre} {\ldots})}      & context. \\
+\\
+\ex{,@\var{exp}}        & Dynamically computed regexp \\
+\ex{,\var{exp}}         & Same as ,@\var{exp}, but no submatch info \\
+    \srecomment{\var{Exp} must produce a character, string, 
+                char-set, or regexp.} \\
+\\
+\ex{bos eos}    & Beginning/end of string \\
+\ex{bol eol}    & Beginning/end of line \\
+\end{tabular}
+\caption{SRE syntax summary (part 1)}
+\end{boxedfigure}
+
+\begin{boxedfigure}{tbhp}
+\begin{tabular}{lp{3in}}
+\ex{(posix-string \var{string})}        & Escape for Posix string notation \\
+\\
+\ex{\var{char}}         & Singleton char set \\
+\ex{\var{class-name}}   & alphanumeric, whitespace, \etc \\
+    \srecomment{These two forms are interpreted subject to
+                the lexical case-sensitivity context.} \\
+\\
+\cd{(~ \var{cset-sre} {\ldots})}        & Complement-of-union (\cd{[^{\ldots}]}) \\
+\ex{(- \var{cset-sre} {\ldots})}        & Difference \\
+\cd{(& \var{cset-sre} {\ldots})}        & Intersection \\
+\\
+\ex{(/ \var{range-spec} {\ldots})}      & Character range---interpreted
+                                subject to 
+                                the lexical case-sensitivy context \\
+\end{tabular}
+\caption{SRE syntax summary (part 2)}
+\end{boxedfigure}
+
+\begin{boxedfigure}{tbhp}
+{\tt
+\begin{tabular}{l@{\quad\texttt{|}\quad}ll}
+\multicolumn{1}{l}{\var{class-name}\quad ::=\quad} & any \\
+                     & nonl             \\
+                     & lower-case       & | lower \\
+                     & upper-case       & | upper \\
+                     & alphabetic       & | alpha \\
+                     & numeric          & | digit | num \\
+                     & alphanumeric     & | alnum \\
+                     & punctuation      & | punct \\
+                     & graphic          & | graph \\
+                     & whitespace       & | space | white \\
+                     & printing         & | print \\
+                     & control          & | cntrl \\
+                     & hex-digit        & | xdigit | hex \\
+                     & ascii
+\end{tabular}
+\\[2ex]
+\ex{\var{range-spec} ::= \var{string} | \var{char}} \\
+}
+The chars are taken in pairs to form inclusive ranges.
+
+\caption{SRE character-class names and range specs.}
+\end{boxedfigure}
+
+
+\begin{boxedfigure}{tbhp}
+\begin{verbatim}
+<cset-sre> ::= (~ <cset-sre> ...)    Set complement-of-union
+             | (- <cset-sre> ...)    Set difference
+             | (& <cset-sre> ...)    Intersection
+             | (| <cset-sre> ...)    Set union
+             | (/ <range-spec> ...)  Range
+                                     
+             | (<string>)            Constant set
+             | <char>                Singleton constant set
+             | <string>              For 1-char string "c"
+                                     
+             | <class-name>          Constant set
+                                     
+             | ,<exp>                <exp> evals to a char-set,
+             | ,@<exp>               char, single-char string,
+                                     or re-char-set regexp.
+                                     
+             | (uncase <cset-sre>)   Case-folding
+             | (w/case <cset-sre>)              
+             | (w/nocase <cset-sre>)            
+\end{verbatim}
+\caption{%The \cd{~}, \cd{-}, and \cd{&} operators may only be
+         applied to SRE's that specify character sets. 
+         These are the ``type-checking'' rules for character-set SRE's.}
+\end{boxedfigure}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Examples}
+
+\begin{widecode}
+(- alpha ("aeiouAEIOU"))                ; Various forms of 
+(- alpha ("aeiou") ("AEIOU"))           ; non-vowel letter
+(w/nocase (- alpha ("aeiou")))
+(- (/"azAZ") ("aeiouAEIOU"))
+(w/nocase (- (/"az") ("aeiou")))
+
+;;; Upper-case letter, lower-case vowel, or digit
+(| upper ("aeiou") digit)
+(| (/"AZ09") ("aeiou"))
+
+;;; Not an SRE, but Scheme code containing some embedded SREs.
+(let* ((ws (rx (+ whitespace)))                 ; Seq of whitespace
+       (date (rx (: (| "Jan" "Feb" "Mar" ...)   ; A month/day date.
+                    ,ws
+                    (| ("123456789")            ; 1-9
+                       (: ("12") digit)         ; 10-29
+                       "30" "31")))))           ; 30-31
+
+  ;; Now we can use DATE several times:
+  (rx ... ,date ... (* ... ,date ...)       
+      ... .... ,date))
+
+;;; More Scheme code
+(define (csl re)                ; A comma-separated list of RE's is
+  (rx (| ""                     ; either zero of them (empty string), or
+         (: ,re                 ; one RE, followed by
+            (* ", " ,re)))))    ; Zero or more comma-space-RE matches.
+
+(csl (rx (| "John" "Paul" "George" "Ringo")))\end{widecode}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{A short tutorial}
+
+S-expression regexps are called "SRE"s. Keep in mind that they are \emph{not}
+Scheme expressions; they are another, separate notation that is expressed
+using the underlying framework of s-expression list structure: lists,
+symbols, {\etc} SRE's can be \emph{embedded} inside of Scheme expressions using
+special forms that extend Scheme's syntax (such as the \ex{rx} macro); 
+there are places in the SRE 
+grammar where one may place a Scheme expression.
+In these ways, SRE's and Scheme expressions can be intertwined. 
+But this isn't fundamental; 
+SRE's may be used in a completely Scheme-independent context. 
+By simply restricting the notation to eliminate two special
+Scheme-embedding forms, they can be a completely independent notation.
+
+\paragraph{Constant strings}
+
+The simplest SRE is a string, denoting a constant regexp. For example, the SRE
+\begin{code}
+    "Spot"\end{code}
+%
+matches only the string 
+\anglequote{capital-S, little-p, little-o, little-t}. 
+There is no interpretation of the characters in the string at all---the SRE
+\begin{code}
+    ".*["\end{code}
+%
+matches the string \anglequote{period, asterisk, open-bracket}.
+
+
+\paragraph{Simple character sets}
+
+To specify a set of characters, write a list whose single element is
+a string containing the set's elements. So the SRE
+\begin{code}
+    ("aeiou")\end{code}
+%
+only matches a vowel. One way to think of this, notationally, is that the
+set brackets are \ex{("} and \ex{")}.
+
+
+\paragraph{Wild card}
+
+Another simple SRE is the symbol \ex{any}, 
+which matches any single character---including newline and \textsc{Ascii} nul.
+
+
+\paragraph{Sequences}
+
+We can form sequences of SRE's with the SRE \ex{(: \var{sre} \ldots)}.
+So the SRE
+\begin{code}
+    (: "x" any "z")\end{code}
+%
+matches any three-character string starting with ``x'' and ending with ``z''.
+As we'll see shortly, many SRE forms have bodies that are implicit sequences of
+other SRE's, analogous to the manner in which the body of a Scheme 
+\ex{lambda} or \ex{let} expression is an implicit \ex{begin} sequence. 
+The regexp \ex{(seq \var{sre} \ldots)} is
+completely equivalent to \ex{(: \var{sre} \ldots)}; 
+it's included in order to have a syntax that doesn't require 
+\ex{:} to be a legal symbol \footnote{That is, for use within s-expression
+syntax frameworks that, unlike \RnRS, don't allow for \ex{:} as a legal symbol. 
+A Common Lisp embedding of SREs, for example, would need to use 
+\ex{seq} instead of \ex{:}.}
+
+
+\section{Choices}
+
+The SRE \ex{(| \var{sre} \ldots)} is a regexp that matches anything any of the
+\var{sre} regexps match. So the regular expression
+\begin{code}
+    (| "sasha" "Pete")\end{code}
+%
+matches either the string ``sasha'' or the string ``Pete''. The regexp
+\begin{code}
+    (| ("aeiou") ("0123456789"))\end{code}
+%
+is the same as
+\begin{code}
+    ("aeiou0123456789") \end{code}
+%
+The regexp \ex{(or \var{sre} \ldots)} is completely equivalent to 
+\ex{(| \var{sre} \ldots)}; 
+it's included in order to have a syntax that doesn't require \ex{|} to be a 
+legal symbol.
+
+
+\paragraph{Repetition}
+
+There are several SRE forms that match multiple occurences of a regular
+expression. For example, the SRE \ex{(* \var{sre} \ldots)} matches zero or more
+occurences of the sequence \ex{(: \var{sre} \ldots)}. Here is the complete list
+of SRE repetition forms:
+\begin{inset}
+\begin{tabular}{llrr}
+SRE & means & at least & no more than \\ \hline
+\ex{(* \var{sre} \ldots)}                       &zero-or-more   &0      &infinity \\
+\ex{(+ \var{sre} \ldots)}                       &one-or-more    &1      &infinity \\
+\ex{(? \var{sre} \ldots)}                       &zero-or-one    &0      &1 \\
+\ex{(= \var{from} \var{sre} \ldots)}            &exactly-n      &\var{from}  &\var{from} \\
+\ex{(>= \var{from} \var{sre} \ldots)}           &n-or-more      &\var{from}  &infinity \\
+\ex{(** \var{from} \var{to} \var{sre} \ldots)}  &n-to-m         &\var{from}  &\var{to}
+\end{tabular}
+\end{inset}
+
+A \var{from} field is a Scheme expression that produces an integer.
+A \var{to} field is a Scheme expression that produces either an integer,
+or false, meaning infinity.
+
+While it is illegal for the \var{from} or \var{to} fields to be negative, 
+it \emph{is} allowed for \var{from} to be greater than \var{to} in a 
+\ex{**} form---this simply produces a regexp that will never match anything.
+
+As an example, we can describe the names of car/cdr access functions
+("car", "cdr", "cadr", "cdar", "caar" , "cddr", "caaadr", \etc) with
+either of the SREs
+\begin{code}
+    (: "c" (+ (| "a" "d")) "r")
+    (: "c" (+ ("ad")) "r")\end{code}
+We can limit the a/d chains to 4 characters or less with the SRE
+\begin{code}
+    (: "c" (** 1 4 ("ad")) "r")\end{code}
+
+Some boundary cases:
+\begin{code}
+    (** 5 2 "foo")      ; Will never match
+    (** 0 0 "foo")      ; Matches the empty string\end{code}
+
+\paragraph{Character classes}
+
+There is a special set of SRE's that form ``character classes''---basically, 
+a regexp that matches one character from some specified set of characters.
+There are operators to take the intersection, union, complement, and
+difference of character classes to produce a new character class. (Except 
+for union, these capabilities are not provided for general regexps as they 
+are computationally intractable in the general case.)
+
+A single character is the simplest character class: \verb|#\x| is a character
+class that matches only the character ``x''.  A string that has only one
+letter is also a character class: \ex{"x"} is the same SRE as \verb|#\x|.
+
+The character-set notation \ex{(\var{string})} we've seen is a primitive character
+class, as is the wildcard \ex{any}. 
+When arguments to the choice operator, \ex{|}, are
+all character classes, then the choice form is itself a character-class. 
+So these SREs are all character-classes:
+\begin{code}
+("aeiou")
+(| #\\a #\\e #\\i #\\o #\\u)
+(| ("aeiou") ("1234567890"))\end{code}
+However, these SRE's are \emph{not} character-classes:
+\begin{code}
+"aeiou"
+(| "foo" #\\x)\end{code}
+
+The \cd{(~ \var{cset-sre} \ldots)} char class matches one character 
+not in the specified classes:
+\begin{code}
+(~ ("0248") ("1359"))\end{code}
+%
+matches any character that is not a digit. 
+
+More compactly, we can use the \ex{/} operator to specify character sets by 
+giving the endpoints of contiguous ranges, where the endpoints are specified 
+by a sequence of strings and characters.  
+For example, any of these char classes
+\begin{inset}
+\begin{verbatim}
+(/ #\A #\Z  #\a #\z  #\0 #\9)
+(/ "AZ" #\a #\z "09")
+(/ "AZ" #\a "z09")
+(/"AZaz09")
+\end{verbatim}\end{inset}%
+%
+matches a letter or a digit. The range endpoints are taken in pairs to
+form inclusive ranges of characters. Note that the exact set of characters
+included in a range is dependent on the underlying implementation's 
+character type, so ranges may not be portable across different implementations.
+
+There is a wide selection of predefined, named character classes that may be
+used. One such SRE is the wildcard \ex{any}. 
+\ex{nonl} is a character class matching anything but newline; 
+it is equivalent to
+\begin{inset}
+\begin{verbatim}
+(~ #\newline)
+\end{verbatim}\end{inset}%
+%
+and is useful as a wildcard in line-oriented matching.
+
+There are also predefined named char classes for the standard Posix and Gnu
+character classes:
+\begin{inset}
+\begin{tabular}{llll}
+scsh name       & Posix/ctype   & Alternate name        & Comment \\ \hline
+\ex{lower-case} & \ex{lower}    \\
+\ex{upper-case} & \ex{upper}    \\
+\ex{alphabetic} & \ex{alpha}    \\
+\ex{numeric}    & \ex{digit}    & \ex{num}      \\
+\ex{alphanumeric} & \ex{alnum}  & \ex{alphanum} \\
+\ex{punctuation} & \ex{punct}   \\
+\ex{graphic}    & \ex{graph}    \\
+\ex{blank}      & (Gnu extension)       \\
+\ex{whitespace} & \ex{space}    & \ex{white} & {``\ex{space}'' is deprecated.}\\
+\ex{printing}   & \ex{print}    \\
+\ex{control}    & \ex{cntrl}    \\
+\ex{hex-digit}  & \ex{xdigit}   & \ex{hex}      \\
+\ex{ascii}      & (Gnu extension)       \\
+\end{tabular}
+\end{inset}
+See the scsh character-set documentation or the Posix isalpha(3) man page
+for the exact definitions of these sets.
+
+You can use either the long scsh name or the shorter Posix and alternate names
+to refer to these char classes. 
+The standard Posix name ``\ex{space}'' is provided,
+but deprecated, since it is ambiguous. It means ``whitespace,'' the set of
+whitespace characters, not the singleton set of the \verb|#\space| character.
+If you want a short name for the set of whitespace characters, use the
+char-class name ``white'' instead.
+
+Char classes may be intersected with the operator 
+\cd{(& \var{cset-sre} \ldots)}, 
+and set-difference can be performed with
+\ex{(- \var{cset-sre} \ldots)}. 
+These operators are
+particularly useful when you want to specify a set by negation
+\emph{with respect to a limited universe.}
+For example, the set of all non-vowel letters is
+\begin{code}
+(- alpha ("aeiou") ("AEIOU"))\end{code}%
+%
+whereas writing a simple complement 
+\begin{code}
+(~ ("aeiouAEIOU"))\end{code}%
+%
+gives a char class that will match any non-vowel---including punctuation,
+digits, white space, control characters, and \textsc{Ascii} nul.
+
+We can \emph{compute} a char class by writing the SRE 
+\begin{code}
+,\var{cset-exp}\end{code}%
+%
+where \var{cset-exp} is a Scheme expression producing a value that can be
+coerced to a character set: a character set, character, one-character
+string, or char-class regexp value. This regexp matches one character
+from the set.
+
+The char-class SRE \cd{,@\var{cset-exp}} is entirely equivalent to 
+\ex{,\var{cset-exp}}
+when \var{cset-exp} produces a character set (but see below for the more
+general non-char-class context, where there \emph{is} a distinction between
+\cd{,\var{exp}} and \cd{,@\var{exp}}.
+
+As an example of character-class SREs, 
+an SRE that matches a lower-case vowel, upper-case letter, or digit is
+\begin{code}
+(| ("aeiou") (/"AZ09"))\end{code}%
+%
+or, equivalently
+\begin{code}
+(| ("aeiou") upper-case numeric)\end{code}%
+%
+Boundary cases: the empty-complement char class
+\begin{code}
+(~)\end{code}%
+%
+matches any character; it is equivalent to \ex{any}.
+The empty-union char class
+\begin{code}
+(|)\end{code}%
+%
+never matches at all. This is rarely useful for human-written regexps,
+but may be of occasional utility in machine-generated regexps, perhaps
+produced by macros.
+
+The rules for determining if an SRE is a simple, char-class SRE or a
+more complex SRE form a little ``type system'' for SRE's. See the summary
+section preceding this one for a complete listing of these rules.
+
+\note{There is no way to include the ASCII NUL character in a
+  character set or search for it in any other way using regular
+  expression.  This is because the POSIX regexp facility is based on
+  the C language which uses ASCII NUL to terminate strings.}
+
+\paragraph{Case sensitivity}
+
+There are three forms that control case sensitivity:
+\begin{code}
+(uncase   \var{sre} \ldots)
+(w/case   \var{sre} \ldots)
+(w/nocase \var{sre} \ldots)\end{code}%
+%
+
+\ex{uncase} is a regexp operator producing a regexp that matches any
+case permutation of any string that matches \ex{(: \var{sre} \ldots)}.
+For example, the regexp
+\begin{code}
+(uncase "foo")\end{code}%
+%
+matches the strings ``foo'', ``foO'', ``fOo'', ``fOO'', ``Foo'', \ldots
+
+Expressions in SRE notation are interpreted in a lexical case-sensitivy
+context. The forms \ex{w/case} and \ex{w/nocase} are the scoping operators 
+for this context, which controls how constant strings and char-class forms are
+interpreted in their bodies. So, for example, the regexp
+\begin{code}
+(w/nocase "abc"
+          (* "FOO" (w/case "Bar"))
+          ("aeiou"))\end{code}%
+%
+defines a case-insensitive match for all of its elements except for the
+sub-element "Bar", which must match exactly capital-B, little-a, little-r.
+The default, the outermost, top-level context is case sensitive.
+
+The lexical case-sensitivity context affects the interpretation of
+\begin{itemize}
+    \item constant strings, such as \ex{"foo"},
+    \item chars, such as \verb|#\x|,
+    \item char sets, such as \ex{("abc")}, and
+    \item ranges, such as \ex{(/"az")}
+that appear within that context. It does not affect dynamically computed
+regexps---ones that are introduced by ,\var{exp} and ,@\var{exp} forms. 
+It does not affect named char-classes---presumably, 
+if you wrote \ex{lower}, you didn't mean \ex{alpha}.
+
+\ex{uncase} is \emph{not} the same as \ex{w/nocase}. 
+To point up one distinction, consider the two regexps
+\begin{code}
+(uncase   (~ "a"))
+(w/nocase (~ "a"))\end{code}%
+%
+\end{itemize}
+
+The regexp \cd{(~ "a")} matches any character except ``a,'' 
+which means it \emph{does} match ``A.'' 
+Now, \ex{(uncase \var{re})} matches any case-permutation of a string that
+\var{re} matches. 
+\cd{(~ "a")} matches ``A,'' 
+so \cd{(uncase (~ "a"))} matches ``A'' and ``a''---and,
+for that matter, every other character. 
+So \cd{(uncase (~ "a"))} is equivalent to \ex{any}.
+
+In contrast, \cd{(w/nocase (~ "a"))} establishes a case-insensitive lexical
+context in which the \cd{"a"} is interpreted, making the SRE equivalent to
+\cd{(~ ("aA"))}.
+
+
+\paragraph{Dynamic regexps}
+
+SRE notation allows you to compute parts of a regular expressions
+at run time. The SRE
+\begin{code}
+,\var{exp}\end{code}%
+%
+is a regexp whose body \var{exp} is a Scheme expression producing a
+string, character, char-set, or regexp as its value. Strings and
+characters are converted into constant regexps; char-sets are converted
+into char-class regexps; and regexp values are substituted in place.
+So we can write regexps like this
+\begin{code}
+(: "feeding the "
+   ,(if (> n 1) "geese" "goose"))\end{code}%
+%
+This is how you can drop computed strings, such as someone's name,
+or the decimal numeral for a computed number, into a complex regexp.
+
+If we have a large, complex regular expression that is used multiple
+times in some other, containing regular expression, we can name it, using 
+the binding forms of the embedding language (\eg, Scheme), and refer to
+it by name in the containing expression. 
+For example, consider the Scheme expression
+\begin{code}
+(let* ((ws (rx (+ whitespace)))  ; Seq of whitespace
+       ;; Something like "Mar 14"
+       (date (rx (: (| "Jan" "Feb" "Mar" {\ldots})
+                    ,ws
+                    (| ("123456789")      ; 1-9
+                       (: ("12") digit)   ; 10-29
+                       "30"               ; 30
+                       "31")))))          ; 31
+  ;; Now we can use DATE several times:
+  (rx {\ldots} ,date {\ldots} (* {\ldots} ,date {\ldots})       
+      {\ldots} ,date {\ldots}))\end{code}%
+%
+where the \ex{(rx \var{sre} \ldots)} 
+macro is the Scheme special form that produces
+a Scheme regexp value given a body in SRE notation.
+
+As we saw in the char-class section, if a dynamic regexp is used
+in a char-class context (\eg, as an argument to a \verb|~| operation),
+the expression must be coercable not merely to a general regexp,
+but to a character sre---so it must be either a singleton string,
+a character, a scsh char set, or a char-class regexp.
+
+We can also define and use functions on regexps in the host language. 
+For example, consider the following Scheme expressions, containing
+embedded SRE's (inside the \ex{rx} macro expressions) 
+which in term contain embedded Scheme expressions computing dynamic regexps:
+\begin{code}
+(define (csl re)            
+  ;; A comma-separated list of RE's is either
+  (rx (| ""                 ; zero of them (empty string), 
+         (: ,re             ; or RE followed by
+            (* ", " ,re))))); zero or more comma-space-RE matches.
+
+(rx ... ,date ...
+    ,(csl (rx (| "John" "Paul" "George" "Ringo")))
+    ...
+    ,(csl date)
+    ...)\end{code}%
+%
+We leave the extension of \ex{csl} to allow for an optional ``and'' between
+the last two matches as an exercise for the interested reader (\eg, to match
+``John, Paul, George and Ringo'').
+
+Note, in passing, one of the nice features of SRE notation: they can
+be commented, and indented in a fashion to show the lexical extent of
+the subexpressions.
+
+When we embed a computed regexp inside another regular expression with
+the ,\var{exp} form, we must specify how to account for the submatches that
+may be in the computed part. For example, suppose we have the regexp
+\begin{code}
+(rx (submatch (* "foo"))
+    (submatch (? "bar"))
+    ,(f x)
+    (submatch "baz"))\end{code}%
+%
+It's clear that the submatch for the \ex{(* "foo")} part of the regexp is
+submatch \#1, and the \ex{(? "bar")} part is submatch \#2. But what number
+submatch is the \ex{"baz"} submatch? It's not clear. Suppose the Scheme
+expression \ex{(f x)} produces a regular expression that itself has 3
+subforms. Are these counted (making the \ex{"baz"} submatch \#6), or not
+counted (making the \ex{"bar"} submatch \#3)?
+
+SRE notation provides for both possibilities. The SRE
+\begin{code}
+,\var{exp}\end{code}%
+%
+does \emph{not} contribute its submatches to its containing regexp; it
+has zero submatches. So one can reliably assign submatch indices to
+forms appearing after a \ex{,\var{exp}} form in a regexp.
+
+On the other hand, the SRE
+\begin{code}
+,@\var{exp}\end{code}%
+%
+``splices'' its resulting regexp into place, \emph{exposing} its submatches
+to the containing regexp. This is useful if the computed regexp is defined
+to produce a certain number of submatches---if that is part of \var{exp}'s
+``contract.''
+
+
+\paragraph{String and line units}
+
+The regexps \ex{bos} and \ex{eos} match the empty string at the
+beginning and end of the string, respectively.
+
+The regexps \ex{bol} and \ex{eol} match the empty string at the beginning and
+end of a line, respectively. A line begins at the beginning of the string, and
+just after every newline character. A line ends at the end of the string, and
+just before every newline character. The char class \ex{nonl} matches any
+character except newline, and is useful in conjunction with line-based pattern
+matching.
+
+\note{\ex{bol} and \ex{eol} are not supported by scsh's current 
+      regexp search engine, which is Spencer's Posix matcher. This is the only
+      element of the notation that is not supported by the current scsh
+      reference implementation.}
+
+%\paragraph{Miscellaneous elements}
+
+\paragraph{Posix string notation}
+
+The SRE \ex{(posix-string \var{string})}, 
+where \var{string} is a string literal
+(\emph{not} a general Scheme expression), allows one to use Posix string
+notation for a regexp. It's intended as backwards compatibility and
+is deprecated. 
+For example, \verb!(posix-string "[aeiou]+|x*|y{3,5}")! matches 
+a string of vowels, a possibly empty string of x's, or three to five
+y's.
+
+Note that parentheses are used ambiguously in Posix notation---both for
+grouping and submatch marking. 
+The \ex{(posix-string \var{string})} form makes the conservative assumption: 
+all parentheses introduce submatches.
+
+\paragraph{Deleted submatches}
+
+Deleted submatches, or ``DSM's,'' 
+are a subtle feature that are never required in expressions written
+by humans. They can be introduced by the simplifier when reducing
+regular expressions to simpler equivalents, and are included in the
+syntax to give it expressibility spanning the full regexp ADT. They
+may appear when unparsing simplified regular expressions that have
+been run through the simplifier; otherwise you are not likely to see them.
+Feel free to skip this section.
+
+The regexp simplifier can sometimes eliminate entire sub-expressions from a
+regexp. For example, the regexp
+\begin{code}
+(: "foo" (** 0 0 "apple") "bar")\end{code}%
+%
+can be simplified to
+\begin{code}
+"foobar"\end{code}%
+%
+since \ex{(** 0 0 "apple")} will always match the empty string. The regexp
+\begin{code}
+(| "foo"
+   (: "Richard" (|) "Nixon")
+   "bar")\end{code}%
+%
+can be simplified to
+\begin{code}
+(| "foo" "bar")\end{code}%
+%
+The empty choice \ex{(|)} can't match anything, so the whole
+\begin{code}
+(: "Richard" (|) "Nixon")\end{code}%
+%
+sequence can't match, and we can remove it from the choice.
+
+However, if deleting part of a regular expression removes a submatch
+form, any following submatch forms will have their numbering changed,
+which would be an error. For example, if we simplify
+\begin{code}
+(: (** 0 0 (submatch "apple"))
+   (submatch "bar"))\end{code}%
+%
+to
+\begin{code}
+(submatch "bar")\end{code}%
+%
+then the \ex{"bar"} submatch changes from submatch \#2 to submatch \#1---so 
+this is not a legal simplification.
+
+When the simplifier deletes a sub-regexp that contains submatches,
+it introduces a special regexp form to account for the missing,
+deleted submatches, thus keeping the submatch accounting correct.
+\begin{code}
+(dsm \var{pre} \var{post} \var{sre} \ldots)\end{code}%
+%
+is a regexp that matches the sequence \ex{(: \var{sre} \ldots)}. 
+\var{pre} and \var{post} are integer constants.
+The DSM form introduces \var{pre} deleted
+submatches before the body, and \var{post} deleted submatches after the
+body. 
+If the body \var{(: \var{sre} \ldots)} itself has \var{body-sm} submatches,
+then the total number of submatches for the DSM form is
+                  $$\var{pre} + \var{body-sm} + \var{post}.$$
+These extra, deleted submatches are never assigned string indices in any
+match values produced when matching the regexp against a string.
+
+As examples,
+\begin{code}
+(| (: (submatch "Richard") (|) "Nixon")
+   (submatch "bar"))\end{code}%
+%
+can be simplified to
+\begin{code}
+(dsm 1 0 (submatch "bar"))\end{code}%
+%
+The regexp
+\begin{code}
+(: (** 0 0 (submatch "apple"))
+   (submatch "bar"))\end{code}%
+%
+can be simplified to
+\begin{code}
+(dsm 1 0 (submatch "bar"))\end{code}%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Embedding regexps within Scheme programs}
+
+SRE's can be placed in a Scheme program using the \ex{(rx \var{sre} \ldots) }
+Scheme form, which evaluates to a Scheme regexp value.
+
+\subsubsection{Static and dynamic regexps}
+
+We separate SRE expressions into two classes: static and dynamic
+expressions. 
+A \emph{static} expression is one that has no run-time dependencies;
+it is a complete, self-contained description of a regular set. 
+A \emph{dynamic} expression is one that requires run-time computation to 
+determine the particular regular set being described.
+There are two places where one can
+embed run-time computations in an SRE:
+\begin{itemize}
+    \item The \var{from} or \var{to} repetition counts of 
+        \ex{**}, \ex{=}, and \ex{>=} forms;
+    \item \ex{,\var{exp}} and \ex{,@\var{exp}} forms.
+\end{itemize}
+
+A static SRE is one that does not contain any \ex{,\var{exp}} or 
+\ex{,@\var{exp}} forms, 
+and whose \ex{**}, \ex{=}, and \ex{>=} forms all contain constant 
+repetition counts.
+
+Scsh's \ex{rx} macro is able, at macro-expansion time, to completely parse,
+simplify and translate any static SRE into the equivalent Posix string
+which is used to drive the underlying C-based matching engine; there is 
+no run-time overhead. Dynamic SRE's are partially simplified and then expanded
+into Scheme code that constructs the regexp at run-time.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Regexp functions}
+
+\subsection{Obsolete, deprecated procedures}
+
+These two procedures are survivors from the previous, now-obsolete scsh regexp
+interface. Old code must open the \ex{re-old-funs} package to access them. They
+should not be used in new code.
+
+
+\defun{string-match}{posix-re-string string [start]}{match or false}
+\defunx{make-regexp}{posix-re-string}{regexp}
+\begin{desc}
+    These are old functions included for backwards compatibility with
+    previous releases. They are deprecated and will go away at some point in
+    the future.
+
+    Note that the new release has no ``regexp compiling'' procedure at
+    all---regexp values are compiled for the matching engine on-demand,
+    and the necessary data structures are cached inside the ADT values.
+\end{desc}
+
+\subsection{Standard procedures and syntax}
+
+\dfn{rx}{sre \ldots}{regexp}{Syntax}
+\begin{desc}
+    This allows you to describe a regexp value with SRE notation.
+\end{desc}
+
+\defun{regexp?}{x}{\boolean}
+\begin{desc}
+    Returns true if the value is a regular expression.
+\end{desc}
+
+\defun{regexp-search}{re string [start flags]}{match-data or false}
+\defunx{regexp-search?}{re string [start flags]}{\boolean}
+\begin{desc}
+    Search \var{string} starting at position \var{start}, looking for a match
+    for regexp \var{re}. If a match is found, return a match structure describing
+    the match, otherwise {\sharpf}. \var{Start} defaults to 0.
+
+    \var{Flags} is the bitwise-or of \ex{regexp/bos-not-bol} and
+    \ex{regexp/eos-not-eol}.
+    \ex{regexp/bos-not-bol} means the beginning of the string isn't a
+    line-begin. \ex{regexp/eos-not-eol} is analogous. 
+    \note{They're currently ignored because
+          begining/end-of-line anchors aren't supported by the current
+          implementation.}
+
+    Use \ex{regexp-search?} when you don't need submatch information, as
+    it has the potential to be \emph{significantly} faster on 
+    submatch-containing regexps.
+
+    There is no longer a separate regexp ``compilation'' function; regexp
+    values are compiled for the C engine on demand, and the resulting
+    C structures are cached in the regexp structure after the first use.
+\end{desc}
+
+\defun {match:start}{m [i]}{{\integer} or false}
+\defunx{match:end}{  m [i]}{{\integer} or false}
+\defunx{match:substring}{m [i]}{{\str} or false}
+\begin{desc}
+    \ex{match:start} returns the start position of the submatch denoted by 
+    \var{match-number}.
+    The whole regexp is 0; positive integers index submatches in the
+    regexp, counting left-to-right.
+    \var{Match-number} defaults to 0.
+
+    If the regular expression matches as a whole, 
+    but a particular sub-expression does not match, then
+    \ex{match:start} returns {\sharpf}.
+
+    \ex{match:end} is analogous to \ex{match:start}, returning the end
+    position of the indexed submatch.
+
+    \ex{match:substring} returns the substring matched regexp's submatch.
+    If there was no match for the indexed submatch, it returns false.
+\end{desc}
+
+\defun{regexp-substitute}{port-or-false match . items}{\object}
+\begin{desc}
+This procedure can be used to perform string substitutions based on
+regular-expression matches.
+The results of the substitution can be either output to a port or
+returned as a string.
+
+The \var{match} argument is a regular-expression match structure
+that controls the substitution.
+If \var{port} is an output port, the \var{items} are written out to
+the port:
+\begin{itemize}
+    \item If an item is a string, it is copied directly to the port.
+    \item If an item is an integer, the corresponding submatch from \var{match}
+      is written to the port.
+    \item If an item is \ex{'pre}, 
+          the prefix of the matched string (the text preceding the match) 
+          is written to the port.
+    \item If an item is \ex{'post}, 
+          the suffix of the matched string is written.
+\end{itemize}
+
+If \var{port} is {\sharpf}, nothing is written, and a string is constructed
+and returned instead.
+\end{desc}
+
+% An item is a string (copied verbatim), integer (match index),
+% \ex{'pre} (chars before the match), or \ex{'post} (chars after the match).
+% Passing false for the port means return a string.
+
+\defun{regexp-substitute/global}{port-or-false re str . items}{\object}
+\begin{desc}
+% Same as above, except \ex{'post} item means recurse 
+% on post-match substring.
+% If \var{re} doesn't match \var{str}, returns \var{str.}
+This procedure is similar to \ex{regexp-substitute}, 
+but can be used to perform repeated match/substitute operations over
+a string.
+It has the following differences with \ex{regexp-substitute}:
+\begin{itemize}
+  \item It takes a regular expression and string to be matched as
+        parameters, instead of a completed match structure.
+  \item If the regular expression doesn't match the string, this
+        procedure is the identity transform---it returns or outputs the
+        string.
+  \item If an item is \ex{'post}, the procedure recurses on the suffix string
+        (the text from \var{string} following the match). 
+        Including a \ex{'post} in the list of items is how one gets multiple 
+        match/substitution operations.
+  \item If an item is a procedure, it is applied to the match structure for
+        a given match.
+        The procedure returns a string to be used in the result.
+  \end{itemize}
+The \var{regexp} parameter can be either a compiled regular expression or
+a string specifying a regular expression.
+
+Some examples:
+{\small
+\begin{widecode}
+;;; Replace occurrences of "Cotton" with "Jin".
+(regexp-substitute/global #f (rx "Cotton") s
+                          'pre "Jin" 'post)
+
+;;; mm/dd/yy -> dd/mm/yy date conversion.
+(regexp-substitute/global #f (rx (submatch (+ digit)) "/" ; 1 = M
+                                 (submatch (+ digit)) "/" ; 2 = D
+                                 (submatch (+ digit)))    ; 3 = Y
+                          s ; Source string
+                          'pre 2 "/" 1 "/" 3 'post)
+
+;;; "9/29/61" -> "Sep 29, 1961" date conversion.
+(regexp-substitute/global #f (rx (submatch (+ digit)) "/" ; 1 = M
+                                 (submatch (+ digit)) "/" ; 2 = D
+                                 (submatch (+ digit)))    ; 3 = Y
+                          s ; Source string
+      'pre 
+      ;; Sleazy converter -- ignores "year 2000" issue, 
+      ;; and blows up if month is out of range.
+      (lambda (m)
+        (let ((mon (vector-ref '#("Jan" "Feb" "Mar" "Apr" "May" "Jun"
+                                  "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")
+                               (- (string->number (match:substring m 1)) 1)))
+              (day (match:substring m 2))
+              (year (match:substring m 3)))
+          (string-append mon " " day ", 19" year)))
+      'post)
+
+;;; Remove potentially offensive substrings from string S.
+(define (kill-matches re s)
+  (regexp-substitute/global #f re s 'pre 'post))
+
+(kill-matches (rx (| "Windows" "tcl" "Intel")) s)   ; Protect the children.\end{widecode}}
+
+\end{desc}
+
+\defun{regexp-fold}{re kons knil s [finish start]}{\object}
+\begin{desc}
+    The following definition is a bit unwieldy, but the intuition is
+    simple: 
+    this procedure uses the regexp \var{re} to divide up string \var{s} into
+    non-matching/matching chunks, and then ``folds'' the procedure \var{kons}
+    across this sequence of chunks. It is useful when you wish to operate
+    on a string in sub-units defined by some regular expression, as are
+    the related \ex{regexp-fold-right} and \ex{regexp-for-each} procedures.
+
+    Search from \var{start} (defaulting to 0) for a match to \var{re}; call
+    this match \var{m}. Let \var{i} be the index of the end of the match
+    (that is, \ex{(match:end \var{m} 0))}. Loop as follows:
+\begin{tightcode}    
+(regexp-fold \var{re} \var{kons} (\var{kons} \var{start} \var{m} \var{knil}) \var{s} \var{finish} \var{i})\end{tightcode}
+%
+    If there is no match, return instead 
+\begin{tightcode}
+(\var{finish} \var{start} \var{knil})\end{tightcode}
+%
+    \var{Finish} defaults to \ex{(lambda (i knil) knil)}.
+
+    In other words, we divide up \var{s} into a sequence of
+    non-matching/matching chunks:
+    $$ \vari{NM}1 \; \vari{M}1 \; \vari{NM}1 \; \vari{M}2 \; {\ldots} \;
+                     \vari{NM}{k-1} \; \vari{M}{k-1} \; \vari{NM}k $$
+%
+    where \vari{NM}1 is the initial part of \var{s} that isn't matched by
+    the regexp \var{re}, \vari{M}1 is the
+    first match, \vari{NM}2 is the following part of \var{s} that
+    isn't matched, \vari{M}2 is the second match, 
+    and so forth---\vari{NM}k is the final non-matching chunk of
+    \var{s}. 
+    We apply \var{kons} from left to right to build up a result, passing it one
+    non-matching/matching chunk each time: 
+    on an application \ex{(\var{kons} \var{i} \var{m} \var{knil})},
+    the non-matching chunk goes from \var{i} to \ex{(match:begin \var{m} 0)}, 
+    and the following matching chunk goes from \ex{(match:begin \var{m} 0)}
+    to \ex{(match:end \var{m} 0)}. The last non-matching chunk \vari{NM}k
+    is processed by \var{k}. So the computation we perform is
+\begin{centercode}
+(\var{final} \var{Q} (\var{kons} \vari{j}{k} \vari{M}{k} {\ldots} (\var{kons} \vari{J}{1} \vari{M}{1} \var{knil}) \ldots))\end{centercode}%
+%
+    where \vari{J}{i} is the index of the start of \vari{NM}{i}, 
+    \vari{M}{i} is a match value describing \vari{M}{i}, 
+    and \var{Q} is the index of the beginning of \vari{NM}k.
+
+    Hint: The \ex{let-match} macro is frequently useful for operating on the 
+      match value \var{M} passed to the \var{kons} function.
+\end{desc}
+
+\defun{regexp-fold-right}{re kons knil s [finish start]}\object
+\begin{desc}
+    The right-to-left variant of \ex{regexp-fold}.
+
+    This procedure repeatedly matches regexp \var{re} across string \var{s}.
+    This divides \var{s} up into a sequence of matching/non-matching chunks:
+    $$ \vari{NM}1 \; \vari{M}1 \; \vari{NM}1 \; \vari{M}2 \; {\ldots} \;
+                     \vari{NM}{k-1} \; \vari{M}{k-1} \; \vari{NM}k $$
+%
+    where \vari{NM}1 is the initial part of \var{s} that isn't matched by
+    the regexp \var{re}, \vari{M}1 is the
+    first match, \vari{NM}2 is the following part of \var{s} that
+    isn't matched, \vari{M}2 is the second match, 
+    and so forth---\vari{NM}k is the final non-matching chunk of
+    \var{s}. 
+    We apply \var{kons} from right to left to build up a result, passing it one
+    non-matching/matching chunk each time:
+\begin{centercode}
+(\var{final} \var{Q} (\var{kons} \vari{M}{1} \vari{j}{1} {\ldots} (\var{kons} \vari{M}{k} \vari{J}{k} \var{knil}) \ldots))\end{centercode}%
+%
+    where MTCHi is a match value describing Mi, Ji is the index of the end of
+    NMi (or, equivalently, the beginning of Mi+1), and Q is the index of the
+    beginning of M1. In other words, KONS is passed a match, an index
+    describing the following non-matching text, and the value produced by
+    folding the following text. The FINAL function "polishes off" the fold
+    operation by handling the initial chunk of non-matching text (NM0, above).
+    FINISH defaults to (lambda (i knil) knil)
+
+    Example: To pick out all the matches to \var{re} in \var{s}, say
+\begin{code}
+(regexp-fold-right re
+                   (\l{m i lis} 
+                     (cons (match:substring m 0) lis))
+                           '() s)\end{code}%
+%
+    Hint: The \ex{let-match} macro is frequently useful for operating on the 
+      match value \var{m} passed to the \ex{kons} function.
+\end{desc}
+
+\defun{regexp-for-each}{re proc s [start]}{\undefined}
+\begin{desc}
+    Repeatedly match regexp \var{re} against string \var{s}. 
+    Apply \var{proc} to each match that is produced.
+    Matches do not overlap.
+
+    Hint: The \ex{let-match} macro is frequently useful for operating on the 
+      match value \var{m} passed to var{proc}.
+\end{desc}
+
+\dfn{let-match}{match-exp mvars body \ldots}{\object}{Syntax}
+\dfnx{if-match}{match-exp mvars on-match no-match}{\object}{Syntax}
+\begin{desc}
+    \var{Mvars} is a list of vars that is bound to the match and submatches
+    of the string; \verb|#F| is allowed as a don't-care element. For example,
+\begin{code}
+(let-match (regexp-search date s) (whole-date month day year)
+  {\ldots} \var{body} {\ldots})\end{code}%
+%
+    matches the regexp against string \ex{s}, then evaluates the body of the
+    \ex{let-match} in a scope where \ex{whole-date} is bound to the matched
+    string, and \ex{month}, \ex{day} and \ex{year} are bound to the first,
+    second and third submatches.
+
+    \ex{if-match} is similar, but if the match expression is false, 
+    then the \var{no-match} expression is evaluated; this would be an
+    error in \ex{let-match}.
+\end{desc}
+
+\dfn{match-cond}{clause \ldots}{\object}{Syntax}
+\begin{desc}
+This macro allows one to conditionally attempt a sequence of pattern
+matches, interspersed with other, general conditional tests.
+There are four kinds of \ex{match-cond} clause, one introducing a pattern
+match, and the other three simply being regular \ex{cond}-style clauses,
+marked by the \ex{test} and \ex{else} keywords:
+\begin{code}
+(match-cond (\var{match-exp} \var{match-vars} \var{body} \ldots) ; As in if-match
+            (test \var{exp} \var{body} \ldots)           ; As in cond
+            (test \var{exp} => \var{proc})            ; As in cond
+            (else \var{body} \ldots))              ; As in cond\end{code}%
+\end{desc}
+
+\defun {flush-submatches}{re}{re}
+\defunx{uncase}{re}{re}
+\defunx{simplify-regexp}{re}{re}
+\defunx{uncase-char-set}{cset}{re}
+\defunx{uncase-string}{str}{re}
+\begin{desc}
+These functions map regexps and char sets to other regexps.
+\ex{flush-submatches} returns a regexp which matches exactly what
+its argument matches, but contains no submatches.
+
+\ex{uncase} returns a regexp that matches any case-permutation of
+its argument regexp.
+
+\ex{simplify-regexp} applies the simplifier to its argument.
+This is done automatically when compiling regular expressions,
+so this is only useful for programmers that are directly examining
+the ADT value with lower-level accessors.
+
+\ex{uncase-char-set} maps a char set to a regular expression that 
+matches any character from that set, regardless of case. 
+Similarly, \ex{uncase-string} returns a regexp that matches any 
+case-permutation of the string. For example, 
+\ex{(uncase-string "Knight")} returns the same value that
+\ex{(rx ("kK") ("nN") ("iI") ("gG") ("hH") ("tT"))}
+or \ex{(rx (w/nocase "Knight"))}.
+\end{desc}
+
+
+\defun {sre->regexp}{sre}{re}
+\defunx{regexp->sre}{re}{sre}
+\begin{desc}
+These are the SRE parser and unparser.
+That is, \ex{sre->regexp} maps an SRE to a regexp value, and
+\ex{regexp->sre} does the inverse.
+The latter function can be useful for printing out regexps in a
+readable format.
+
+\begin{widecode}
+(sre->regexp '(: "Olin " (? "G. ") "Shivers")) {\evalto} \var{regexp}
+(define re (re-seq (re-string "Pete ")
+                   (re-repeat 1 #f (re-string "Sz"))
+                   (re-string "ilagyi")))
+(regexp->sre (re-repeat 0 1 re)) 
+    {\evalto} '(? "Pete" (+ "Sz") "ilagyi")\end{widecode}
+                     
+\end{desc}
+
+\defun {posix-string->regexp}{string}{re}
+\defunx{regexp->posix-string}{re}{[string syntax-level paren-count submatches-vector]}
+\begin{desc}
+These two functions are the Posix notation parser and unparser.
+That is, \ex{posix-string->regexp} maps a Posix-notation regular
+expression, such as \ex{"g(ee|oo)se"}, to a regexp value, and 
+\ex{regexp->posix-string} does the inverse.
+
+You can use these tools to map between scsh regexps and Posix
+regexp strings, which can be useful if you want to do conversion
+between SRE's and Posix form. For example, you can write a particularly
+complex regexp in SRE form, or compute it using the ADT constructors,
+then convert to Posix form, print it out, cut and paste it into a
+C or emacs lisp program. Or you can import an old regexp from some other
+program, parse it into an ADT value, render it to an SRE, print it out, 
+then cut and paste it into a scsh program.
+
+Note:\begin{itemize}
+\item The string parser doesn't handle the exotica of character class
+      names such as \verb|[[:alnum:]]|; the current implementation was written
+      in in three hours.
+\end{itemize}
+\end{desc}
+
+\section{The regexp ADT}
+The following functions may be used to construct and examine scsh's
+regexp abstract data type. They are in the following Scheme 48 packages:
+    re-adt-lib
+    re-lib
+    scsh
+
+Each basic class of regexp has a predicate, a basic constructor,
+a ``smart'' consructor that performs limited ``peephole'' optimisation
+on its arguments, and a set of accessors.
+The \ex{\ldots:tsm} accessor returns the total number of submatches
+contained in the regular expression.
+
+\dfn {re-seq?}{x}{boolean}{Type predicate}
+\dfnx{make-re-seq}{re-list}{re}{Basic constructor}
+\dfnx{re-seq}{re-list}{re}{Smart constructor}
+\dfnx{re-seq:elts}{re}{re-list}{Accessor}
+\dfnx{re-seq:tsm}{re}{integer}{Accessor}
+
+\dfn {re-choice?}{x}{boolean}{Type predicate}
+\dfnx{make-re-choice}{re-list}{re}{Basic constructor}
+\dfnx{re-choice}{re-list}{re}{Smart constructor}
+\dfnx{re-choice:elts}{re}{re-list}{Accessor}
+\dfnx{re-choice:tsm}{re}{integer}{Accessor}
+
+\dfn {re-repeat?}{x}{boolean}{Type predicate}
+\dfnx{make-re-repeat}{from to body}{re}{Accessor}
+\dfnx{re-repeat:from}{re}{integer}{Accessor}
+\dfnx{re-repeat:to}{re}{integer}{Accessor}
+\dfnx{re-repeat:tsm}{re}{integer}{Accessor}
+
+\dfn {re-submatch?}{x}{boolean}{Type predicate}
+\dfnx{make-re-submatch}{body [pre-dsm post-dsm]}{re}{Accessor}
+\dfnx{re-submatch:pre-dsm}{re}{integer}{Accessor}
+\dfnx{re-submatch:post-dsm}{re}{integer}{Accessor}
+\dfnx{re-submatch:tsm}{re}{integer}{Accessor}
+
+\dfn {re-string?}{x}{boolean}{Type predicate}
+\dfnx{make-re-string}{chars}{re}{Basic constructor}
+\dfnx{re-string}{chars}{re}{Basic constructor}
+\dfnx{re-string:chars}{re}{string}{Accessor}
+
+\dfn {re-char-set?}{x}{boolean}{Type predicate}
+\dfnx{make-re-char-set}{cset}{re}{Basic constructor}
+\dfnx{re-char-set}{cset}{re}{Basic constructor}
+\dfnx{re-char-set:cset}{re}{char-set}{Accessor}
+
+\dfn {re-dsm?}{x}{boolean}{Type predicate}
+\dfnx{make-re-dsm}{body pre-dsm post-dsm}{re}{Basic constructor}
+\dfnx{re-dsm}{body pre-dsm post-dsm}{re}{Smart constructor}
+\dfnx{re-dsm:body}{re}{re}{Accessor}
+\dfnx{re-dsm:pre-dsm}{re}{integer}{Accessor}
+\dfnx{re-dsm:post-dsm}{re}{integer}{Accessor}
+\dfnx{re-dsm:tsm}{re}{integer}{Accessor}
+
+\defvar {re-bos}{regexp}
+\defvarx{re-eos}{regexp}
+\defvarx{re-bol}{regexp}
+\defvarx{re-eol}{regexp}
+\begin{desc}
+These variables are bound to the primitive anchor regexps.
+\end{desc}
+
+\defun {re-bos?}{\object}{\boolean}
+\defunx{re-eos?}{\object}{\boolean}                             
+\defunx{re-bol?}{\object}{\boolean}
+\defunx{re-eol?}{\object}{\boolean}
+\begin{desc}
+These predicates recognise the associated primitive anchor regexp.
+\end{desc}
+
+\defvar{re-trivial}{regexp}
+\defunx{re-trivial?}{re}{\boolean}
+\begin{desc}
+The variable \ex{re-trivial} is bound to a regular expression
+that matches the empty string (corresponding to the SRE \ex{""} or \ex{(:)});
+it is recognised by the associated predicate. 
+Note that the predicate is only guaranteed to recognise
+this particular trivial regexp; other trivial regexps built using
+other constructors may or may not produce a true value.
+\end{desc}
+
+\defvar{re-empty}{regexp}
+\defunx{re-empty?}{re}{\boolean}
+\begin{desc}
+The variable \ex{re-empty} is bound to a regular expression
+that never matches (corresponding to the SRE \ex{(|)});
+it is recognised by the associated predicate. 
+Note that the predicate is only guaranteed to recognise
+this particular empty regexp; other empty regexps built using
+other constructors may or may not produce a true value.
+\end{desc}
+
+\defvar{re-any}{regexp}
+\defunx{re-any?}{re}{\boolean}
+\begin{desc}
+The variable \ex{re-any} is bound to a regular expression
+that matches any character (corresponding to the SRE \ex{any}); 
+it is recognised by the associated predicate. 
+Note that the predicate is only guaranteed to recognise
+this particular any-character regexp value; other any-character
+regexps built using other constructors may or may not produce a true value.
+\end{desc}
+
+%    These are non-primitive predefined regexps of general utility.
+
+\defvarx {re-nonl}{regexp}
+\begin{desc}
+The variable \ex{re-nonl} is bound to a regular expression
+that matches any non-newline character
+(corresponding to the SRE \verb|(~ #\newline)|).
+\end{desc}
+
+\defun{regexp?}{\object}{\boolean}
+\begin{desc}
+Is the object a regexp?
+\end{desc}
+
+\defun{re-tsm}{re}{\integer}
+\begin{desc}
+Return the total number of submatches contained in the regexp.
+\end{desc}
+
+\defun{clean-up-cres}{}{\undefined}
+\begin{desc}
+The current scsh implementation should call this function periodically
+to release C-heap storage associated with compiled regexps.
+Hopefully, this procedure will be removed at a later date.
+\end{desc}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Syntax-hacking tools}
+
+The Scheme 48 package \ex{sre-syntax-tools} exports several tools for macro
+writers that want to use SREs in their macros. In the functions defined
+below, \var{compare} and \var{rename} parameters are as passed to Clinger-Rees
+explicit-renaming low-level macros.
+
+\dfn{if-sre-form}{form conseq-form alt-form}{form}{Syntax}
+\begin{desc}
+If \var{form} is a legal SRE, this is equivalent to the expression
+\var{conseq-form}, otherwise it expands to \var{alt-form}.
+
+This is useful for high-level macro authors who want to write a macro
+where one field in the macro can be an SRE or possibly something
+else. \Eg, we might have a conditional form wherein if the
+test part of one arm is an SRE, it expands to a regexp match
+on some implied value, otherwise the form is evaluated as a boolean 
+Scheme expression.
+For example, a conditional macro might expand into code containing
+the following form, which in turn would have one of two possible
+expansions:
+\begin{centercode}
+(if-sre-form test-exp                 ; If TEST-EXP is SRE,
+  (regexp-search? (rx test-exp) line) ; match it w/the line,
+  test-exp)                           ; otw it's a text exp.\end{centercode}%
+\end{desc}
+
+
+\defun{sre-form?}{form rename compare}{\boolean}
+\begin{desc}
+This procedure is for low-level macros doing things equivalent to
+\ex{if-sre-form}. It returns true if the form is a legal SRE.
+
+Note that neither \ex{sre-form} nor \ex{if-sre-form} does a deep recursion
+over the form in the case where the form is a list. 
+They simply check the car of the form for one of the legal SRE keywords.
+\end{desc}
+
+\defun {parse-sre}{sre-form  compare rename}{re}
+\defunx{parse-sres}{sre-forms compare rename}{re}
+\begin{desc}
+Parse \ex{sre-form} into an ADT. Note that if the SRE is dynamic---contains
+\ex{,\var{exp}} or \ex{,@\var{exp}} forms, 
+or has repeat operators whose from/to counts are not constants---then
+the returned ADT will have \var{Scheme expressions} in the corresponding 
+slots of the regexp records instead of the corresponding 
+integer, char-set, or regexp. 
+In other words, we use the ADT as its own AST. It's called a ``hack.''
+
+\ex{parse-sres} parses a list of SRE forms that comprise an implicit sequence.
+\end{desc}
+
+\defun{regexp->scheme}{re rename}{Scheme-expression}
+\begin{desc}
+Returns a Scheme expression that will construct the regexp \var{re}
+using ADT constructors such as \ex{make-re-sequence}, \ex{make-re-repeat},
+and so forth.
+
+If the regexp is static, it will be simplified and pre-translated
+to a Posix string as well, which will be part of the constructed
+regexp value.
+\end{desc}
+
+\defun{static-regexp?}{re}{\boolean}
+\begin{desc}
+Is the regexp a static one?
+\end{desc}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "man"
+%%% End: 

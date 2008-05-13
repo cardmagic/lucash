@@ -1,0 +1,153 @@
+%&latex -*- latex -*-
+
+\chapter{Reading delimited strings}
+\label{chapt:rdelim}
+
+Scsh provides a set of procedures that read delimited strings from
+input ports.
+There are procedures to read a single line of text
+(terminated by a newline character),
+a single paragraph (terminated by a blank line),
+and general delimited strings
+(terminated by a character belonging to an arbitrary character set).
+
+These procedures can be applied to any Scheme input port.
+However, the scsh virtual machine has native-code support for performing
+delimited reads on Unix ports, and these input operations should be 
+particularly fast---much faster than doing the equivalent character-at-a-time
+operation from Scheme code.
+
+All of the delimited input operations described below take a \ex{handle-delim}
+parameter, which determines what the procedure does with the terminating 
+delimiter character.
+There are four possible choices for a \ex{handle-delim} parameter:
+\begin{inset}
+\begin{tabular}{|l|l|} \hline
+        \ex{handle-delim}       & Meaning \\ \hline\hline
+        \ex{'trim}              & Ignore delimiter character. \\
+        \ex{'peek}              & Leave delimiter character in input stream. \\
+        \ex{'concat}            & Append delimiter character to returned value. \\
+        \ex{'split}             & Return delimiter as second value. \\
+        \hline
+\end{tabular}
+\end{inset}
+The first case, \ex{'trim}, is the standard default for all the routines 
+described in this section.
+The last three cases allow the programmer to distinguish between strings
+that are terminated by a delimiter character, and strings that are 
+terminated by an end-of-file.
+
+
+\begin{defundesc} {read-line} {[port handle-newline]} {{\str} or eof-object}
+  Reads and returns one line of text; on eof, returns the eof object. 
+  A line is terminated by newline or eof. 
+
+  \var{handle-newline} determines what \ex{read-line} does with the 
+  newline or EOF that terminates the line; it takes the general set
+  of values described for the general \ex{handle-delim} case above,
+  and defaults to \ex{'trim} (discard the newline).
+  Using this argument allows one to tell whether or not the last line of
+  input in a file is newline terminated.
+\end{defundesc}
+
+\defun{read-paragraph} {[port handle-delim]} {{\str} or eof}
+\begin{desc}
+    This procedure skips blank lines,
+    then reads text from a port until a blank line or eof is found.
+    A ``blank line'' is a (possibly empty) line composed only of white space.
+    The \var{handle-delim} parameter determines how the terminating
+    blank line is handled.
+    It is described above, and defaults to \ex{'trim}.
+    The \ex{'peek} option is not available.
+\end{desc}
+
+
+The following procedures read in strings from ports delimited by characters
+belonging to a specific set.
+See section~\ref{sec:char-sets} for information on character set manipulation.
+
+\defun{read-delimited}{char-set [port handle-delim]} {{\str} or eof}
+\begin{desc}
+    Read until we encounter one of the chars in \var{char-set} or eof.
+    The \var{handle-delim} parameter determines how the terminating character
+    is handled. It is described above, and defaults to \ex{'trim}.
+
+    The \var{char-set} argument may be a charset, a string, a character, or a
+    character predicate; it is coerced to a charset.
+\end{desc}
+
+\dfni{read-delimited!} {char-set buf [port handle-delim start end]}
+        {nchars or eof or \#f}{procedure}
+        {read-delimited"!@\texttt{read-delimited"!}}
+\begin{desc}
+    A side-effecting variant of \ex{read-delimited}.
+    
+    The data is written into the string \var{buf} at the indices in the
+    half-open interval $[\var{start},\var{end})$; the default interval is the
+    whole string: $\var{start}=0$ and $\var{end}=\ex{(string-length
+    \var{buf})}$.  The values of \var{start} and \var{end} must specify a
+    well-defined interval in \var{str}, \ie, $0 \le \var{start} \le \var{end}
+    \le \ex{(string-length \var{buf})}$.  
+
+    It returns \var{nbytes}, the number of bytes read. If the buffer filled up
+    without a delimiter character being found, \ex{\#f} is returned. If
+    the port is at eof when the read starts, the eof object is returned.
+
+    If an integer is returned (\ie, the read is successfully terminated by
+    reading a delimiter character), then the \var{handle-delim} parameter
+    determines how the terminating character is handled. 
+    It is described above, and defaults to \ex{'trim}.
+\end{desc}
+
+
+
+\dfni{\%read-delimited!} {char-set buf gobble? [port start end]} 
+        {[char-or-eof-or-\#f \integer]}{procedure}
+        {\%read-delimited"!@\texttt{\%read-delimited"!}}
+\begin{desc}
+This low-level delimited reader uses an alternate interface.
+It returns two values: \var{terminator} and \var{num-read}.
+\begin{description}
+\item [terminator]
+        A value describing why the read was terminated:
+        \begin{flushleft}
+        \begin{tabular}{l@{\qquad$\Rightarrow$\qquad}l}
+        Character or eof-object & Read terminated by this value. \\
+        \ex{\#f}                & Filled buffer without finding a delimiter.
+        \end{tabular}
+        \end{flushleft}
+
+\item [num-read]
+        Number of characters read into \var{buf}.
+\end{description}
+
+If the read is successfully terminated by reading a delimiter character,
+then the \var{gobble?} parameter determines what to do with the terminating
+character.
+If true, the character is removed from the input stream;
+if false, the character is left in the input stream where a subsequent
+read operation will retrieve it.
+In either case, the character is also the first value returned by
+the procedure call.
+\end{desc}
+
+%Note:
+%- Invariant: TERMINATOR = #f  =>  NUM-READ = END - START.
+%- Invariant: TERMINATOR = eof-object and NUM-READ = 0 => at EOF.
+%- When determining the TERMINATOR return value, ties are broken
+%  favoring character or the eof-object over #f. That is, if the buffer
+%  fills up, %READ-DELIMITED! will peek at one more character from the
+%  input stream to determine if it terminates the input. If so, that
+%  is returned, not #f.
+
+\begin{defundesc} {skip-char-set} {skip-chars [port]} {\integer}
+    Skip characters occurring in the set \var{skip-chars};
+    return the number of characters skipped.
+    The \var{skip-chars} argument may be a charset, a string, a character, or a
+    character predicate; it is coerced to a charset.
+\end{defundesc}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "man"
+%%% End: 

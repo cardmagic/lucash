@@ -1,0 +1,76 @@
+% This is the title page style stolen from the Texinfo design,
+% and expressed as a LaTeX style option. It is useful for manuals.
+%
+% Note that I play some *really* revolting games here to override
+% the vertical and horizontal margins temporarily for the title page.
+% The layout assumes you have 8.5" x 11" paper. You'd have to redo this
+% for A4 or another size.
+%     -Olin 7/94
+
+
+% Fonts for title page:
+\DeclareFixedFont{\titlefont}%
+	{\encodingdefault}{\familydefault}{bx}{\shapedefault}{20.5pt}
+\DeclareFixedFont{\authorfnt}%
+	{\encodingdefault}{\familydefault}{bx}{\shapedefault}{14.4pt}
+\DeclareFixedFont{\subtitlefnt}%
+	{\encodingdefault}{\familydefault}{m}{\shapedefault}{11}
+
+%\def\authorrm{\normalfont\selectfont\fontseries{bx}\fontsize{14.4}{14.4}}
+%\def\subtitlefnt{\normalfont\selectfont\fontsize{11}{11}}
+
+\newskip\titlepagetopglue \titlepagetopglue = 2.5in
+
+
+\newlength{\widewidth}
+\setlength{\widewidth}{6.5in}
+\newlength{\negwidemargin}
+\setlength{\negwidemargin}{-\oddsidemargin}	% Reset the margin
+\addtolength{\negwidemargin}{-1in}		% to edge of page
+\addtolength{\negwidemargin}{1in}	    % Then move right one inch.
+
+%\def\wideline#1{\hbox to 0pt{\hspace\negwidemargin\hbox to\widewidth{#1}}}
+\def\wideline#1{\hbox{\makebox[0pt][l]{\hspace\negwidemargin\hbox to\widewidth{#1}}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\def\maketitle{\begin{titlepage}
+   \thispagestyle{empty}
+   \let\footnotesize\small \let\footnoterule\relax
+   \null
+   \parindent=0pt
+   \def\subtitlefont{\normalbaselineskip = 13pt \normalbaselines \subtitlefnt}%
+   \def\authorfont{\normalbaselineskip = 16pt \normalbaselines \authorfnt}%
+%
+   % Leave some space at the very top of the page.
+   \vspace*{-1in}\vspace*{-\topmargin}\vspace*{-\headheight}\vspace*{-\headsep}
+   \vglue\titlepagetopglue
+%
+   \wideline{\titlefont \@title \hfill} % title
+%  \vskip4pt 
+   \vskip -0.3\baselineskip
+   \wideline{\leaders\hrule height 4pt\hfill}
+   \wideline{\hfill\subtitlefont\begin{tabular}[t]{@{}r@{}}\@subtitle%
+				\\\@date%
+			        \end{tabular}} % subtitle
+%
+   % author
+   \vskip 0pt plus 1filll 
+   \wideline{\authorfont \begin{tabular}[t]{@{}c@{}}\@author
+                         \end{tabular}\hfill}
+%
+%  \vskip4pt
+   \vskip -0.3\baselineskip
+   \wideline{\leaders\hrule height 2pt\hfill}
+
+   % This weirdness puts the bottom line 2.75 in from the bottom of
+   % an 11in page.
+   \vskip \textheight \vskip \headsep \vskip \headheight
+   \vskip \topmargin  \vskip 1in \vskip -11in \vskip 2.75in
+
+   \gdef\@author{}\gdef\@title{}\gdef\@subtitle{}\let\maketitle\relax
+   \end{titlepage}
+   \setcounter{page}{2}
+   }
+
+\def\subtitle#1{\gdef\@subtitle{#1}}
+\def\@subtitle{}

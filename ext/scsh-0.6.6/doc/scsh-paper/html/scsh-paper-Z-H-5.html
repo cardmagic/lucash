@@ -1,0 +1,459 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-4.html">previous</a></span><span>, <a href="scsh-paper-Z-H-6.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_3"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_3">3&nbsp;&nbsp;Process notation</a></h1><p>
+Scsh has a notation for controlling Unix processes that takes the
+form of s-expressions; this notation can then be embedded inside of 
+standard Scheme code.
+The basic elements of this notation are <em>process forms</em>, 
+<em>extended process forms</em>, and <em>redirections</em>.</p>
+<p>
+</p>
+<a name="node_sec_3.1"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_3.1">3.1&nbsp;&nbsp;Extended process forms and i/o redirections</a></h2><p>An <em>extended process form</em> is a specification of a Unix process to
+run, in a particular I/O environment:
+</p>
+<blockquote><tt><i>epf</i> ::= (<i>pf</i> <i><em>r</em><em>e</em><em>d</em><em>i</em><em>r</em></i><sub>1</sub> <tt>...</tt> <i><em>r</em><em>e</em><em>d</em><em>i</em><em>r</em></i><sub><em>n</em></sub>)</tt></blockquote>where <i>pf</i> is a process form and the <i><em>r</em><em>e</em><em>d</em><em>i</em><em>r</em></i><sub><em>i</em></sub> are redirection specs.
+A <em>redirection spec</em> is one of:
+<blockquote>
+<table border=0><tr><td valign=top ><tt>(&lt; <i>[fdes]</i> <i>file-name</i>)</tt> </td><td valign=top ><tt>Open file for read.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(&gt; <i>[fdes]</i> <i>file-name</i>)</tt> </td><td valign=top ><tt>Open file create/truncate.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(&lt;&lt; <i>[fdes]</i> <i>object</i>)</tt>   </td><td valign=top ><tt>Use <i>object</i>'s printed rep.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(&gt;&gt; <i>[fdes]</i> <i>file-name</i>)</tt> </td><td valign=top ><tt>Open file for append.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(= <i>fdes</i> <i>fdes/port</i>)</tt>    </td><td valign=top ><tt>Dup2</tt>
+</td></tr>
+<tr><td valign=top ><tt>(- <i>fdes/port</i>)</tt>               </td><td valign=top ><tt>Close <i>fdes/port</i>.</tt>
+</td></tr>
+<tr><td valign=top ><tt>stdports</tt>                          </td><td valign=top ><tt>0,1,2 dup'd from standard ports.</tt>
+</td></tr></table>
+</blockquote>
+The <i>fdes</i> file descriptors have these defaults:
+<div align=center><table><tr><td>
+
+<tt><table border=1><tr><td valign=top >&lt; </td><td valign=top >&lt;&lt; </td><td valign=top >&gt; </td><td valign=top >&gt;&gt; </td></tr>
+<tr><td valign=top >0 </td><td valign=top >0 </td><td valign=top >1 </td><td valign=top >1 </td></tr>
+<tr><td valign=top ></td></tr></table>
+</tt>
+</td></tr></table></div>
+<p>
+The subforms of a redirection are implicitly backquoted, 
+and symbols stand for their print-names. 
+So <tt>(&gt; ,x)</tt> means 
+``output to the file named by Scheme variable <tt>x</tt>,'' 
+and <tt>(&lt; /usr/shivers/.login)</tt> means ``read from  <tt>/usr/shivers/.login</tt>.''
+This implicit backquoting is an important feature of the process notation,
+as we'll see later (sections&nbsp;<a href="scsh-paper-Z-H-7.html#node_sec_5">5</a> and <a href="scsh-paper-Z-H-12.html#node_sec_10.6">10.6</a>).</p>
+<p>
+Here are two more examples of i/o redirection:
+</p>
+<div align=center><table><tr><td>
+
+<table width=100%><tr><td><tt><br>
+(&lt;&nbsp;,(vector-ref&nbsp;fv&nbsp;i))&nbsp;<br>
+(&gt;&gt;&nbsp;2&nbsp;/tmp/buf)</tt></td></tr></table>
+</td></tr></table></div>
+
+These two redirections cause the file <tt>fv[i]</tt> to be opened on stdin, and
+<tt>/tmp/buf</tt> to be opened for append writes on stderr.<p>
+The redirection <tt>(&lt;&lt; <i>object</i>)</tt> causes input to come from the 
+printed representation of <i>object</i>. 
+For example,
+</p>
+<blockquote><tt>(&lt;&lt; &quot;The quick brown fox jumped over the lazy dog.&quot;)</tt></blockquote>causes reads from stdin to produce the characters of the above string.
+The object is converted to its printed representation using the <tt>display</tt>
+procedure, so
+<blockquote><tt>(&lt;&lt; (A five element list))</tt></blockquote>is the same as
+<blockquote><tt>(&lt;&lt; &quot;(A five element list)&quot;)</tt></blockquote>is the same as
+<blockquote><tt>(&lt;&lt; ,(reverse '(list element five A))).</tt></blockquote>(Here we use the implicit backquoting feature to compute the list to 
+be printed.)<p>
+The redirection <tt>(= <i>fdes</i> <i>fdes/port</i>)</tt> causes <i>fdes/port</i> 
+to be dup'd into file descriptor <i>fdes</i>.
+For example, the redirection
+</p>
+<blockquote><tt>(= 2 1)</tt></blockquote>causes stderr to be the same as stdout. 
+<i>fdes/port</i> can also be a port, for example:
+<blockquote><tt>(= 2 ,(current-output-port))</tt></blockquote>causes stderr to be dup'd from the current output port. 
+In this case,  it is an error if the port is not a file port
+(<em>e.g.</em>, a string port). {Note No port sync}<p>
+More complex redirections can be accomplished using the <tt>begin</tt>
+process form, discussed below, which gives the programmer full control
+of i/o redirection from Scheme.</p>
+<p>
+</p>
+<a name="node_sec_3.2"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_3.2">3.2&nbsp;&nbsp;Process forms</a></h2><p>A <em>process form</em> specifies a computation to perform as an independent
+Unix process. It can be one of the following:
+</p>
+<blockquote>
+<table width=100%><tr><td><tt><br>
+(begin&nbsp;.&nbsp;<i>scheme-code</i>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(|&nbsp;<i><br>
+<em>p</em><em>f</em></i><sub>1</sub>&nbsp;<tt>...</tt>&nbsp;<i><br>
+<em>p</em><em>f</em></i><sub><em>n</em></sub>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(|+&nbsp;<i>connect-list</i>&nbsp;<i><br>
+<em>p</em><em>f</em></i><sub>1</sub>&nbsp;<tt>...</tt>&nbsp;<i><br>
+<em>p</em><em>f</em></i><sub><em>n</em></sub>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(epf&nbsp;.&nbsp;<i>epf</i>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(<i>prog</i>&nbsp;<i><br>
+<em>a</em><em>r</em><em>g</em></i><sub>1</sub>&nbsp;<tt>...</tt>&nbsp;<i><br>
+<em>a</em><em>r</em><em>g</em></i><sub><em>n</em></sub>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+</tt></td></tr></table>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<table width=100%><tr><td><tt><br>
+;&nbsp;Run&nbsp;<i>scheme-code</i>&nbsp;in&nbsp;a&nbsp;fork.<br>
+;&nbsp;Simple&nbsp;pipeline<br>
+;&nbsp;Complex&nbsp;pipeline<br>
+;&nbsp;An&nbsp;extended&nbsp;process&nbsp;form.<br>
+;&nbsp;Default:&nbsp;exec&nbsp;the&nbsp;program.<br>
+</tt></td></tr></table>
+</blockquote>
+The default case <tt>(<i>prog</i> <i><em>a</em><em>r</em><em>g</em></i><sub>1</sub> <tt>...</tt> <i><em>a</em><em>r</em><em>g</em></i><sub><em>n</em></sub>)</tt> 
+is also implicitly backquoted.
+That is, it is equivalent to:
+<blockquote><tt>(begin (apply exec-path `(<i>prog</i> <i><em>a</em><em>r</em><em>g</em></i><sub>1</sub> <tt>...</tt> <i><em>a</em><em>r</em><em>g</em></i><sub><em>n</em></sub>)))</tt></blockquote><tt>Exec-path</tt> is the version of the <tt>exec()</tt> system call that 
+uses scsh's path list to search for an executable.
+The program and the arguments must be either strings, symbols, or integers.
+Symbols and integers are coerced to strings.
+A symbol's print-name is used.
+Integers are converted to strings in base 10.
+Using symbols instead of strings is convenient, since it suppresses the
+clutter of the surrounding <tt>&quot;<tt>...</tt>&quot;</tt> quotation marks.
+To aid this purpose, scsh reads symbols in a case-sensitive manner, 
+so that you can say
+<blockquote><tt>(more Readme)</tt></blockquote>and get the right file.
+(See section <a href="scsh-paper-Z-H-9.html#node_sec_7">7</a> for further details on lexical issues.)<p>
+A <i>connect-list</i> is a specification of how two processes are to be wired
+together by pipes. 
+It has the form <tt>((<i><em>f</em><em>r</em><em>o</em><em>m</em></i><sub>1</sub> <i><em>f</em><em>r</em><em>o</em><em>m</em></i><sub>2</sub> <tt>...</tt> <i>to</i>) <tt>...</tt>)</tt>
+and is implicitly backquoted.
+For example,
+</p>
+<blockquote><tt>(|+ ((1 2 0) (3 3)) <i><em>p</em><em>f</em></i><sub>1</sub> <i><em>p</em><em>f</em></i><sub>2</sub>)</tt></blockquote>runs <i><em>p</em><em>f</em></i><sub>1</sub> and <i><em>p</em><em>f</em></i><sub>2</sub>. 
+The first clause <tt>(1 2 0)</tt> causes <i><em>p</em><em>f</em></i><sub>1</sub>'s 
+stdout (1) and stderr (2) to be connected via pipe 
+to <i><em>p</em><em>f</em></i><sub>2</sub>'s stdin (0). 
+The second clause <tt>(3 3)</tt> causes <i><em>p</em><em>f</em></i><sub>1</sub>'s file descriptor 3 to be
+connected to <i><em>p</em><em>f</em></i><sub>2</sub>'s file descriptor 3.
+<p>
+</p>
+<p>
+</p>
+<a name="node_sec_3.3"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_3.3">3.3&nbsp;&nbsp;Using extended process forms in Scheme</a></h2><p>Process forms and extended process forms are <em>not</em> Scheme.
+They are a different notation for expressing computation that, like Scheme,
+is based upon s-expressions.
+Extended process forms are used in Scheme programs by embedding them inside
+special Scheme forms.
+There are three basic Scheme forms that use extended process forms: 
+<tt>exec-epf</tt>, <tt>&amp;</tt>, and <tt>run</tt>:
+</p>
+<blockquote>
+<table width=100%><tr><td><tt><br>
+(exec-epf&nbsp;.&nbsp;<i>epf</i>)<br>
+(&amp;&nbsp;.&nbsp;<i>epf</i>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(run&nbsp;.&nbsp;<i>epf</i>)<br>
+</tt></td></tr></table>
+&nbsp;&nbsp;&nbsp;&nbsp;<table width=100%><tr><td><tt><br>
+;&nbsp;Nuke&nbsp;the&nbsp;current&nbsp;process.<br>
+;&nbsp;Run&nbsp;<i>epf</i>&nbsp;in&nbsp;background;&nbsp;return&nbsp;pid.<br>
+;&nbsp;Run&nbsp;<i>epf</i>;&nbsp;wait&nbsp;for&nbsp;termination.<br>
+;&nbsp;&nbsp;&nbsp;&nbsp;Returns&nbsp;exit&nbsp;status.</tt></td></tr></table>
+</blockquote>
+These special forms are macros that expand into the equivalent
+series of system calls.
+The definition of the <tt>exec-epf</tt> macro is non-trivial, 
+as it produces the code to handle i/o redirections and set up pipelines.
+However, the definitions of the <tt>&amp;</tt> and <tt>run</tt> macros are very simple:
+<blockquote>
+<table border=0><tr><td valign=top ><tt>(&amp; . <i>epf</i>)</tt> </td><td valign=top ><tt>(fork (lambda () (exec-epf . <i>epf</i>)))</tt> </td></tr>
+<tr><td valign=top ><tt>(run . <i>epf</i>)</tt> </td><td valign=top ><tt>(wait (&amp; . <i>epf</i>))</tt>
+</td></tr></table>
+</blockquote><p>
+Figures <a href="#node_fig_Temp_5">2</a> and <a href="#node_fig_Temp_6">3</a> show a series of examples
+employing a mix of the process notation and the syscall library.
+Note that regular Scheme is used to provide the control structure,
+variables, and other linguistic machinery needed by the script fragments.
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_5"></a>
+<div class=figure align=center><table width=100%><tr><td align=center><span class=footnotesize><p></p>
+<p></p>
+<div align=center><table><tr><td>
+<table width=100%><tr><td><tt><br>
+;;&nbsp;If&nbsp;the&nbsp;resource&nbsp;file&nbsp;exists,&nbsp;load&nbsp;it&nbsp;into&nbsp;X.<br>
+(if&nbsp;(file-exists?&nbsp;f))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(run&nbsp;(xrdb&nbsp;-merge&nbsp;,f)))<br>
+<br>
+;;&nbsp;Decrypt&nbsp;my&nbsp;mailbox;&nbsp;key&nbsp;is&nbsp;&quot;xyzzy&quot;.<br>
+(run&nbsp;(crypt&nbsp;xyzzy)&nbsp;(&lt;&nbsp;mbox.crypt)&nbsp;(&gt;&nbsp;mbox))<br>
+<br>
+;;&nbsp;Dump&nbsp;the&nbsp;output&nbsp;from&nbsp;ls,&nbsp;fortune,&nbsp;and&nbsp;from&nbsp;into&nbsp;log.txt.<br>
+(run&nbsp;(begin&nbsp;(run&nbsp;(ls))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run&nbsp;(fortune))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run&nbsp;(from)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&gt;&nbsp;log.txt))<br>
+<br>
+;;&nbsp;Compile&nbsp;FILE&nbsp;with&nbsp;FLAGS.<br>
+(run&nbsp;(cc&nbsp;,file&nbsp;,@flags))<br>
+<br>
+;;&nbsp;Delete&nbsp;every&nbsp;file&nbsp;in&nbsp;DIR&nbsp;containing&nbsp;the&nbsp;string&nbsp;&quot;/bin/perl&quot;:<br>
+(with-cwd&nbsp;dir<br>
+&nbsp;&nbsp;(for-each&nbsp;(lambda&nbsp;(file)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(zero?&nbsp;(run&nbsp;(grep&nbsp;-s&nbsp;/bin/perl&nbsp;,file)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(delete-file&nbsp;file)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(directory-files)))</tt></td></tr></table>
+</td></tr></table></div>
+
+</td></tr>
+<tr><td align=center><b>Figure 2:</b>&nbsp;&nbsp;Example shell script fragments (a)</td></tr>
+<tr><td>
+
+
+</td></tr></table></div></span><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_6"></a>
+<div class=figure align=center><table width=100%><tr><td align=center><span class=footnotesize><p></p>
+<p></p>
+<div align=center><table><tr><td>
+<table width=100%><tr><td><tt><br>
+;;&nbsp;M4&nbsp;preprocess&nbsp;each&nbsp;file&nbsp;in&nbsp;the&nbsp;current&nbsp;directory,&nbsp;then&nbsp;pipe<br>
+;;&nbsp;the&nbsp;input&nbsp;into&nbsp;cc.&nbsp;Errlog&nbsp;is&nbsp;foo.err,&nbsp;binary&nbsp;is&nbsp;foo.exe.<br>
+;;&nbsp;Run&nbsp;compiles&nbsp;in&nbsp;parallel.<br>
+(for-each&nbsp;(lambda&nbsp;(file)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;((outfile&nbsp;(replace-extension&nbsp;file&nbsp;&quot;.exe&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(errfile&nbsp;(replace-extension&nbsp;file&nbsp;&quot;.err&quot;)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;(|&nbsp;(m4)&nbsp;(cc&nbsp;-o&nbsp;,outfile))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;&nbsp;,file)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&gt;&nbsp;2&nbsp;,errfile))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(directory-files))<br>
+<br>
+;;&nbsp;Same&nbsp;as&nbsp;above,&nbsp;but&nbsp;parallelise&nbsp;even&nbsp;the&nbsp;computation<br>
+;;&nbsp;of&nbsp;the&nbsp;filenames.<br>
+(for-each&nbsp;(lambda&nbsp;(file)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&nbsp;(begin&nbsp;(let&nbsp;((outfile&nbsp;(replace-extension&nbsp;file&nbsp;&quot;.exe&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(errfile&nbsp;(replace-extension&nbsp;file&nbsp;&quot;.err&quot;)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(exec-epf&nbsp;(|&nbsp;(m4)&nbsp;(cc&nbsp;-o&nbsp;,outfile))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;&nbsp;,file)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&gt;&nbsp;2&nbsp;,errfile))))))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(directory-files))<br>
+<br>
+;;&nbsp;DES&nbsp;encrypt&nbsp;string&nbsp;PLAINTEXT&nbsp;with&nbsp;password&nbsp;KEY.&nbsp;My&nbsp;DES&nbsp;program<br>
+;;&nbsp;reads&nbsp;the&nbsp;input&nbsp;from&nbsp;fdes&nbsp;0,&nbsp;and&nbsp;the&nbsp;key&nbsp;from&nbsp;fdes&nbsp;3.&nbsp;We&nbsp;want&nbsp;to<br>
+;;&nbsp;collect&nbsp;the&nbsp;ciphertext&nbsp;into&nbsp;a&nbsp;string&nbsp;and&nbsp;return&nbsp;that,&nbsp;with&nbsp;error<br>
+;;&nbsp;messages&nbsp;going&nbsp;to&nbsp;our&nbsp;stderr.&nbsp;Notice&nbsp;we&nbsp;are&nbsp;redirecting&nbsp;Scheme&nbsp;data<br>
+;;&nbsp;structures&nbsp;(the&nbsp;strings&nbsp;PLAINTEXT&nbsp;and&nbsp;KEY)&nbsp;from&nbsp;our&nbsp;program&nbsp;into<br>
+;;&nbsp;the&nbsp;DES&nbsp;process,&nbsp;instead&nbsp;of&nbsp;redirecting&nbsp;from&nbsp;files.&nbsp;RUN/STRING&nbsp;is<br>
+;;&nbsp;like&nbsp;the&nbsp;RUN&nbsp;form,&nbsp;but&nbsp;it&nbsp;collects&nbsp;the&nbsp;output&nbsp;into&nbsp;a&nbsp;string&nbsp;and&nbsp;<br>
+;;&nbsp;returns&nbsp;it&nbsp;(see&nbsp;following&nbsp;section).<br>
+<br>
+(run/string&nbsp;(/usr/shivers/bin/des&nbsp;-e&nbsp;-3)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;&lt;&nbsp;,plaintext)&nbsp;(&lt;&lt;&nbsp;3&nbsp;,key))<br>
+<br>
+;;&nbsp;Delete&nbsp;the&nbsp;files&nbsp;matching&nbsp;regular&nbsp;expression&nbsp;PAT.<br>
+;;&nbsp;Note&nbsp;we&nbsp;aren't&nbsp;actually&nbsp;using&nbsp;any&nbsp;of&nbsp;the&nbsp;process&nbsp;machinery&nbsp;here&nbsp;--<br>
+;;&nbsp;just&nbsp;pure&nbsp;Scheme.<br>
+(define&nbsp;(dsw&nbsp;pat)<br>
+&nbsp;&nbsp;(for-each&nbsp;(lambda&nbsp;(file)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(y-or-n?&nbsp;(string-append&nbsp;&quot;Delete&nbsp;&quot;&nbsp;file))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(delete-file&nbsp;file)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(file-match&nbsp;#f&nbsp;pat)))</tt></td></tr></table>
+</td></tr></table></div>
+
+</td></tr>
+<tr><td align=center><b>Figure 3:</b>&nbsp;&nbsp;Example shell script fragments (b)</td></tr>
+<tr><td>
+
+
+</td></tr></table></div></span><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<a name="node_sec_3.4"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_3.4">3.4&nbsp;&nbsp;Procedures and special forms</a></h2><p>It is a general design principle in scsh that all functionality
+made available through special syntax is also available in a
+straightforward procedural form.
+So there are procedural equivalents for all of the process notation.
+In this way, the programmer is not restricted by the particular details of
+the syntax.
+Here are some of the syntax/procedure equivalents:
+</p>
+<blockquote>
+<table border=1><tr><td valign=top >Notation        </td><td valign=top >Procedure </td></tr>
+<tr><td valign=top ><tt>|</tt>          </td><td valign=top ><tt>fork/pipe</tt> </td></tr>
+<tr><td valign=top ><tt>|+</tt>         </td><td valign=top ><tt>fork/pipe+</tt> </td></tr>
+<tr><td valign=top ><tt>exec-epf</tt>   </td><td valign=top ><tt>exec-path</tt> </td></tr>
+<tr><td valign=top >redirection     </td><td valign=top ><tt>open</tt>, <tt>dup</tt> </td></tr>
+<tr><td valign=top ><tt>&amp;</tt>          </td><td valign=top ><tt>fork</tt> </td></tr>
+<tr><td valign=top ><tt>run</tt>        </td><td valign=top ><tt>wait</tt>  +  <tt>fork</tt> </td></tr>
+<tr><td valign=top ></td></tr></table>
+</blockquote>
+Having a solid procedural foundation also allows for general notational
+experimentation using Scheme's macros.
+For example, the programmer can build his own pipeline notation on top of the
+<tt>fork</tt> and <tt>fork/pipe</tt> procedures.
+<p>
+</p>
+<dl><dt></dt><dd>
+</dd><dt><b><tt>(fork <i>[thunk]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)</b></dt><dd>
+<tt>Fork</tt> spawns a Unix subprocess.
+Its exact behavior depends on whether it is called with the optional
+<i>thunk</i> argument.<p>
+With the <i>thunk</i> argument, <tt>fork</tt> spawns off a subprocess that
+calls <i>thunk</i>, exiting when <i>thunk</i> returns. 
+<tt>Fork</tt> returns the subprocess' pid to the parent process.</p>
+<p>
+Without the <i>thunk</i> argument, <tt>fork</tt> behaves like the C <tt>fork()</tt>
+routine.
+It returns in both the parent and child process. 
+In the parent, <tt>fork</tt> returns the child's pid;
+in the child, <tt>fork</tt> returns <tt>#f</tt>.</p>
+<p>
+</p>
+</dd><dt><b><tt>(fork/pipe <i>[thunk]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)</b></dt><dd>
+Like <tt>fork</tt>, but the parent and child communicate via a pipe 
+connecting the parent's stdin to the child's stdout. This function 
+side-effects the parent by changing his stdin.<p>
+In effect, <tt>fork/pipe</tt> splices a process into the data stream
+immediately upstream of the current process.
+This is the basic function for creating pipelines.
+Long pipelines are built by performing a sequence of <tt>fork/pipe</tt> calls.
+For example, to create a background two-process pipe <tt>a | b</tt>, we write:
+</p>
+<blockquote><tt><br>
+(fork&nbsp;(lambda&nbsp;()&nbsp;(fork/pipe&nbsp;a)&nbsp;(b)))</tt></blockquote>
+which returns the pid of <tt>b</tt>'s process.<p>
+To create a background three-process pipe <tt>a | b | c</tt>, we write:
+</p>
+<blockquote><tt><br>
+(fork&nbsp;(lambda&nbsp;()&nbsp;(fork/pipe&nbsp;a)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(fork/pipe&nbsp;b)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(c)))</tt></blockquote>
+which returns the pid of <tt>c</tt>'s process.<p>
+</p>
+</dd><dt><b><tt>(fork/pipe+ <i>conns [thunk]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)</b></dt><dd>
+Like <tt>fork/pipe</tt>, but the pipe connections between the child and parent
+are specified by the connection list <i>conns</i>. 
+See the 
+<blockquote><tt>(|+ <i>conns</i> <i><em>p</em><em>f</em></i><sub>1</sub> <tt>...</tt> <i><em>p</em><em>f</em></i><sub><em>n</em></sub>)</tt></blockquote>process form for a description of connection lists.
+</dd></dl><p></p>
+<p>
+</p>
+<a name="node_sec_3.5"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_3.5">3.5&nbsp;&nbsp;Interfacing process output to Scheme</a></h2><p>
+There is a family of procedures and special forms that can be used
+to capture the output of processes as Scheme data. 
+Here are the special forms for the simple variants:
+<br>
+</p>
+<table width=100%><tr><td><tt><br>
+(run/port&nbsp;&nbsp;&nbsp;&nbsp;.&nbsp;<i>epf</i>)&nbsp;;&nbsp;Return&nbsp;port&nbsp;open&nbsp;on&nbsp;process's&nbsp;stdout.<br>
+(run/file&nbsp;&nbsp;&nbsp;&nbsp;.&nbsp;<i>epf</i>)&nbsp;;&nbsp;Process&nbsp;&gt;&nbsp;temp&nbsp;file;&nbsp;return&nbsp;file&nbsp;name.<br>
+(run/string&nbsp;&nbsp;.&nbsp;<i>epf</i>)&nbsp;;&nbsp;Collect&nbsp;stdout&nbsp;into&nbsp;a&nbsp;string&nbsp;and&nbsp;return.<br>
+(run/strings&nbsp;.&nbsp;<i>epf</i>)&nbsp;;&nbsp;Stdout-&gt;list&nbsp;of&nbsp;newline-delimited&nbsp;strings.<br>
+(run/sexp&nbsp;&nbsp;&nbsp;&nbsp;.&nbsp;<i>epf</i>)&nbsp;;&nbsp;Read&nbsp;one&nbsp;sexp&nbsp;from&nbsp;stdout&nbsp;with&nbsp;READ.<br>
+(run/sexps&nbsp;&nbsp;&nbsp;.&nbsp;<i>epf</i>)&nbsp;;&nbsp;Read&nbsp;list&nbsp;of&nbsp;sexps&nbsp;from&nbsp;stdout&nbsp;with&nbsp;READ.</tt></td></tr></table>
+<br>
+<tt>Run/port</tt> returns immediately after forking off the process;
+other forms wait for either the process to die (<tt>run/file</tt>),
+or eof on the communicating pipe 
+(<tt>run/string</tt>, <tt>run/strings</tt>, <tt>run/sexps</tt>).
+These special forms just expand into calls to the following analogous
+procedures:
+<div align=center><table><tr><td>
+
+</td></tr></table></div>
+
+<tt>(run/port* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(run/file* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(run/string* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(run/strings* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(run/sexp* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(run/sexps* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)
+<div align=center><table><tr><td>
+
+</td></tr></table></div>
+
+For example, <tt>(run/port . <i>epf</i>)</tt> expands into
+<blockquote><tt>(run/port* (lambda () (exec-epf . <i>epf</i>))).</tt></blockquote><p>
+These procedures can be used to manipulate the output of Unix
+programs with Scheme code. For example, the output of the <tt>xhost(1)</tt>
+program can be manipulated with the following code:
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Before&nbsp;asking&nbsp;host&nbsp;REMOTE&nbsp;to&nbsp;do&nbsp;X&nbsp;stuff,&nbsp;<br>
+;;;&nbsp;make&nbsp;sure&nbsp;it&nbsp;has&nbsp;permission.<br>
+(while&nbsp;(not&nbsp;(member&nbsp;remote&nbsp;(run/strings&nbsp;(xhost))))<br>
+&nbsp;&nbsp;(display&nbsp;&quot;Pausing&nbsp;for&nbsp;xhost...&quot;)<br>
+&nbsp;&nbsp;(read-char))</tt></blockquote><p>
+The following procedures are also of utility for generally parsing 
+input streams in scsh:
+</p>
+<div align=center><table><tr><td>
+
+</td></tr></table></div>
+
+<tt>(port-&gt;string <i>port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(port-&gt;sexp-list <i>port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(port-&gt;string-list <i>port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure) <br>
+<tt>(port-&gt;list <i>reader port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)
+<div align=center><table><tr><td>
+
+</td></tr></table></div>
+
+<tt>Port-&gt;string</tt> reads the port until eof,
+then returns the accumulated string.
+<tt>Port-&gt;sexp-list</tt> repeatedly reads data from the port until eof, 
+then returns the accumulated list of items.  
+<tt>Port-&gt;string-list</tt> repeatedly reads newline-terminated strings from the
+port until eof, then returns the accumulated list of strings.
+The delimiting newlines are not part of the returned strings.
+<tt>Port-&gt;list</tt> generalises these two procedures.
+It uses <i>reader</i> to repeatedly read objects from a port.
+It accumulates these objects into a list, which is returned upon eof.
+The <tt>port-&gt;string-list</tt> and <tt>port-&gt;sexp-list</tt> procedures
+are trivial to define, being merely <tt>port-&gt;list</tt> curried with
+the appropriate parsers:
+<blockquote><tt><br>
+(port-&gt;string-list&nbsp;<i>port</i>)&nbsp;<u>=</u>&nbsp;(port-&gt;list&nbsp;read-line&nbsp;<i>port</i>)<br>
+(port-&gt;sexp-list&nbsp;&nbsp;&nbsp;<i>port</i>)&nbsp;<u>=</u>&nbsp;(port-&gt;list&nbsp;read&nbsp;<i>port</i>)</tt></blockquote>
+The following compositions also hold:
+<blockquote><tt><br>
+run/string*&nbsp;&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;port-&gt;string&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>o</small>&nbsp;run/port*<br>
+run/strings*&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;port-&gt;string-list&nbsp;<small>o</small>&nbsp;run/port*<br>
+run/sexp*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;read&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>o</small>&nbsp;run/port*<br>
+run/sexps*&nbsp;&nbsp;&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;port-&gt;sexp-list&nbsp;&nbsp;&nbsp;<small>o</small>&nbsp;run/port*</tt></blockquote><p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-4.html">previous</a></span><span>, <a href="scsh-paper-Z-H-6.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

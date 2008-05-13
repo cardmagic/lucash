@@ -1,0 +1,19 @@
+-*- Mode: Text; -*-
+
+Copyright (c) 1994 Brian D. Carlstrom
+See file COPYING for copying information.
+
+Please report bugs to scsh-bugs@zurich.ai.mit.edu, and include
+the version number in your message.
+
+Installation instructions in file INSTALL.
+
+A scsh manual is in directory doc/scsh-manual/.
+A scsh paper is in directory doc/scsh-paper/.
+A scsh quick reference is in file doc/cheat.txt.
+
+Send mail to scsh-request@zurich.ai.mit.edu to be put on a
+mailing list for announcements, discussion, bug reports, and bug
+fixes.
+
+

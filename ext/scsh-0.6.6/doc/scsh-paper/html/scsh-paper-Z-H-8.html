@@ -1,0 +1,122 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-7.html">previous</a></span><span>, <a href="scsh-paper-Z-H-9.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_6"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_6">6&nbsp;&nbsp;I/O</a></h1><p>
+Perhaps the most difficult part of the design of scsh was the integration
+of Scheme ports and Unix file descriptors.
+Dealing with Unix file descriptors in a Scheme environment is difficult. 
+In Unix, open files are part of the process state, and are referenced
+by small integers called <em>file descriptors</em>. 
+Open file descriptors are the fundamental way i/o redirections are passed to
+subprocesses, since file descriptors are preserved across <tt>fork()</tt>
+and <tt>exec()</tt> calls.</p>
+<p>
+Scheme, on the other hand, uses ports for specifying i/o sources.  
+Ports are anonymous, garbage-collected Scheme objects, not integers.  
+When a port is collected, it is also closed.  Because file
+descriptors are just integers, it's impossible to garbage collect them -- in
+order to close file descriptor 3, you must prove that the process will never
+again pass a 3 as a file descriptor to a system call doing I/O, and that it
+will never <tt>exec()</tt> a program that will refer to file descriptor 3.</p>
+<p>
+This is difficult at best.</p>
+<p>
+If a Scheme program only used Scheme ports, and never directly used
+file descriptors, this would not be a problem. 
+But Scheme code must descend to the file-descriptor level in at least two
+circumstances:
+</p>
+<ul>
+<li><p>when interfacing to foreign code;
+</p>
+<li><p>when interfacing to a subprocess.
+</p>
+</ul><p>
+This causes problems. Suppose we have a Scheme port constructed
+on top of file descriptor 2. We intend to fork off a C program that
+will inherit this file descriptor. If we drop references to the port,
+the garbage collector may prematurely close file 2 before we exec
+the C program. </p>
+<p>
+Another difficulty arising between the anonymity of ports
+and the explicit naming of file descriptors arises when the
+user explicitly manipulates file descriptors, as is required by
+Unix.
+For example, when a file port is opened in Scheme, the underlying run-time
+Scheme kernel must open a file and allocate an integer file descriptor.
+When the user subsequently explicitly manipulates particular file descriptors,
+perhaps preparatory to executing some Unix subprocess, the port's 
+underlying file descriptor could be silently redirected to some new file.</p>
+<p>
+Scsh's Unix i/o interface is intended to fix this and 
+other problems arising from the mismatch between ports and file descriptors.
+The fundamental principle is that in scsh, most ports are attached to files,
+not to particular file descriptors.
+When the user does an i/o redirection (<em>e.g.</em>, with <tt>dup2()</tt>)
+that must allocate a particular file descriptor <i>fd</i>, there is a chance
+that <i>fd</i> has already been inadvertently allocated to a port by a prior
+operation (<em>e.g.</em>, an <tt>open-input-file</tt> call).
+If so, <i>fd</i>'s original port will be shifted to some new file descriptor 
+with a <tt>dup(<i>fd</i>)</tt> operation, freeing up <i>fd</i> for use.
+The port machinery is allowed to do this as it does not in general
+reveal which file descriptors are allocated to particular Scheme ports.
+Not revealing the particular file descriptors allocated to Scheme
+ports allows the system two important freedoms:
+</p>
+<ul>
+<li><p>When the user explicitly allocates a particular file descriptor,
+the run-time system is free to shuffle around the port/file-descriptor
+associations as required to free up that descriptor.
+</p>
+<li><p>When all pointers to an unrevealed file port have been dropped, 
+the run-time system is free to close the underlying file descriptor.
+If the user doesn't know which file descriptor was associated with the
+port, then there is no way he could refer to that i/o channel by its
+file-descriptor name.
+This allows scsh to close file descriptors during gc or when
+performing an <tt>exec()</tt>.
+</p>
+</ul><p>
+Users <em>can</em> explicitly manipulate file descriptors, if so desired.
+In this case, the associated ports are marked by the run time as ``revealed,''
+and are no longer subject to automatic collection.
+The machinery for handling this is carefully marked in the documentation, 
+and with some simple invariants in mind, follow the user's intuitions.
+This facility preserves the transparent close-on-collect property
+for file ports that are used in straightforward ways, yet allows
+access to the underlying Unix substrate without interference from
+the garbage collector. This is critical, since shell programming
+absolutely requires access to the Unix file descriptors, as their
+numerical values are a critical part of the process interface.</p>
+<p>
+Under normal circumstances, all this machinery just works behind the scenes
+to keep things straightened out. The only time the user has to think about
+it is when he starts accessing file descriptors from ports, which he should
+almost never have to do. If a user starts asking what file descriptors
+have been allocated to what ports, he has to take responsibility for managing
+this information.</p>
+<p>
+Further details on the port mechanisms in scsh are beyond the scope of
+this note; for more information, see the reference manual [<a href="scsh-paper-Z-H-17.html#node_bib_10">refman</a>].</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-7.html">previous</a></span><span>, <a href="scsh-paper-Z-H-9.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

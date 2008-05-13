@@ -1,0 +1,38 @@
+%&latex -*- latex -*-
+
+% This is the reference manual for the Scheme Shell.
+
+\documentclass[twoside]{report}
+\usepackage{code,boxedminipage,draftfooters,makeidx,palatino,ct,
+            headings,mantitle,array,matter,a4,tex2page}
+
+% Style issues
+\parskip = 3pt plus 3pt
+\sloppy
+
+\input{decls}
+\makeindex
+%%% End preamble
+
+\begin{document}
+
+\frontmatter
+\include{front}
+
+\mainmatter
+\include{intro}
+\include{procnotation}
+\include{syscalls}
+\include{network}
+\include{strings}
+\include{rdelim}
+\include{awk}
+\include{miscprocs}
+\include{running}
+\include{changes}
+\include{todo}
+
+\backmatter
+\printindex
+
+\end{document}    

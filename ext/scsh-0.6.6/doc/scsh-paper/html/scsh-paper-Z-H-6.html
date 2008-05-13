@@ -1,0 +1,44 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-5.html">previous</a></span><span>, <a href="scsh-paper-Z-H-7.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_4"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_4">4&nbsp;&nbsp;System calls</a></h1><p>
+We've just seen scsh's high-level process-form notation,
+for running programs, creating pipelines, and performing I/O redirection.
+This notation is at roughly the same level as traditional Unix shells.
+The process-form notation is convenient, but does not provide detailed,
+low-level access to the operating system.
+This is provided by the second component of scsh: its system-call library.</p>
+<p>
+Scsh's system-call library is a nearly-complete set of P<small>O</small><small>S</small><small>I</small><small>X</small> bindings,
+with some extras, such as symbolic links.
+As of this writing, network and terminal i/o controls have still not yet
+been implemented; work on them is underway.
+Scsh also provides a convenient set of systems programming utility procedures,
+such as routines to perform pattern matching on file-names and general strings,
+manipulate Unix environment variables, and parse file pathnames.
+Although some of the procedures have been described in passing,
+a detailed description of the system-call library is beyond the scope of
+this note. 
+The reference manual [<a href="scsh-paper-Z-H-17.html#node_bib_10">refman</a>] contains the full details.</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-5.html">previous</a></span><span>, <a href="scsh-paper-Z-H-7.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

@@ -1,0 +1,457 @@
+%&latex -*- latex -*-
+
+\chapter{Miscellaneous routines}
+
+\section{Integer bitwise ops}
+\label{sec:bitwise}
+\defun{arithmetic-shift} {i j} \integer
+\defunx {bitwise-and} {i j} \integer
+\defunx {bitwise-ior} {i j} \integer
+\defunx {bitwise-not} {i} \integer
+\defunx {bitwise-xor} {i j} \integer
+\begin{desc}
+    These operations operate on integers representing semi-infinite 
+    bit strings, using a 2's-complement encoding.
+
+    \ex{arithmetic-shift} shifts \var{i} by \var{j} bits. 
+    A left shift is $j > 0$; a right shift is $j < 0$.
+\end{desc}
+
+\section{Password encryption}
+
+\defun {crypt} {key salt} {encrypted value}
+
+Decrypts \var{key} by directly calling the \texttt{crypt} function
+using \var{salt} to perturb the hashing algorithm. \var{Salt} must be
+a two-character string consisting of digits, alphabetic characters,
+``.'' or ``\verb+\+''. The length of \var{key} may be at most eight.
+
+\section{Dot-Locking}
+Section \ref{sec:filelocking} already points out that {\Posix}'s file
+locks are almost useless in practice. To bypass this restriction other
+advisory locking mechanisms, based only on standard file operations,
+where invented. One of them is the so-called \emph{dot-locking} scheme
+where the lock of \textit{file-name} is represented by the file
+\textit{file-name}\texttt{.lock}. Care is taken that only one process
+may generate the lock for a given file.
+
+Here is scsh's interface to dot-locking:
+
+\defun {obtain-dot-lock} {file-name [interval retry-number stale-time]} {\boolean}
+
+\begin{desc}
+  Tries to obtain the lock for \var{file-name}. If the file is already
+  locked, the thread sleeps for \var{interval} seconds (default is 1)
+  before it retries. If the lock cannot be obtained after
+  \var{retry-number} attempts, the procedure returns \sharpf,
+  otherwise \sharpt. The default value of \var{retry-number} is
+  \sharpf{} which corresponds to an infinite number of retires.
+  
+  If \var{stale-time} is non-\sharpf, it specifies the minimum age a
+  lock may have (in seconds) before it is considered \textit{stale}.
+  \ex{Obtain-dot-lock} attempts to delete stale locks.  If it was
+  succcessful obtaining a lock after breaking it, \ex{obtain-dot-lock}
+  returns \ex{broken}.  If \var{stale-time} is \sharpf,
+  \ex{obtain-dot-lock} never considers a lock stale.  The default for
+    \var{stale-time} is 300.
+    
+    Note that it is possible that \ex{obtain-dot-lock} breaks a lock
+    but nevertheless fails to obtain it otherwise.  If it is necessary
+    to handle this case specially, use \ex{break-dot-lock} directly
+    (see below) rather than specifying a non-\sharpf{} \var{stale-time}
+\end{desc}
+
+\defun {break-dot-lock} {file-name} {undefined}
+
+\begin{desc}
+  Breaks the lock for \var{file-name} if one exists.  Note that
+  breaking a lock does \emph{not} imply a subsequent
+  \ex{obtain-dot-lock} will succeed, as another party may have
+  acquired the lock between \ex{break-dot-lock} and
+  \ex{obtain-dot-lock}.
+\end{desc}
+
+\defun {release-dot-lock} {file-name} {\boolean}
+
+\begin{desc}
+  Releases the lock for \var{file-name}. On success,
+  \ex{release-dot-lock} returns \sharpt, otherwise \sharpf. Note that
+  this procedure can also be used to break the lock for
+  \var{file-name}.
+\end{desc}
+
+
+\defun{with-dot-lock*} {file-name thunk} {value(s) of thunk}
+\dfnx{with-dot-lock} {file-name body \ldots} {value(s) of body}{syntax}
+  
+\begin{desc}
+  The procedure \ex{with-dot-lock*} obtains the requested lock, and
+  then calls \ex{(\var{thunk})}. When \var{thunk} returns, the lock is
+  released.  A non-local exit (\eg, throwing to a saved continuation
+  or raising an exception) also causes the lock to be released.
+  
+  After a normal return from \var{thunk}, its return values are
+  returned by \ex{with-dot-lock*}.  The \ex{with-dot-lock} special
+  form is equivalent syntactic sugar.
+\end{desc}
+
+\section{Syslog facility}
+\label{syslog-facility}
+
+(Note: the functionality presented in this section is still somewhat
+experimental and thus subject to interface changes.)
+
+The procedures in this section provide access to the 4.2BSD syslog
+facility present in most POSIX systems.  The functionality is in a
+structure called \ex{syslog}.  There's an additional structure
+\ex{syslog-channels} documented below.  The scsh interface to
+the syslog facility differs significantly from that of the Unix
+library functionality in order to support multiple simultaneous
+connections to the syslog facility.
+
+Log messages carry a variety of parameters beside the text of the
+message itself, namely a set of options controlling the output format
+and destination, the facility identifying the class of programs the
+message is coming from, an identifier specifying the conrete program,
+and the level identifying the importance of the message.  Moreover, a
+log mask can prevent messages at certain levels to be actually sent to
+the syslog daemon.
+
+\subsection*{Log options}
+
+A log option specifies details of the I/O behavior of the syslog
+facility.  A syslog option is an element of a finite type (see
+the \scm~manual) constructed by the
+\ex{syslog-option} macro.  The syslog facility works with sets of
+options which are represented as enum sets (see
+the \scm~manual).
+
+\dfn{syslog-option}{option-name}{option}{syntax}
+
+\defun{syslog-option?}{x}{boolean}
+
+\defun{make-syslog-options}{list}{options}
+
+\dfn{syslog-options}{option-name \ldots}{options}{syntax}
+
+\defun{syslog-options?}{x}{boolean}
+
+\begin{desc}
+\ex{Syslog-option} constructs a log option from the name of an
+option.  (The possible names are listed below.)  \ex{Syslog-option?}
+is a predicate for log options.  Options are comparable using
+\ex{eq?}.  \ex{Make-syslog-options} constructs a set of options
+from a list of options.  \ex{Syslog-options} is a macro which
+expands into an expression returning a set of options from names.
+\ex{Syslog-options?} is a predicate for sets of options.
+\end{desc}
+%                               
+Here is a list of possible names of syslog options:
+
+\begin{description}
+\item[\ex{console}]
+  If syslog cannot pass the message to syslogd it will attempt to
+  write the message to the console.
+
+\item[\ex{delay}]
+  Delay opening the connection to syslogd immediately until the first
+  message is logged.
+
+\item[\ex{no-delay}]
+  Open the connection to syslogd immediately.  Normally
+  the open is delayed until the first message is logged.
+  Useful for programs that need to manage the order in which
+  file descriptors are allocated.
+
+  \noindent\textbf{NOTA BENE:}
+  The \ex{delay} and \ex{no-delay} options are included for
+  completeness, but do not have the expected effect in the present
+  Scheme interface: Because the Scheme interface has to multiplex
+  multiple simultaneous connections to the syslog facility over a
+  single one, open and close operations on that facility happen at
+  unpredictable times.
+  
+\item[\ex{log-pid}]
+  Log the process id with each message: useful for identifying
+  instantiations of daemons.
+\end{description}
+
+\subsection*{Log facilities}
+
+A log facility identifies the originator of a log message from a
+finite set known to the system.  Each originator is identified by a
+name:
+
+\dfn{syslog-facility}{facility-name}{facility}{syntax}
+\defun{syslog-facility?}{x}{boolean}
+
+\begin{desc}
+  \ex{Syslog-facility} is macro that expands into an expression
+  returning a facility for a given name.  \ex{Syslog-facility?} is a
+  predicate for facilities.  Facilities are comparable via \ex{eq?}.
+\end{desc}
+%
+Here is a list of possible names of syslog facilities:
+
+\begin{description}
+\item[\ex{authorization}]
+  The authorization system: login, su, getty, etc.
+
+\item[\ex{cron}]
+  The cron daemon.
+
+\item[\ex{daemon}]
+  System daemons, such as routed, that are not provided for explicitly
+  by other facilities.
+
+\item[\ex{kernel}]
+  Messages generated by the kernel.
+
+\item[\ex{lpr}]
+  The line printer spooling system: lpr, lpc, lpd, etc.
+
+\item[\ex{mail}]
+  The mail system.
+
+\item[\ex{news}]
+  The network news system.
+
+\item[\ex{user}]
+  Messages generated by random user processes.
+
+\item[\ex{uucp}]
+  The uucp system.
+
+\item[\ex{local0} \ex{local1} \ex{local2} \ex{local3} \ex{local4} \ex{local5} \ex{local6} \ex{local7}]
+  Reserved for local use.
+\end{description}
+                                
+\subsection*{Log levels}
+
+A log level identifies the importance of a message from a fixed set
+of possible levels.
+
+\dfn{syslog-level}{level-name}{level}{syntax}
+\defun{syslog-level?}{x}{boolean}
+%
+\begin{desc}
+  \ex{Syslog-level} is macro that expands into an expression returning
+  a facility for a given name.  \ex{Syslog-level?} is a predicate for
+  facilities.  Levels are comparable via \ex{eq?}.
+\end{desc}
+%
+Here is a list of possible names of syslog levels:
+
+\begin{description}
+\item[\ex{emergency}]
+  A panic condition.  This is normally broadcast to all users.
+
+\item[\ex{alert}]
+  A condition that should be corrected immediately, such as a
+  corrupted system database.
+
+\item[\ex{critical}]
+  Critical conditions, e.g., hard device errors.
+
+\item[\ex{error}]
+  Errors.
+
+\item[\ex{warning}]
+  Warning messages.
+
+\item[\ex{notice}]
+  Conditions that are not error conditions, but should possibly be
+  handled specially.
+
+\item[\ex{info}]
+  Informational messages.
+
+\item[\ex{debug}]
+  Messages that contain information normally of use only when
+  debugging a program.
+\end{description}
+
+\subsection*{Log masks}
+
+A log masks can mask out log messages at a set of levels.  A log
+mask is an enum set of log levels.
+
+\defun{make-syslog-mask}{list}{mask}
+\dfn{syslog-mask}{level-name \ldots}{mask}{syntax}
+\defvar{syslog-mask-all}{mask}
+\defun{syslog-mask-upto}{level}{mask}
+\defun{syslog-mask?}{x}{boolean}
+
+\begin{desc}
+  \ex{Make-syslog-mask} constructs a mask from a list of levels.
+  \ex{Syslog-mask} is a macro which constructs a mask from names of
+  levels.  \ex{Syslog-mask-all} is a predefined log mask containing
+  all levels.  \ex{Syslog-mask-upto} returns a mask consisting of all
+  levels up to and including a certain level, starting with
+  \ex{emergency}.
+\end{desc}
+
+\subsection*{Logging}
+
+Scheme~48 dynamically maintains implicit connections to the syslog
+facility specifying a current identifier, current options, a current
+facility and a current log mask.  This implicit connection is held in
+a thread fluid (see
+Section~\ref{sec:ps_interac}).  Hence, every thread
+maintains it own implicit connection to syslog.  Note that the
+connection is not implicitly preserved across a \ex{spawn}, but it
+is preserved across a \ex{fork-thread}:
+
+
+\defun{with-syslog-destination}{string options facility mask thunk}{value}
+\defun{set-syslog-destination!}{string options facility mask}{undefined}
+%
+\begin{desc}
+  \ex{With-syslog-destination} dynamically binds parameters of the
+  implicit connection to the syslog facility and runs \var{thunk}
+  within those parameter bindings, returning what \var{thunk}
+  returns.  Each of the parameters may be \ex{\#f} in which case the
+  previous values will be used.  \ex{Set-syslog-destination!} sets the
+  parameters of the implicit connection of the current thread.
+\end{desc}
+
+\defun{syslog}{level message}{undefined}
+\defun{syslog}{level message [string options syslog-facility]}{undefined}
+%
+\begin{desc}
+  \ex{Syslog} actually logs a message.  Each of the parameters of the
+  implicit connection (except for the log mask) can be explicitly
+  specified as well for the current call to \ex{syslog}, overriding
+  the parameters of the channel.  The parameters revert to their
+  original values after the call.
+\end{desc}
+
+\subsection*{Syslog channels}
+%
+The \ex{syslog-channels} structure allows direct manipulation of
+syslog channels, the objects that represent connections to the syslog
+facility.  Note that it is
+not necessary to explicitly open a syslog channel to do logging.
+
+\defun{open-syslog-channel}{string options facility mask}{channel}
+\defun{close-syslog-channel}{channel}{undefined}
+\defun{syslog}{level message channel}{undefined}
+%
+\begin{desc}
+  \ex{Open-syslog-channel} and \ex{close-syslog-channel} create and
+  destroy a connection to the syslog facility, respectively.  The
+  specified form of calling \ex{syslog} logs to the specified channel.
+\end{desc}
+
+
+\section{MD5 interface}
+\label{sec:md5}
+
+Scsh provides a direct interface to the MD5 functions to compute the
+``fingerprint'' or ``message digest'' of a file or string. It uses the
+C library written by Colin Plum.
+
+\defun{md5-digest-for-string}{string}{md5-digest}
+\begin{desc}
+  Calculates the MD5 digest for the given string.
+\end{desc}
+\defun{md5-digest-for-port}{port [buffer-size]}{md5-digest}
+\begin{desc}
+  Reads the contents of the port and calculates the MD5 digest for it.
+  The optional argument \var{buffer-size} determines the size of the
+  port's input buffer in bytes. It defaults to 1024 bytes.
+\end{desc}
+
+\defun{md5-digest?}{thing}{boolean}
+\begin{desc}
+  The type predicate for MD5 digests: \ex{md5-digest?} returns true if
+  and only if \var{thing} is a MD5 digest.
+\end{desc}
+\defun{md5-digest->number}{md5-digest}{number}
+\begin{desc}
+  Returns the number corresponding to the MD5 digest.
+\end{desc}
+\defun{number->md5-digest}{number}{md5-digest}
+\begin{desc}
+  Creates a MD5 digest from a number.
+\end{desc}
+
+\defun{make-md5-context}{}{md5-context}
+\defunx{md5-context?}{thing}{boolean}
+\defunx{update-md5-context!}{md5-context string}\undefined
+\defunx{md5-context->md5-digest}{md5-context}{md5-digest}
+\begin{desc}
+  These procedures provide a low-level interface to the library. A
+  \var{md5-context} stores the state of a MD5 computation, it is
+  created by \ex{make-md5-context}, its type predicate is
+  \ex{md5-context?}. The procedure \ex{update-md5-context!} extends
+  the \var{md5-context} by the given string. Finally,
+  \ex{md5-context->md5-digest} returns the \var{md5-digest} for the
+  \var{md5-context}. With these procedures it is possible to
+  incrementally add strings to a \var{md5-context} before computing
+  the digest.
+\end{desc}
+
+\section{Configuration variables}
+\label{sec:configure}
+
+This section describes procedures to access the configuration
+parameters used to compile scsh and flags needed to build C extensions
+for scsh.
+
+\defun{host}{}{string}
+\defunx{machine}{}{string}
+\defunx{vendor}{}{string}
+\defunx{os}{}{string}
+\begin{desc}
+  These procedures return the description of the host, scsh was built
+  on, as determined by the script \texttt{config.guess}.
+\end{desc}
+%
+\defun{prefix}{}{string}
+\defunx{exec-prefix}{}{string}
+\defunx{bin-dir}{}{string}
+\defunx{lib-dir}{}{string}
+\defunx{include-dir}{}{string}
+\defunx{man-dir}{}{string}
+\begin{desc}
+  These procedures return the various directories of
+  the scsh installation.
+\end{desc}
+%
+\defun{lib-dirs-list}{}{symbol list}
+\begin{desc}
+  Returns the default list of library directories. See
+  Section~\ref{sec:scsh-switches} for more information about the
+  library search facility.
+\end{desc}
+%
+\defun{libs}{}{string}
+\defunx{defs}{}{string}
+\defunx{cflags}{}{string}
+\defunx{cppflags}{}{string}
+\defunx{ldflags}{}{string}
+\begin{desc}
+  The values returned by these procedures correspond to the values
+\texttt{make} used to compile scsh's C files.
+\end{desc}
+%
+\defunx{compiler-flags}{}{string}
+\begin{desc}
+  The procedure \var{compiler-flags} returns flags suitable for
+  running the C compiler when compiling a C file that uses scsh's
+  foreign function interface.
+\end{desc}
+
+\defun{linker-flags}{}{string}
+\begin{desc}
+  Scsh also comes as a library that can be linked into other programs.
+  The procedure \var{linker-flags} returns the appropriate flags to
+  link the scsh library to another program.
+\end{desc}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "man"
+%%% End: 

@@ -1,0 +1,254 @@
+%latex -*- latex -*-
+
+\chapter{Concurrent system programming}
+
+The Scheme Shell provides the user with support for concurrent programming.
+The interface consists of several parts:
+\begin{itemize}
+\item The thread system 
+\item Synchronization vehicles 
+\item Process state abstractions
+\end{itemize}
+Whereas the user deals with threads and synchronization explicitly,
+the process state abstractions are built into the rest of the system,
+almost transparent for the user. Section \ref{sec:ps_interac}
+describes the interaction between process state and threads.
+
+\section{Threads}
+
+A thread can be thought of as a procedure that can run independently of
+and concurrent to the rest of the system. The calling procedure fires
+the thread up and forgets about it.
+
+The current thread interface is completely taken from Scheme\ 48. This
+documentation is an extension of the file \texttt{doc/threads.txt}.
+
+The thread structure is named \texttt{threads}, it has to be opened explicitly.
+
+\defun {spawn} {thunk [name]} \undefined 
+
+Create and schedule a new thread that will execute \var{thunk}, a
+procedure with no arguments. Note that Scsh's \ex{spawn} does
+\textbf{not} return a reference to a thread object. The optional
+argument \var{name} is used when printing the thread. 
+
+The new thread will not inherit the values for the process state from
+its parent, see the procedure \texttt{fork-thread} in Section
+\ref{sec:ps_interac} for a way to create a thread with
+semantics similar to process forking.
+
+\defun {relinquish-timeslice} {} \undefined
+
+Let other threads run for a while. 
+
+\defun {sleep} {time} \undefined
+
+Puts the current thread into sleep for \var{time} milliseconds. The
+time at which the thread is run again may be longer of course.
+
+\defun {terminate-current-thread} {} {does-not-return}
+
+Kill the current thread. 
+
+Mainly for debugging purposes, there is also an interface to the
+internal representation of thread objects:
+
+\defun {current-thread} {} {thread-object}
+
+Return the object to which the current thread internally corresponds.
+Note that this procedure is exported by the package
+\texttt{threads-internal} only.
+
+\defun {thread?} {thing} {\boolean}
+
+Returns true iff \var{thing} is a  thread object. 
+
+\defun {thread-name} {thread} {name}
+
+\var{Name} corresponds to the second parameter that was given to
+\ex{spawn} when \var{thread} was created.
+
+\defun{thread-uid} {thread} {\integer}
+
+Returns a unique identifier for the current thread.
+
+\section{Locks}
+
+Locks are a simple mean for mutual exclusion. They implement a concept
+commonly known as \textit{semaphores}. Threads can obtain and release
+locks. If a thread tries to obtain a lock which is held by another
+thread, the first thread is blocked. To access the following
+procedures, you must open the structure \texttt{locks}.
+
+\defun{make-lock} {} {lock}
+
+Creates a lock. 
+
+\defun{lock?} {thing} {\boolean}
+
+Returns true iff \var{thing} is a lock.
+
+\defun{obtain-lock} {lock} {\undefined}
+
+Obtain \var{lock}. Causes the thread to block if the lock is held by
+a thread.
+
+\defun{maybe-obtain-lock} {lock} {\boolean}
+
+Tries to obtain \var{lock}, but returns false if the lock cannot be
+obtained.
+
+\defun{release-lock} {lock} {\boolean}
+
+Releases \var{lock}. Returns true if the lock immediately got a new
+owner, false otherwise.
+
+\defun{lock-owner-uid} {lock} {\integer}
+
+Returns the uid of the thread that currently holds \var{lock} or false
+if the lock is free.
+
+\section{Placeholders}
+Placeholers combine synchronization with value delivery. They can be
+thought of as special variables. After creation the value of the
+placeholder is undefined. If a thread tries to read the placeholders
+value this thread is blocked. Multiple threads are allowed to block on
+a single placeholder. They will continue running after another thread
+sets the value of the placeholder. Now all reading threads receive the
+value and continue executing. Setting a placeholder to two different
+values causes an error. The structure \texttt{placeholders} features
+the following procedures:
+
+\defun {make-placeholder} {} {placeholder}
+
+Creates a new placeholder.
+
+\defun {placeholder?} {thing} {\boolean}
+
+Returns true iff \var{thing} is a placeholder.
+
+\defun {placeholder-set!} {placeholder value} {\undefined}
+
+Sets the placeholders value to \var{value}. If the placeholder is
+already set to a \textit{different} value an exception is risen.
+
+\defun {placeholder-value} {placeholder} {value}
+
+Returns the value of the placeholder. If the placeholder is yet unset,
+the current thread is blocked until another thread sets the value by
+means of \ex{placeholder-set!}.
+
+\section{The event interface to interrupts}
+\label{sec:event-interf-interr}
+Scsh provides an synchronous interface to the asynchronous signals
+delivered by the operation system\footnote{Olin's paper ``Automatic
+  management of operation-system resources'' describes this system in
+  detail.}.  The key element in this system is an object called
+\textit{sigevent} which corresponds to the single occurrence of a
+signal. A sigevent has two fields: the Unix signal that occurred and a
+pointer to the sigevent that happened or will happen. That is, events
+are kept in a linked list in increasing-time order. Scsh's structure
+\texttt{sigevents} provides various procedures to access this list:
+
+\defun {most-recent-sigevent} {} {sigevent}
+
+Returns the most recent sigevent --- the head of the sigevent
+list.
+
+\defun {sigevent?} {object} {\boolean}
+
+The predicate for sigevents.
+
+\defun {next-sigevent} {pre-event type} {event} 
+
+Returns the next sigevent of type \texttt{type} after sigevent
+\texttt{pre-event}. If no such event exists, the procedure blocks.
+
+\defun {next-sigevent-set} {pre-event set} {event}
+
+Returns the next sigevent whose type is in \texttt{set} after
+\texttt{pre-event}. If no such event exists, the procdure blocks. 
+
+\defun {next-sigevent/no-wait} {pre-event type} {event or \sharpf}
+
+Same as \texttt{next-sigevent}, but returns \sharpf if no appropriate
+event exists.
+
+\defun {next-sigevent-set/no-wait} {set pre-event} {event or \sharpf}
+
+Same as \texttt{next-sigevent-set}, but returns \sharpf if no appropriate
+event exists.
+
+As a small example, consider this piece of code that toggles the
+variable \texttt{state} by USR1 and USR2:
+\begin{code}
+(define state #t)
+
+(let lp ((sigevent (most-recent-sigevent)))
+  (let ((next (next-sigevent sigevent interrupt/usr1)))
+    (set! state #f)
+    (let ((next (next-sigevent next interrupt/usr2)))
+      (set! state #t)
+      (lp next))))
+\end{code}
+
+\textbf{Warning:} The current version of scsh also defines
+asynchronous handlers for interrupts (See Section
+\ref{sec:int_handlers}). The default action of some of these handlers
+is to terminate the process in which case you will most likely not see
+an effect of the synchronous event interface described here. It is
+therefore recommended to disable the corresponding interrupt handler
+using \texttt{(set-interrupt-handler interrupt \#f)}.
+
+\section{Interaction between threads and process state}
+\label{sec:ps_interac}
+
+In Unix, a number of resources are global to the process: signal
+handlers, working directory, umask, environment, user and group ids.
+Modular programming is difficult in the context of this global state
+and for concurrent programming things get even worse. Section
+\ref{sec:event-interf-interr} presents how scsh turns
+the global, asynchronous signals handlers into modular, synchronous
+sigevents. Concurrent programming also benefit from sigevents as every
+thread may chase down the sigevent chain separately.
+
+Scsh treats the working directory, umask, environment, and the
+effective user/group ID as thread-local resources. The initial value
+of the resources is determined by the way a thread is started:
+\texttt{spawn} assigns the initial values whereas \texttt{fork-thread}
+adopts the values of its parent. Here is a detailed description of the
+whole facility:
+
+\begin{itemize}
+\item The procedures to access and modify the resources remain as
+  described in the previous chapters (\texttt{cwd} and \texttt{chdir},
+  \texttt{umask} and \texttt{set-umask}, \texttt{getenv} and
+  \texttt{putenv}).
+\item Every thread receives its own copy of each resource.
+\item If \texttt{spawn} is used to start a new thread, the values of
+  the resources are the same as they where at the start of scsh.
+\item The procedure 
+
+\defun {fork-thread} {thunk} \undefined 
+
+from the structure \texttt{thread-fluids} starts a thread which
+inherits the values of all resources from its parent. This behaviour
+is similar to what happens at process forking.
+\item The actual process state is updated only when necessary, i.e. on
+  access or modification but not on context switch from one thread
+  to another.
+\end{itemize}
+
+\defun{spoon} {thunk} \undefined
+
+This is just an alias for \ex{fork-thread} suggested by Alan Bawden.
+
+For user and group identities arbitrary changing is not possible.
+Therefore they remain global process state: If a thread changes one of
+these values, all other threads see the new value. Consequently, scsh
+does not provide \texttt{with-uid} and friends.
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "man"
+%%% End: 

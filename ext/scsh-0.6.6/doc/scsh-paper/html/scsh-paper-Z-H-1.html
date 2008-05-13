@@ -1,0 +1,75 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper.html">previous</a></span><span>, <a href="scsh-paper-Z-H-2.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<div align=right><table ><tr><td><em>
+<p>
+Although robust enough for general use, adventures  <br>
+into the esoteric periphery of the C shell may reveal <br>
+unexpected quirks.
+</em><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -- SunOS 4.1 csh(1) man page, 10/2/89
+</p>
+</td></tr></table></div>
+<p></p>
+<p></p>
+<p>
+</p>
+<a name="node_sec_Temp_1"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_Temp_1">Prologue</a></h1><p>Shell programming terrifies me. There is something about writing a simple
+shell script that is just much, much more unpleasant than writing a simple C
+program, or a simple C<small>O</small><small>M</small><small>M</small><small>O</small><small>N</small> L<small>I</small><small>S</small><small>P</small> program, or a simple Mips assembler program.
+Is it trying to remember what the rules are for all the different quotes? Is
+it having to look up the multi-phased interaction between filename expansion,
+shell variables, quotation, backslashes and alias expansion? Maybe it's having
+to subsequently look up which of the twenty or thirty flags I need for my
+grep, sed, and awk invocations. Maybe it just gets on my nerves that I have to
+run two complete programs simply to count the number of files in a directory
+(<tt>ls | wc -l</tt>), which seems like several orders of magnitude more cycles 
+than was really needed.</p>
+<p>
+Whatever it is, it's an object lesson in angst. Furthermore, during late-night
+conversations with office mates and graduate students, I have formed the
+impression that I am not alone. In late February<a name="call_footnote_Temp_2"></a><a href="#footnote_Temp_2"><sup><small>1</small></sup></a>, I got embroiled in a multi-way email flamefest about just exactly what it
+was about Unix that drove me nuts. In the midst of the debate, I did a rash
+thing.  I claimed that it would be easy and so much nicer to do shell
+programming from Scheme. Some functions to interface to the OS and a few
+straightforward macros would suffice to remove the spectre of <tt>#!/bin/csh</tt>
+from my life forever.  The serious Unix-philes in the debate expressed their
+doubts.  So I decided to go do it.</p>
+<p>
+Probably only take a week or two.</p>
+<p>
+
+</p>
+<p></p>
+<p></p>
+<p>
+</p>
+<p>
+<strong>Keywords: </strong>operating systems, programming languages, Scheme,
+Unix, shells, functional languages, systems programming.
+</p>
+<p>
+</p>
+<div class=footnoterule><hr></div><p></p>
+<div class=footnote><p><a name="footnote_Temp_2"></a><a href="#call_footnote_Temp_2"><sup><small>1</small></sup></a> February 1992, that
+is.</p>
+</div>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper.html">previous</a></span><span>, <a href="scsh-paper-Z-H-2.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

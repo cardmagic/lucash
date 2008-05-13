@@ -1,0 +1,395 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-9.html">previous</a></span><span>, <a href="man-Z-H-11.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_9"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_9">Chapter 9</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_9">Concurrent system programming</a></h1><p>The Scheme Shell provides the user with support for concurrent programming.
+The interface consists of several parts:
+</p>
+<ul>
+<li><p>The thread system 
+</p>
+<li><p>Synchronization vehicles 
+</p>
+<li><p>Process state abstractions
+</p>
+</ul><p>
+Whereas the user deals with threads and synchronization explicitly,
+the process state abstractions are built into the rest of the system,
+almost transparent for the user. Section <a href="#node_sec_9.5">9.5</a>
+describes the interaction between process state and threads.</p>
+<p>
+</p>
+<a name="node_sec_9.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_9.1">9.1&nbsp;&nbsp;Threads</a></h2><p>A thread can be thought of as a procedure that can run independently of
+and concurrent to the rest of the system. The calling procedure fires
+the thread up and forgets about it.</p>
+<p>
+The current thread interface is completely taken from Scheme 48. This
+documentation is an extension of the file <tt>doc/threads.txt</tt>.</p>
+<p>
+The thread structure is named <tt>threads</tt>, it has to be opened explicitly.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1326"></a></p>
+<div align=left><tt>(spawn <i>thunk [name]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Create and schedule a new thread that will execute <i>thunk</i>, a
+procedure with no arguments. Note that Scsh's <tt>spawn</tt> does
+<b>not</b> return a reference to a thread object. The optional
+argument <i>name</i> is used when printing the thread. </p>
+<p>
+The new thread will not inherit the values for the process state from
+its parent, see the procedure <tt>fork-thread</tt> in Section
+<a href="#node_sec_9.5">9.5</a> for a way to create a thread with
+semantics similar to process forking.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1328"></a></p>
+<div align=left><tt>(relinquish-timeslice<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Let other threads run for a while. </p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1330"></a></p>
+<div align=left><tt>(sleep <i>time</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Puts the current thread into sleep for <i>time</i> milliseconds. The
+time at which the thread is run again may be longer of course.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1332"></a></p>
+<div align=left><tt>(terminate-current-thread<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>does-not-return</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Kill the current thread. </p>
+<p>
+Mainly for debugging purposes, there is also an interface to the
+internal representation of thread objects:</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1334"></a></p>
+<div align=left><tt>(current-thread<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>thread-object</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Return the object to which the current thread internally corresponds.
+Note that this procedure is exported by the package
+<tt>threads-internal</tt> only.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1336"></a></p>
+<div align=left><tt>(thread? <i>thing</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns true iff <i>thing</i> is a  thread object. </p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1338"></a></p>
+<div align=left><tt>(thread-name <i>thread</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>name</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+<i>Name</i> corresponds to the second parameter that was given to
+<tt>spawn</tt> when <i>thread</i> was created.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1340"></a></p>
+<div align=left><tt>(thread-uid <i>thread</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>integer</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns a unique identifier for the current thread.</p>
+<p>
+</p>
+<a name="node_sec_9.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_9.2">9.2&nbsp;&nbsp;Locks</a></h2><p>Locks are a simple mean for mutual exclusion. They implement a concept
+commonly known as <i>semaphores</i>. Threads can obtain and release
+locks. If a thread tries to obtain a lock which is held by another
+thread, the first thread is blocked. To access the following
+procedures, you must open the structure <tt>locks</tt>.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1342"></a></p>
+<div align=left><tt>(make-lock<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>lock</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Creates a lock. </p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1344"></a></p>
+<div align=left><tt>(lock? <i>thing</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns true iff <i>thing</i> is a lock.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1346"></a></p>
+<div align=left><tt>(obtain-lock <i>lock</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Obtain <i>lock</i>. Causes the thread to block if the lock is held by
+a thread.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1348"></a></p>
+<div align=left><tt>(maybe-obtain-lock <i>lock</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Tries to obtain <i>lock</i>, but returns false if the lock cannot be
+obtained.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1350"></a></p>
+<div align=left><tt>(release-lock <i>lock</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Releases <i>lock</i>. Returns true if the lock immediately got a new
+owner, false otherwise.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1352"></a></p>
+<div align=left><tt>(lock-owner-uid <i>lock</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>integer</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns the uid of the thread that currently holds <i>lock</i> or false
+if the lock is free.</p>
+<p>
+</p>
+<a name="node_sec_9.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_9.3">9.3&nbsp;&nbsp;Placeholders</a></h2><p>Placeholers combine synchronization with value delivery. They can be
+thought of as special variables. After creation the value of the
+placeholder is undefined. If a thread tries to read the placeholders
+value this thread is blocked. Multiple threads are allowed to block on
+a single placeholder. They will continue running after another thread
+sets the value of the placeholder. Now all reading threads receive the
+value and continue executing. Setting a placeholder to two different
+values causes an error. The structure <tt>placeholders</tt> features
+the following procedures:</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1354"></a></p>
+<div align=left><tt>(make-placeholder<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>placeholder</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Creates a new placeholder.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1356"></a></p>
+<div align=left><tt>(placeholder? <i>thing</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns true iff <i>thing</i> is a placeholder.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1358"></a></p>
+<div align=left><tt>(placeholder-set! <i>placeholder value</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Sets the placeholders value to <i>value</i>. If the placeholder is
+already set to a <i>different</i> value an exception is risen.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1360"></a></p>
+<div align=left><tt>(placeholder-value <i>placeholder</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>value</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns the value of the placeholder. If the placeholder is yet unset,
+the current thread is blocked until another thread sets the value by
+means of <tt>placeholder-set!</tt>.</p>
+<p>
+</p>
+<a name="node_sec_9.4"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_9.4">9.4&nbsp;&nbsp;The event interface to interrupts</a></h2><p>
+Scsh provides an synchronous interface to the asynchronous signals
+delivered by the operation system<a name="call_footnote_Temp_42"></a><a href="#footnote_Temp_42"><sup><small>14</small></sup></a>.  The key element in this system is an object called
+<i>sigevent</i> which corresponds to the single occurrence of a
+signal. A sigevent has two fields: the Unix signal that occurred and a
+pointer to the sigevent that happened or will happen. That is, events
+are kept in a linked list in increasing-time order. Scsh's structure
+<tt>sigevents</tt> provides various procedures to access this list:</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1362"></a></p>
+<div align=left><tt>(most-recent-sigevent<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>sigevent</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns the most recent sigevent  --  the head of the sigevent
+list.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1364"></a></p>
+<div align=left><tt>(sigevent? <i>object</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+The predicate for sigevents.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1366"></a></p>
+<div align=left><tt>(next-sigevent <i>pre-event type</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>event</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+ <p>
+Returns the next sigevent of type <tt>type</tt> after sigevent
+<tt>pre-event</tt>. If no such event exists, the procedure blocks.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1368"></a></p>
+<div align=left><tt>(next-sigevent-set <i>pre-event set</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>event</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Returns the next sigevent whose type is in <tt>set</tt> after
+<tt>pre-event</tt>. If no such event exists, the procdure blocks. </p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1370"></a></p>
+<div align=left><tt>(next-sigevent/no-wait <i>pre-event type</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>event or <tt>#f</tt></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Same as <tt>next-sigevent</tt>, but returns <tt>#f</tt>if no appropriate
+event exists.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1372"></a></p>
+<div align=left><tt>(next-sigevent-set/no-wait <i>set pre-event</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>event or <tt>#f</tt></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+Same as <tt>next-sigevent-set</tt>, but returns <tt>#f</tt>if no appropriate
+event exists.</p>
+<p>
+As a small example, consider this piece of code that toggles the
+variable <tt>state</tt> by USR1 and USR2:
+</p>
+<blockquote><tt><br>
+(define&nbsp;state&nbsp;#t)<br>
+<br>
+(let&nbsp;lp&nbsp;((sigevent&nbsp;(most-recent-sigevent)))<br>
+&nbsp;&nbsp;(let&nbsp;((next&nbsp;(next-sigevent&nbsp;sigevent&nbsp;interrupt/usr1)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(set!&nbsp;state&nbsp;#f)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;((next&nbsp;(next-sigevent&nbsp;next&nbsp;interrupt/usr2)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(set!&nbsp;state&nbsp;#t)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(lp&nbsp;next))))<br>
+</tt></blockquote><p>
+<b>Warning:</b> The current version of scsh also defines
+asynchronous handlers for interrupts (See Section
+<a href="man-Z-H-4.html#node_sec_3.9.0.1">3.9.0.1</a>). The default action of some of these handlers
+is to terminate the process in which case you will most likely not see
+an effect of the synchronous event interface described here. It is
+therefore recommended to disable the corresponding interrupt handler
+using <tt>(set-interrupt-handler interrupt #f)</tt>.</p>
+<p>
+</p>
+<a name="node_sec_9.5"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_9.5">9.5&nbsp;&nbsp;Interaction between threads and process state</a></h2><p></p>
+<p>
+In Unix, a number of resources are global to the process: signal
+handlers, working directory, umask, environment, user and group ids.
+Modular programming is difficult in the context of this global state
+and for concurrent programming things get even worse. Section
+<a href="#node_sec_9.4">9.4</a> presents how scsh turns
+the global, asynchronous signals handlers into modular, synchronous
+sigevents. Concurrent programming also benefit from sigevents as every
+thread may chase down the sigevent chain separately.</p>
+<p>
+Scsh treats the working directory, umask, environment, and the
+effective user/group ID as thread-local resources. The initial value
+of the resources is determined by the way a thread is started:
+<tt>spawn</tt> assigns the initial values whereas <tt>fork-thread</tt>
+adopts the values of its parent. Here is a detailed description of the
+whole facility:</p>
+<p>
+</p>
+<ul>
+<li><p>The procedures to access and modify the resources remain as
+described in the previous chapters (<tt>cwd</tt> and <tt>chdir</tt>,
+<tt>umask</tt> and <tt>set-umask</tt>, <tt>getenv</tt> and
+<tt>putenv</tt>).
+</p>
+<li><p>Every thread receives its own copy of each resource.
+</p>
+<li><p>If <tt>spawn</tt> is used to start a new thread, the values of
+the resources are the same as they where at the start of scsh.
+</p>
+<li><p>The procedure </p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1374"></a></p>
+<div align=left><tt>(fork-thread <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+from the structure <tt>thread-fluids</tt> starts a thread which
+inherits the values of all resources from its parent. This behaviour
+is similar to what happens at process forking.
+</p>
+<li><p>The actual process state is updated only when necessary, i.e. on
+access or modification but not on context switch from one thread
+to another.
+</p>
+</ul><p></p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1376"></a></p>
+<div align=left><tt>(spoon <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<p>
+This is just an alias for <tt>fork-thread</tt> suggested by Alan Bawden.</p>
+<p>
+For user and group identities arbitrary changing is not possible.
+Therefore they remain global process state: If a thread changes one of
+these values, all other threads see the new value. Consequently, scsh
+does not provide <tt>with-uid</tt> and friends.</p>
+<p>
+
+</p>
+<p>
+</p>
+<div class=footnoterule><hr></div><p></p>
+<div class=footnote><p><a name="footnote_Temp_42"></a><a href="#call_footnote_Temp_42"><sup><small>14</small></sup></a> Olin's paper ``Automatic
+management of operation-system resources'' describes this system in
+detail.</p>
+</div>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-9.html">previous</a></span><span>, <a href="man-Z-H-11.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

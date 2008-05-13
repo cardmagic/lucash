@@ -1,0 +1,76 @@
+% Document style option "draftfooter"
+% -- usage:  \documentstyle[...,draftfooter,...]{...}
+% -- puts "DRAFT" with date and time in page footer
+%
+% Olin Shivers 1/17/94
+% - Hacked from code I used in my dissertation and from code in a
+%   drafthead.sty package written by Stephen Page sdpage@uk.ac.oxford.prg.
+%----------------------------------------------------------------------------
+
+%
+% compute the time in hours and minutes; make new variables \timehh and \timemm
+%
+\newcount\timehh\newcount\timemm
+\timehh=\time 
+\divide\timehh by 60 \timemm=\time
+\count255=\timehh\multiply\count255 by -60 \advance\timemm by \count255
+%
+
+\def\draftbox{{\protect\small\bf \fbox{DRAFT}}}
+\def\drafttime{%
+    {\protect\small\sl\today\ -- \ifnum\timehh<10 0\fi%
+     \number\timehh\,:\,\ifnum\timemm<10 0\fi\number\timemm}}
+\def\drafttimer{\protect\makebox[0pt][r]{\drafttime}}
+\def\drafttimel{\protect\makebox[0pt][l]{\drafttime}}
+
+\def\thepagel{\protect\makebox[0pt][l]{\rm\thepage}}
+\def\thepager{\protect\makebox[0pt][r]{\rm\thepage}}
+
+% Header is empty.
+% Footer is "date     DRAFT     pageno"
+\def\ps@plain{
+  \let\@mkboth\@gobbletwo
+  \let\@oddhead\@empty \let\@evenhead\@empty
+
+  \def\@oddfoot{\reset@font\rm\drafttimel\hfil\draftbox\hfil\thepager}
+  \if@twoside
+    \def\@evenfoot{\reset@font\rm\thepagel\hfil\draftbox\hfil\drafttimer}
+  \else \let\@evenfoot\@oddfoot
+  \fi
+}
+
+% Aux macro --  sets footer to be "date          DRAFT".
+\def\@draftfooters{
+  \def\@oddfoot{\reset@font\rm\drafttimel\hfil\draftbox}
+  \if@twoside
+    \def\@evenfoot{\reset@font\rm\draftbox\hfil\drafttimer}
+  \else \let\@evenfoot\@oddfoot
+  \fi
+  }
+
+% Header is empty.
+% Footer is "date          DRAFT".
+\def\ps@empty{
+  \let\@mkboth\@gobbletwo
+  \let\@oddhead\@empty \let\@evenhead\@empty
+  \@draftfooters
+  }
+
+% Header is defined by the document style (article, book, etc.).
+% Footer is "date          DRAFT".
+\let\@draftoldhead\ps@headings
+\def\ps@headings{
+  \@draftoldhead % Do the default \pagestyle{headings} stuff.
+  \@draftfooters % Then define the draft footers:
+  }
+
+% Header is defined by the document style (article, book, etc.),
+%     and filled in by user's \markboth and \markright commands.
+% Footer is "date          DRAFT".
+\let\@draftoldmyhead\ps@myheadings
+\def\ps@myheadings{
+  \@draftoldmyhead % Do the default \pagestyle{myheadings} stuff.
+  \@draftfooters   % Then define the draft footers:
+  }
+
+\ps@plain

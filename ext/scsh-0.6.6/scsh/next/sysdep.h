@@ -1,0 +1,2 @@
+#undef HAVE_SIGACTION
+#define HAVE_SIGACTION

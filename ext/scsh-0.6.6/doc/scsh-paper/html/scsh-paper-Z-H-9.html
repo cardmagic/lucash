@@ -1,0 +1,81 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-8.html">previous</a></span><span>, <a href="scsh-paper-Z-H-10.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_7"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_7">7&nbsp;&nbsp;Lexical issues</a></h1><p></p>
+<p>
+Scsh's lexical syntax is not fully R4RS-compliant in two ways:
+</p>
+<ul>
+<li><p>In scsh, symbol case is preserved by <tt>read</tt> and is significant on
+symbol comparison. This means 
+</p>
+<blockquote><tt>(run (less Readme))</tt></blockquote>displays the right file.<p>
+</p>
+<li><p>``<tt>-</tt>'' and ``<tt>+</tt>'' are allowed to begin symbols. 
+So the following are legitimate symbols:
+</p>
+<blockquote><tt>-O2 -geometry +Wn</tt></blockquote></ul><p>
+Scsh also extends R4RS lexical syntax in the following ways:
+</p>
+<ul>
+<li><p>``<tt>|</tt>'' and ``<tt>.</tt>'' are symbol constituents.
+This allows <tt>|</tt> for the pipe symbol, and <tt>..</tt> for the parent-directory
+symbol. (Of course, ``<tt>.</tt>'' alone is not a symbol, but a 
+dotted-pair marker.)</p>
+<p>
+</p>
+<li><p>A symbol may begin with a digit.
+So the following are legitimate symbols:
+</p>
+<blockquote><tt>9x15 80x36-3+440</tt></blockquote><p>
+</p>
+<li><p>Strings are allowed to contain the A<small>N</small><small>S</small><small>I</small> C escape sequences
+such as <code class=verbatim>\n</code> and <code class=verbatim>\161</code>.</p>
+<p>
+</p>
+<li><p><tt>#!</tt> is a comment read-macro similar to <tt>;</tt>. 
+This is important for writing shell scripts.
+</p>
+</ul><p></p>
+<p>
+The lexical details of scsh are perhaps a bit contentious.
+Extending the symbol syntax remains backwards compatible
+with existing correct R4RS code.
+Since flags to Unix programs always begin with a dash,
+not extending the syntax would have required the user to explicitly
+quote every flag to a program, as in
+</p>
+<blockquote><tt>(run (cc &quot;-O&quot; &quot;-o&quot; &quot;-c&quot; main.c)).</tt></blockquote>This is unacceptably obfuscatory, so the change was made to cover
+these sorts of common Unix flags.<p>
+More serious was the decision to make symbols read case-sensitively, 
+which introduces a true backwards incompatibility with R4RS Scheme.
+This was a true case of clashing world-views: 
+Unix's tokens are case-sensitive; Scheme's, are not.</p>
+<p>
+It is also unfortunate that the single-dot token, ``<tt>.</tt>'', is both
+a fundamental Unix file name and a deep, primitive syntactic token
+in Scheme -- it means the following will not parse correctly in scsh:
+</p>
+<blockquote><tt>(run/strings (find . -name *.c -print))</tt></blockquote>You must instead quote the dot: 
+<blockquote><tt>(run/strings (find &quot;.&quot; -name *.c -print))</tt></blockquote><p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-8.html">previous</a></span><span>, <a href="scsh-paper-Z-H-10.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

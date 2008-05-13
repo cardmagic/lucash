@@ -1,0 +1,610 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-2.html">previous</a></span><span>, <a href="man-Z-H-4.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_2"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_2">Chapter 2</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_2">Process notation</a></h1><p>
+Scsh has a notation for controlling Unix processes that takes the
+form of s-expressions; this notation can then be embedded inside of 
+standard Scheme code.
+The basic elements of this notation are <em>process forms</em>, 
+<em>extended process forms</em>, and <em>redirections</em>.</p>
+<p>
+</p>
+<a name="node_sec_2.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_2.1">2.1&nbsp;&nbsp;Extended process forms and I/O redirections</a></h2><p>An <em>extended process form</em> is a specification of a Unix process to
+run, in a particular I/O environment:
+</p>
+<blockquote><tt><i>epf</i> ::= (<i>pf</i>  <i>redir</i><sub>1</sub> <tt>...</tt>  <i>redir</i><sub><em>n</em></sub> )</tt></blockquote>where <i>pf</i> is a process form and the <i>redir</i><sub><em>i</em></sub> are redirection specs.
+A <em>redirection spec</em> is one of:
+<blockquote>
+<table border=0><tr><td valign=top ><tt>(&lt; <i>[fdes]</i> <i>file-name</i>)</tt> </td><td valign=top ><tt>Open file for read.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(&gt; <i>[fdes]</i> <i>file-name</i>)</tt> </td><td valign=top ><tt>Open file create/truncate.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(&lt;&lt; <i>[fdes]</i> <i>object</i>)</tt>   </td><td valign=top ><tt>Use <i>object</i>'s printed rep.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(&gt;&gt; <i>[fdes]</i> <i>file-name</i>)</tt> </td><td valign=top ><tt>Open file for append.</tt>
+</td></tr>
+<tr><td valign=top ><tt>(= <i>fdes</i> <i>fdes/port</i>)</tt>    </td><td valign=top ><tt>Dup2</tt>
+</td></tr>
+<tr><td valign=top ><tt>(- <i>fdes/port</i>)</tt>               </td><td valign=top ><tt>Close <i>fdes/port</i>.</tt>
+</td></tr>
+<tr><td valign=top ><tt>stdports</tt>                          </td><td valign=top ><tt>0,1,2 dup'd from standard ports.</tt>
+</td></tr></table>
+</blockquote>
+The input redirections default to file descriptor 0; 
+the output redirections default to file descriptor 1.<p>
+The subforms of a redirection are implicitly backquoted, 
+and symbols stand for their print-names. 
+So <tt>(&gt; ,x)</tt> means 
+``output to the file named by Scheme variable <tt>x</tt>,'' 
+and <tt>(&lt; /usr/shivers/.login)</tt> means ``read from  <tt>/usr/shivers/.login</tt>.''</p>
+<p>
+Here are two more examples of I/O redirection:
+</p>
+<div align=center><table><tr><td>
+
+<table width=100%><tr><td><tt><br>
+(&lt;&nbsp;,(vector-ref&nbsp;fv&nbsp;i))&nbsp;<br>
+(&gt;&gt;&nbsp;2&nbsp;/tmp/buf)</tt></td></tr></table>
+</td></tr></table></div>
+
+These two redirections cause the file <tt>fv[i]</tt> to be opened on stdin, and
+<tt>/tmp/buf</tt> to be opened for append writes on stderr.<p>
+The redirection <tt>(&lt;&lt; <i>object</i>)</tt> causes input to come from the 
+printed representation of <i>object</i>. 
+For example,
+</p>
+<blockquote><tt>(&lt;&lt; &quot;The quick brown fox jumped over the lazy dog.&quot;)</tt></blockquote>causes reads from stdin to produce the characters of the above string.
+The object is converted to its printed representation using the <tt>display</tt>
+procedure, so
+<blockquote><tt>(&lt;&lt; (A five element list))</tt></blockquote>is the same as
+<blockquote><tt>(&lt;&lt; &quot;(A five element list)&quot;)</tt></blockquote>is the same as
+<blockquote><tt>(&lt;&lt; ,(reverse '(list element five A))).</tt></blockquote>(Here we use the implicit backquoting feature to compute the list to 
+be printed.)<p>
+The redirection <tt>(= <i>fdes</i> <i>fdes/port</i>)</tt> causes <i>fdes/port</i> 
+to be dup'd into file descriptor <i>fdes</i>.
+For example, the redirection
+</p>
+<blockquote><tt>(= 2 1)</tt></blockquote>causes stderr to be the same as stdout. 
+<i>fdes/port</i> can also be a port, for example:
+<blockquote><tt>(= 2 ,(current-output-port))</tt></blockquote>causes stderr to be dup'd from the current output port. 
+In this case,  it is an error if the port is not a file port
+(<em>e.g.</em>, a string port).
+More complex redirections can be accomplished using the <tt>begin</tt>
+process form, discussed below, which gives the programmer full control
+of I/O redirection from Scheme.<p>
+</p>
+<a name="node_sec_2.1.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_2.1.1">2.1.1&nbsp;&nbsp;Port and file descriptor sync</a></h3><p></p>
+
+It's important to remember that rebinding Scheme's current I/O ports
+(<em>e.g.</em>, using <tt>call-with-input-file</tt> to rebind the value of 
+<tt>(current-input-port)</tt>)
+does <em>not</em> automatically ``rebind'' the file referenced by the
+Unix stdio file descriptors 0, 1, and 2.
+This is impossible to do in general, since some Scheme ports are 
+not representable as Unix file descriptors.
+For example, many Scheme implementations provide ``string ports,'' 
+that is, ports that collect characters sent to them into memory buffers.
+The accumulated string can later be retrieved from the port as a string.
+If a user were to bind <tt>(current-output-port)</tt> to such a port, it would
+be impossible to associate file descriptor 1 with this port, as it
+cannot be represented in Unix.
+So, if the user subsequently forked off some other program as a subprocess,
+that program would of course not see the Scheme string port as its standard
+output.
+<p>
+To keep stdio synced with the values of Scheme's current I/O ports,
+use the special redirection <tt>stdports</tt>.
+This causes 0, 1, 2 to be redirected from the current Scheme standard ports.
+It is equivalent to the three redirections:
+</p>
+<blockquote><tt><br>
+(=&nbsp;0&nbsp;,(current-input-port))<br>
+(=&nbsp;1&nbsp;,(current-output-port))<br>
+(=&nbsp;2&nbsp;,(error-output-port))</tt></blockquote>
+The redirections are done in the indicated order.  This will cause an error if
+one of the current I/O ports isn't a Unix port (<em>e.g.</em>, if one is a string
+port).
+This Scheme/Unix I/O synchronisation can also be had in Scheme code 
+(as opposed to a redirection spec) with the <tt>(stdports-&gt;stdio)</tt>
+procedure.<p>
+</p>
+<a name="node_sec_2.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_2.2">2.2&nbsp;&nbsp;Process forms</a></h2><p>A <em>process form</em> specifies a computation to perform as an independent
+Unix process. It can be one of the following:
+</p>
+<blockquote>
+<table width=100%><tr><td><tt><br>
+(begin&nbsp;.&nbsp;<i>scheme-code</i>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(|&nbsp;<i>pf</i><sub>1</sub>&nbsp;<tt>...</tt>&nbsp;<i>pf</i><sub><em>n</em></sub>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(|+&nbsp;<i>connect-list</i>&nbsp;<i>pf</i><sub>1</sub>&nbsp;<tt>...</tt>&nbsp;<i>pf</i><sub><em>n</em></sub>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(epf&nbsp;.&nbsp;<i>epf</i>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+(<i>prog</i>&nbsp;<i>arg</i><sub>1</sub>&nbsp;<tt>...</tt>&nbsp;<i>arg</i><sub><em>n</em></sub>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+</tt></td></tr></table>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<table width=100%><tr><td><tt><br>
+;&nbsp;Run&nbsp;<i>scheme-code</i>&nbsp;in&nbsp;a&nbsp;fork.<br>
+;&nbsp;Simple&nbsp;pipeline<br>
+;&nbsp;Complex&nbsp;pipeline<br>
+;&nbsp;An&nbsp;extended&nbsp;process&nbsp;form.<br>
+;&nbsp;Default:&nbsp;exec&nbsp;the&nbsp;program.<br>
+</tt></td></tr></table>
+</blockquote>
+The default case <tt>(<i>prog</i> <i>arg</i><sub>1</sub> <tt>...</tt> <i>arg</i><sub><em>n</em></sub>)</tt> 
+is also implicitly backquoted.
+That is, it is equivalent to:
+<blockquote><tt>(begin (apply exec-path `(<i>prog</i> <i>arg</i><sub>1</sub> <tt>...</tt> <i>arg</i><sub><em>n</em></sub>)))</tt></blockquote><tt>Exec-path</tt> is the version of the <tt><a href="http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html">exec()</a></tt> system call that 
+uses scsh's path list to search for an executable.
+The program and the arguments must be either strings, symbols, or integers.
+Symbols and integers are coerced to strings.
+A symbol's print-name is used.
+Integers are converted to strings in base 10.
+Using symbols instead of strings is convenient, since it suppresses the
+clutter of the surrounding <tt>&quot;<tt>...</tt>&quot;</tt> quotation marks.
+To aid this purpose, scsh reads symbols in a case-sensitive manner, 
+so that you can say
+<blockquote><tt>(more Readme)</tt></blockquote>and get the right file.<p>
+A <i>connect-list</i> is a specification of how two processes are to be wired
+together by pipes. 
+It has the form <tt>((<i>from</i><sub>1</sub> <i>from</i><sub>2</sub> <tt>...</tt> <i>to</i>) <tt>...</tt>)</tt>
+and is implicitly backquoted.
+For example,
+</p>
+<blockquote><tt>(|+ ((1 2 0) (3 1)) <i>pf</i><sub>1</sub> <i>pf</i><sub>2</sub>)</tt></blockquote>runs <i>pf</i><sub>1</sub> and <i>pf</i><sub>2</sub>. 
+The first clause <tt>(1 2 0)</tt> causes <i>pf</i><sub>1</sub>'s 
+stdout (1) and stderr (2) to be connected via pipe 
+to <i>pf</i><sub>2</sub>'s stdin (0). 
+The second clause <tt>(3 1)</tt> causes <i>pf</i><sub>1</sub>'s file descriptor 3 to be
+connected to <i>pf</i><sub>2</sub>'s file descriptor 1.
+<p>
+The <tt>begin</tt> process form does a <tt>stdio-&gt;stdports</tt> synchronisation
+in the child process before executing the body of the form.
+This guarantees that the <tt>begin</tt> form, like all other process forms,
+``sees'' the effects of any associated I/O redirections.</p>
+<p>
+Note that R5RS does not specify whether or not <tt>|</tt> and <tt>|+</tt>
+are readable symbols. Scsh does.</p>
+<p>
+</p>
+<a name="node_sec_2.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_2.3">2.3&nbsp;&nbsp;Using extended process forms in Scheme</a></h2><p>Process forms and extended process forms are <em>not</em> Scheme.
+They are a different notation for expressing computation that, like Scheme,
+is based upon s-expressions.
+Extended process forms are used in Scheme programs by embedding them inside
+special Scheme forms.
+There are three basic Scheme forms that use extended process forms: 
+<tt>exec-epf</tt>, <tt>&amp;</tt>, and <tt>run</tt>.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_4"></a></p>
+<div align=left><tt>(exec-epf <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>no return value</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_6"></a><div align=left><tt>(&amp; <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>proc</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_8"></a><div align=left><tt>(run <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>status</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<blockquote>
+<a name="node_idx_10"></a> <a name="node_idx_12"></a> <a name="node_idx_14"></a>
+The <tt>(exec-epf . <i>epf</i>)</tt> form nukes the current process: it establishes
+the I/O redirections and then overlays the current process with the requested
+computation.<p>
+The <tt>(&amp; . <i>epf</i>)</tt> form is similar, except that the process is forked
+off in background. The form returns the subprocess' process object.</p>
+<p>
+The <tt>(run . <i>epf</i>)</tt> form runs the process in foreground:
+after forking off the computation, it waits for the subprocess to exit,
+and returns its exit status.</p>
+<p>
+These special forms are macros that expand into the equivalent
+series of system calls.
+The definition of the <tt>exec-epf</tt> macro is non-trivial, 
+as it produces the code to handle I/O redirections and set up pipelines.
+However, the definitions of the <tt>&amp;</tt> and <tt>run</tt> macros are very simple:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top ><tt>(&amp; . <i>epf</i>)</tt> </td><td valign=top ><tt>(fork (lambda () (exec-epf . <i>epf</i>)))</tt> </td></tr>
+<tr><td valign=top ><tt>(run . <i>epf</i>)</tt> </td><td valign=top ><tt>(wait (&amp; . <i>epf</i>))</tt>
+</td></tr></table>
+</blockquote>
+</blockquote><p>
+</p>
+<a name="node_sec_2.3.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_2.3.1">2.3.1&nbsp;&nbsp;Procedures and special forms</a></h3><p>It is a general design principle in scsh that all functionality
+made available through special syntax is also available in a
+straightforward procedural form.
+So there are procedural equivalents for all of the process notation.
+In this way, the programmer is not restricted by the particular details of
+the syntax.
+Here are some of the syntax/procedure equivalents:
+</p>
+<blockquote>
+<table border=1><tr><td valign=top >Notation        </td><td valign=top >Procedure </td></tr>
+<tr><td valign=top ><tt>|</tt>          </td><td valign=top ><tt>fork/pipe</tt> </td></tr>
+<tr><td valign=top ><tt>|+</tt>         </td><td valign=top ><tt>fork/pipe+</tt> </td></tr>
+<tr><td valign=top ><tt>exec-epf</tt>   </td><td valign=top ><tt>exec-path</tt> </td></tr>
+<tr><td valign=top >redirection     </td><td valign=top ><tt>open</tt>, <tt>dup</tt> </td></tr>
+<tr><td valign=top ><tt>&amp;</tt>          </td><td valign=top ><tt>fork</tt> </td></tr>
+<tr><td valign=top ><tt>run</tt>        </td><td valign=top ><tt>wait</tt>  +  <tt>fork</tt> </td></tr>
+<tr><td valign=top ></td></tr></table>
+</blockquote>
+Having a solid procedural foundation also allows for general notational
+experimentation using Scheme's macros.
+For example, the programmer can build his own pipeline notation on top of the
+<tt>fork</tt> and <tt>fork/pipe</tt> procedures.
+Chapter&nbsp;<a href="man-Z-H-4.html#node_chap_3">3</a> gives the full story on all the procedures
+in the syscall library.<p>
+</p>
+<a name="node_sec_2.3.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_2.3.2">2.3.2&nbsp;&nbsp;Interfacing process output to Scheme</a></h3><p>
+There is a family of procedures and special forms that can be used
+to capture the output of processes as Scheme data.
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_16"></a></p>
+<div align=left><tt>(run/port <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>port</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_18"></a><div align=left><tt>(run/file <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_20"></a><div align=left><tt>(run/string <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_22"></a><div align=left><tt>(run/strings <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_24"></a><div align=left><tt>(run/sexp <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>object</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_26"></a><div align=left><tt>(run/sexps <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<blockquote>
+These forms all fork off subprocesses, collecting the process' output
+to stdout in some form or another. 
+The subprocess runs with file descriptor 1 and the current output port
+bound to a pipe.
+<blockquote><table border=0><tr><td valign=top ><tt>run/port</tt>   </td><td valign=top >Value is a port open on process's stdout. 
+Returns immediately after forking child. </td></tr>
+<tr><td valign=top ><tt>run/file</tt>   </td><td valign=top >Value is name of a temp file containing process's output.
+Returns when process exits. </td></tr>
+<tr><td valign=top ><tt>run/string</tt> </td><td valign=top >Value is a string containing process' output.
+Returns when eof read. </td></tr>
+<tr><td valign=top ><tt>run/strings</tt></td><td valign=top >Splits process' output into a list of 
+newline-delimited strings. Returns when eof read. </td></tr>
+<tr><td valign=top ><tt>run/sexp</tt>   </td><td valign=top >Reads a single object from process' stdout with <tt>read</tt>.
+Returns as soon as the read completes. </td></tr>
+<tr><td valign=top ><tt>run/sexps</tt>  </td><td valign=top >Repeatedly reads objects from process' stdout with <tt>read</tt>.
+Returns accumulated list upon eof.
+</td></tr></table></blockquote>
+The delimiting newlines are not included in the strings returned by
+<tt>run/strings</tt>.<p>
+These special forms just expand into calls to the following analogous
+procedures.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_28"></a></p>
+<div align=left><tt>(run/port* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>port</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_30"></a><div align=left><tt>(run/file* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_32"></a><div align=left><tt>(run/string* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_34"></a><div align=left><tt>(run/strings* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_36"></a><div align=left><tt>(run/sexp* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>object</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_38"></a><div align=left><tt>(run/sexps* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>object list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+For example, <tt>(run/port . <i>epf</i>)</tt> expands into
+<blockquote><tt>(run/port* (lambda () (exec-epf . <i>epf</i>))).</tt></blockquote></blockquote><p>
+The following procedures are also of utility for generally parsing 
+input streams in scsh:
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_40"></a></p>
+<div align=left><tt>(port-&gt;string <i>port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_42"></a><div align=left><tt>(port-&gt;sexp-list <i>port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_44"></a><div align=left><tt>(port-&gt;string-list <i>port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_46"></a><div align=left><tt>(port-&gt;list <i>reader port</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>Port-&gt;string</tt> reads the port until eof,
+then returns the accumulated string.
+<tt>Port-&gt;sexp-list</tt> repeatedly reads data from the port until eof, 
+then returns the accumulated list of items.  
+<tt>Port-&gt;string-list</tt> repeatedly reads newline-terminated strings from the
+port until eof, then returns the accumulated list of strings.
+The delimiting newlines are not part of the returned strings.
+<tt>Port-&gt;list</tt> generalises these two procedures.
+It uses <i>reader</i> to repeatedly read objects from a port.
+It accumulates these objects into a list, which is returned upon eof.
+The <tt>port-&gt;string-list</tt> and <tt>port-&gt;sexp-list</tt> procedures
+are trivial to define, being merely <tt>port-&gt;list</tt> curried with
+the appropriate parsers:
+<blockquote><tt><br>
+(port-&gt;string-list&nbsp;<i>port</i>)&nbsp;<u>=</u>&nbsp;(port-&gt;list&nbsp;read-line&nbsp;<i>port</i>)<br>
+(port-&gt;sexp-list&nbsp;&nbsp;&nbsp;<i>port</i>)&nbsp;<u>=</u>&nbsp;(port-&gt;list&nbsp;read&nbsp;<i>port</i>)</tt></blockquote>
+The following compositions also hold:
+<blockquote><tt><br>
+run/string*&nbsp;&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;port-&gt;string&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>o</small>&nbsp;run/port*<br>
+run/strings*&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;port-&gt;string-list&nbsp;<small>o</small>&nbsp;run/port*<br>
+run/sexp*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;read&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>o</small>&nbsp;run/port*<br>
+run/sexps*&nbsp;&nbsp;&nbsp;&nbsp;<u>=</u>&nbsp;&nbsp;port-&gt;sexp-list&nbsp;&nbsp;&nbsp;<small>o</small>&nbsp;run/port*</tt></blockquote>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_48"></a></p>
+<div align=left><tt>(port-fold <i>port reader op . seeds</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i><sup>*</sup></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure can be used to perform a variety of iterative operations
+over an input stream.
+It repeatedly uses <i>reader</i> to read an object from <i>port</i>.
+If the first read returns eof, then the entire <tt>port-fold</tt>
+operation returns the seeds as multiple values.
+If the first read operation returns some other value <em>v</em>, then
+<i>op</i> is applied to <em>v</em> and the seeds:
+<tt>(<i>op</i> <i>v</i> . <i>seeds</i>)</tt>.
+This should return a new set of seed values, and the reduction then loops,
+reading a new value from the port, and so forth.
+(If multiple seed values are used, then <i>op</i> must return multiple values.)<p>
+For example, <tt>(port-&gt;list <i>reader</i> <i>port</i>)</tt>
+could be defined as
+</p>
+<blockquote><tt>(reverse (port-fold <i>port</i> <i>reader</i> cons '()))</tt></blockquote><p>
+An imperative way to look at <tt>port-fold</tt> is to say that it
+abstracts the idea of a loop over a stream of values read from
+some port, where the seed values express the loop state.</p>
+<p>
+</p>
+<blockquote><i>Remark: </i> This procedure was formerly named <tt>reduce-port <a name="node_idx_50"></a></tt>.
+The old binding is still provided, but is deprecated and will
+probably vanish in a future release.</blockquote>
+</blockquote><p>
+</p>
+<a name="node_sec_2.4"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_2.4">2.4&nbsp;&nbsp;More complex process operations</a></h2><p>The procedures and special forms in the previous section provide for the
+common case, where the programmer is only interested in the output of the
+process.
+These special forms and procedures provide more complicated facilities
+for manipulating processes.</p>
+<p>
+</p>
+<a name="node_sec_2.4.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_2.4.1">2.4.1&nbsp;&nbsp;Pids and ports together</a></h3><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_52"></a></p>
+<div align=left><tt>(run/port+proc <i>. <i>epf</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[port proc]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_54"></a><div align=left><tt>(run/port+proc* <i>thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[port proc]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This special form and its analogous procedure can be used
+if the programmer also wishes access to the process' pid, exit status, 
+or other information.
+They both fork off a subprocess, returning two values:
+a port open on the process' stdout (and current output port), 
+and the subprocess's process object.
+A process object encapsulates the subprocess' process id and exit code;
+it is the value passed to the <tt>wait</tt> system call.<p>
+For example, to uncompress a tech report, reading the uncompressed
+data into scsh, and also be able to track the exit status of
+the decompression process, use the following:
+</p>
+<blockquote><tt><br>
+(receive&nbsp;(port&nbsp;child)&nbsp;(run/port+proc&nbsp;(zcat&nbsp;tr91-145.tex.Z))<br>
+&nbsp;&nbsp;(let*&nbsp;((paper&nbsp;(port-&gt;string&nbsp;port))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(status&nbsp;(wait&nbsp;child)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<tt>...</tt>use&nbsp;<tt>paper</tt>,&nbsp;<tt>status</tt>,&nbsp;and&nbsp;<tt>child</tt>&nbsp;here<tt>...</tt>))</tt></blockquote>
+Note that you must <em>first</em> do the <tt>port-&gt;string</tt> and 
+<em>then</em> do the wait -- the other way around may lock up when the
+zcat fills up its output pipe buffer.
+</blockquote><p>
+</p>
+<a name="node_sec_2.4.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_2.4.2">2.4.2&nbsp;&nbsp;Multiple stream capture</a></h3><p>Occasionally, the programmer may want to capture multiple distinct output
+streams from a process. For instance, he may wish to read the stdout and
+stderr streams into two distinct strings. This is accomplished with the
+<tt>run/collecting</tt> form and its analogous procedure, <tt>run/collecting*</tt>.
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_56"></a></p>
+<div align=left><tt>(run/collecting <i>fds . epf</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[status port<tt>...</tt>]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<a name="node_idx_58"></a><div align=left><tt>(run/collecting* <i>fds thunk</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[status port<tt>...</tt>]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>Run/collecting</tt> and <tt>run/collecting*</tt> run processes that produce
+multiple output streams and return ports open on these streams.  To avoid
+issues of deadlock, <tt>run/collecting</tt> doesn't use pipes. Instead, it first
+runs the process with output to temp files, then returns ports open on the
+temp files. For example,
+<blockquote><tt>(run/collecting (1 2) (ls))</tt></blockquote>runs <tt>ls</tt> with stdout (fd 1) and stderr (fd 2) redirected to temporary
+files.
+When the <tt>ls</tt> is done, <tt>run/collecting</tt> returns three values: the
+<tt>ls</tt> process' exit status, and two ports open on the temporary files. The
+files are deleted before <tt>run/collecting</tt> returns, so when the ports are
+closed, they vanish. The <tt>fds</tt> list of file descriptors is implicitly
+backquoted by the special-form version.<p>
+For example, if Kaiming has his mailbox protected, then
+</p>
+<blockquote><tt><br>
+(receive&nbsp;(status&nbsp;out&nbsp;err)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run/collecting&nbsp;(1&nbsp;2)&nbsp;(cat&nbsp;/usr/kmshea/mbox))<br>
+&nbsp;&nbsp;(list&nbsp;status&nbsp;(port-&gt;string&nbsp;out)&nbsp;(port-&gt;string&nbsp;err)))</tt></blockquote>
+might produce the list
+<blockquote><tt>(256 &quot;&quot; &quot;cat: /usr/kmshea/mbox: Permission denied&quot;)</tt></blockquote><p>
+What is the deadlock hazard that causes <tt>run/collecting</tt> to use temp files?
+Processes with multiple output streams can lock up if they use pipes
+to communicate with Scheme I/O readers. For example, suppose
+some Unix program <tt>myprog</tt> does the following:
+</p>
+<ol>
+<li><p>First, outputs a single ``<tt>(</tt>'' to stderr.
+</p>
+<li><p>Then, outputs a megabyte of data to stdout.
+</p>
+<li><p>Finally, outputs a single ``<tt>)</tt>'' to stderr, and exits.
+</p>
+</ol><p></p>
+<p>
+Our scsh programmer decides to run <tt>myprog</tt> with stdout and stderr redirected
+<em>via Unix pipes</em> to the ports <tt>port1</tt> and <tt>port2</tt>, respectively. 
+He gets into trouble when he subsequently says <tt>(read port2)</tt>.
+The Scheme <tt>read</tt> routine reads the open paren, and then hangs in a
+<tt><a href="http://www.FreeBSD.org/cgi/man.cgi?query=read&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html">read()</a></tt> system call trying to read a matching close paren.
+But before <tt>myprog</tt> sends the close paren down the stderr
+pipe, it first tries to write a megabyte of data to the stdout pipe. 
+However, Scheme is not reading that pipe -- it's stuck waiting for input on
+stderr.
+So the stdout pipe quickly fills up, and <tt>myprog</tt> hangs, waiting for the
+pipe to drain.
+The <tt>myprog</tt> child is stuck in a stdout/<tt>port1</tt> write;
+the Scheme parent is stuck in a stderr/<tt>port2</tt> read. 
+Deadlock.</p>
+<p>
+Here's a concrete example that does exactly the above:
+</p>
+<blockquote><tt><br>
+(receive&nbsp;(status&nbsp;port1&nbsp;port2)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run/collecting&nbsp;(1&nbsp;2)&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(begin<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;Write&nbsp;an&nbsp;open&nbsp;paren&nbsp;to&nbsp;stderr.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run&nbsp;(echo&nbsp;&quot;(&quot;)&nbsp;(=&nbsp;1&nbsp;2))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;Copy&nbsp;a&nbsp;lot&nbsp;of&nbsp;stuff&nbsp;to&nbsp;stdout.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run&nbsp;(cat&nbsp;/usr/dict/words))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;Write&nbsp;a&nbsp;close&nbsp;paren&nbsp;to&nbsp;stderr.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(run&nbsp;(echo&nbsp;&quot;)&quot;)&nbsp;(=&nbsp;1&nbsp;2))))<br>
+<br>
+&nbsp;&nbsp;&nbsp;;;&nbsp;OK.&nbsp;Here,&nbsp;I&nbsp;have&nbsp;a&nbsp;port&nbsp;PORT1&nbsp;built&nbsp;over&nbsp;a&nbsp;pipe<br>
+&nbsp;&nbsp;&nbsp;;;&nbsp;connected&nbsp;to&nbsp;the&nbsp;BEGIN&nbsp;subproc's&nbsp;stdout,&nbsp;and<br>
+&nbsp;&nbsp;&nbsp;;;&nbsp;PORT2&nbsp;built&nbsp;over&nbsp;a&nbsp;pipe&nbsp;connected&nbsp;to&nbsp;the&nbsp;BEGIN<br>
+&nbsp;&nbsp;&nbsp;;;&nbsp;subproc's&nbsp;stderr.<br>
+&nbsp;&nbsp;&nbsp;(read&nbsp;port2)&nbsp;;&nbsp;Should&nbsp;return&nbsp;the&nbsp;empty&nbsp;list.<br>
+&nbsp;&nbsp;&nbsp;(port-&gt;string&nbsp;port1))&nbsp;;&nbsp;Should&nbsp;return&nbsp;a&nbsp;big&nbsp;string.</tt></blockquote>
+In order to avoid this problem, <tt>run/collecting</tt> and <tt>run/collecting*</tt>
+first run the child process to completion, buffering all the output
+streams in temp files (using the <tt>temp-file-channel</tt> procedure, see below).
+When the child process exits, ports open on the buffered output are returned.
+This approach has two disadvantages over using pipes:
+<ul>
+<li><p>The total output from the child output is temporarily written
+to the disk before returning from <tt>run/collecting</tt>. If this output
+is some large intermediate result, the disk could fill up.</p>
+<p>
+</p>
+<li><p>The child producer and Scheme consumer are serialised; there is
+no concurrency overlap in their execution.
+</p>
+</ul><p>
+However, it remains a simple solution that avoids deadlock.  More
+sophisticated solutions can easily be programmed up as 
+needed -- <tt>run/collecting*</tt> itself is only 12 lines of simple code.</p>
+<p>
+See <tt>temp-file-channel</tt> for more information on creating temp files
+as communication channels.
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_2.5"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_2.5">2.5&nbsp;&nbsp;Conditional process sequencing forms</a></h2><p>These forms allow conditional execution of a sequence of processes.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_60"></a></p>
+<div align=left><tt>(|| <i><i>pf</i><sub>1</sub> <tt>...</tt><i>pf</i><sub><em>n</em></sub></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<blockquote>    
+Run each proc until one completes successfully (<em>i.e.</em>, exit status zero).
+Return true if some proc completes successfully; otherwise <tt>#f</tt>.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_62"></a></p>
+<div align=left><tt>(&amp;&amp; <i><i>pf</i><sub>1</sub> <tt>...</tt><i>pf</i><sub><em>n</em></sub></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(syntax)&nbsp;</div>
+
+<blockquote>    
+Run each proc until one fails (<em>i.e.</em>, exit status non-zero).
+Return true if all procs complete successfully; otherwise <tt>#f</tt>.
+</blockquote><p>
+</p>
+<a name="node_sec_2.6"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_2.6">2.6&nbsp;&nbsp;Process filters</a></h2><p>These procedures are useful for forking off processes to filter
+text streams.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_64"></a><div align=left><tt>(make-char-port-filter <i>filter</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+The <i>filter</i> argument is a character-->character procedure.
+Returns a procedure that when called, repeatedly reads a character
+from the current input port, applies <i>filter</i> to the character,
+and writes the result to the current output port.
+The procedure returns upon reaching eof on the input port.<p>
+For example, to downcase a stream of text in a spell-checking pipeline, 
+instead of using the Unix <tt>tr A-Z a-z</tt> command, we can say:
+</p>
+<blockquote><tt><br>
+(run&nbsp;(|&nbsp;(delatex)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(begin&nbsp;((char-filter&nbsp;char-downcase)))&nbsp;;&nbsp;tr&nbsp;A-Z&nbsp;a-z<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(spell)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(sort)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(uniq))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&lt;&nbsp;scsh.tex)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&gt;&nbsp;spell-errors.txt))</tt></blockquote>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p></p>
+<a name="node_idx_66"></a><div align=left><tt>(make-string-port-filter <i>filter [buflen]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>procedure</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+The <i>filter</i> argument is a string-->string procedure.
+Returns a procedure that when called, repeatedly reads a string
+from the current input port, applies <i>filter</i> to the string,
+and writes the result to the current output port.
+The procedure returns upon reaching eof on the input port.<p>
+The optional <i>buflen</i> argument controls the number of characters
+each internal read operation requests; this means that <i>filter</i>
+will never be applied to a string longer than <i>buflen</i> chars.
+The default <i>buflen</i> value is 1024.
+</p>
+</blockquote>
+
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-2.html">previous</a></span><span>, <a href="man-Z-H-4.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

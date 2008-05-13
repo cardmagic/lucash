@@ -1,0 +1,672 @@
+%&latex -*- latex -*-
+
+\chapter{Awk, record I/O, and field parsing}
+\label{chapt:fr-awk}
+
+{\Unix} programs frequently process streams of records, 
+where each record is delimited by a newline, 
+and records are broken into fields with other delimiters
+(for example, the colon character in \ex{/etc/passwd}).
+Scsh has procedures that allow the programmer to easily
+do this kind of processing.
+Scsh's field parsers can also be used to parse other kinds
+of delimited strings, such as colon-separated \verb|$PATH| lists.
+These routines can be used with scsh's \ex{awk} loop construct
+to conveniently perform pattern-directed computation over streams
+of records.
+
+
+\section{Record I/O and field parsing}
+\label{sec:field-reader}
+
+The procedures in this section are used to read records from
+I/O streams and parse them into fields.
+A record is defined as text terminated by some delimiter (usually a newline).
+A record can be split into fields by using regular expressions in
+one of several ways: to \emph{match} fields, to \emph{separate} fields,
+or to \emph{terminate} fields.
+The field parsers can be applied to arbitrary strings (one common use is
+splitting environment variables such as \ex{\$PATH} at colons into its
+component elements).
+
+The general delimited-input procedures described in
+chapter~\ref{chapt:rdelim} are also useful for reading simple records, 
+such as single lines, paragraphs of text, or strings terminated by specific
+characters.
+
+\subsection{Reading records}
+
+\defun{record-reader} {[delims elide-delims? handle-delim]} {\proc}
+\begin{desc}
+    Returns a procedure that reads records from a port. The
+    procedure is invoked as follows:
+    %
+    \codex{(\var{reader} \var{[port]}) $\longrightarrow$ 
+           \textrm{\textit{{\str} or eof}}}
+    %
+    A record is a sequence of characters terminated by one of the characters
+    in \var{delims} or eof. If \var{elide-delims?} is true, then a contiguous
+    sequence of delimiter chars are taken as a single record delimiter.  If
+    \var{elide-delims?} is false, then a delimiter char coming immediately
+    after a delimiter char produces an empty-string record. The reader
+    consumes the delimiting char(s) before returning from a read.
+
+    The \var{delims} set defaults to the set $\{\mbox{newline}\}$. 
+    It may be a charset, string, character, or character predicate, 
+    and is coerced to a charset. 
+    The \var{elide-delims?} flag defaults to \ex{\#f}.
+
+    The \var{handle-delim} argument controls what is done with the record's
+    terminating delimiter.
+        \begin{inset}
+        \begin{tabular}{lp{0.6\linewidth}}
+        \ex{'trim} & Delimiters are trimmed. (The default)\\
+        \ex{'split}& Reader returns delimiter string as a second argument.
+                If record is terminated by EOF, then the eof object is 
+                returned as this second argument. \\
+        \ex{'concat} & The record and its delimiter are returned as
+                       a single string.
+        \end{tabular}
+        \end{inset}
+
+    The reader procedure returned takes one optional argument, the port
+    from which to read, which defaults to the current input port. It returns
+    a string or eof.
+\end{desc}
+
+
+\subsection{Parsing fields}
+\label{sec:field-splitter}
+
+\defun  {field-splitter}  {[field num-fields]}             \proc
+\defunx {infix-splitter}  {[delim num-fields handle-delim]} \proc
+\defunx {suffix-splitter} {[delim num-fields handle-delim]} \proc
+\defunx {sloppy-suffix-splitter} {[delim num-fields handle-delim]} \proc
+\begin{desc}
+These functions return a parser function that can be used as follows:
+\codex{(\var{parser} \var{string} \var{[start]}) $\longrightarrow$
+        \var{string-list}}
+
+    The returned parsers split strings into fields defined
+    by regular expressions.  You can parse by specifying a pattern that
+    \emph{separates} fields, a pattern that \emph{terminates} fields, or
+    a pattern that \emph{matches} fields:
+        \begin{inset}
+        \begin{tabular}{l@{\qquad}l}    
+        Procedure &                     Pattern \\ \hline
+        \ex{field-splitter} &           matches fields  \\
+        \ex{infix-splitter} &           separates fields \\
+        \ex{suffix-splitter}&           terminates fields \\
+        \ex{sloppy-suffix-splitter} &   terminates fields
+        \end{tabular}
+        \end{inset}
+    
+    These parser generators are controlled by a range of options, so that you
+    can precisely specify what kind of parsing you want. However, these
+    options default to reasonable values for general use.
+
+    Defaults:
+\begin{tightinset}
+\begin{tabular}{l@{\quad=\quad }ll}
+ \var{delim} & \ex{(rx (| (+ white) eos))}    & (suffix delimiter: white space or eos) \\
+ \multicolumn{1}{l}{}                & \ex{(rx (+ white))}   & (infix  delimiter: white space) \\
+
+ \var{field}    & \verb|(rx (+ (~ white)))|   & (non-white-space) \\
+    
+ \var{num-fields} & \verb|#f| & (as many fields as possible) \\
+    
+ \var{handle-delim} & \verb|'trim| & (discard delimiter chars)
+\end{tabular}
+\end{tightinset}
+    {\ldots}which means: break the string at white space, discarding the
+     white space, and parse as many fields as possible.
+
+    The \var{delim} parameter is a regular expression matching the text
+    that occurs between fields.
+    See chapter~\ref{chapt:sre} for information on regular expressions,
+    and the \ex{rx} form used to specify them.
+    In the separator case, 
+    it defaults to a pattern matching white space; 
+    in the terminator case,
+    it defaults to white space or end-of-string.
+
+    The \var{field} parameter is a regular expression used
+    to match fields. It defaults to non-white-space.
+
+    The \var{delim} patterns may also be given as a string, 
+    character, or char-set, which are coerced to regular expressions.
+    So the following expressions are all equivalent,
+    each producing a function that splits strings apart at colons:
+\begin{inset}
+\begin{verbatim}
+(infix-splitter (rx ":"))
+(infix-splitter ":")
+(infix-splitter #\:)
+(infix-splitter (char-set #\:))\end{verbatim}
+\end{inset}
+
+    The boolean \var{handle-delim} determines what to do with delimiters.
+    \begin{tightinset}\begin{tabular}{ll}
+    \ex{'trim} &        Delimiters are thrown away after parsing. (default) \\
+    \ex{'concat} &      Delimiters are appended to the field preceding them. \\
+    \ex{'split} &       Delimiters are returned as separate elements in
+                        the field list.
+    \end{tabular}
+    \end{tightinset}
+
+    The \var{num-fields} argument used to create the parser specifies how many
+    fields to parse.  If \ex{\#f} (the default), the procedure parses them all. 
+    If a positive integer $n$, exactly that many fields are parsed; it is an
+    error if there are more or fewer than $n$ fields in the record. If
+    \var{num-fields} is a negative integer or zero, then $|n|$ fields 
+    are parsed, and the remainder of the string is returned in the last
+    element of the field list; it is an error if fewer than $|n|$ fields 
+    can be parsed.
+    
+    The field parser produced is a procedure that can be employed as
+    follows:
+        \codex{(\var{parse} \var{string} \var{[start]}) \evalto \var{string-list}}
+    The optional \var{start} argument (default 0) specifies where in the string
+    to begin the parse. It is an error if
+        $\var{start} > \ex{(string-length \var{string})}$.
+    
+    The parsers returned by the four parser generators implement different
+    kinds of field parsing:
+    \begin{description}
+    \item[\ex{field-splitter}]
+    The regular expression specifies the actual field.
+
+
+    \item[\ex{suffix-splitter}]
+    Delimiters are interpreted as element \emph{terminators}. 
+    If vertical-bar is the the delimiter, then the string \ex{""}
+    is the empty record \ex{()}, \ex{"foo|"} produces a one-field record
+    \ex{("foo")}, and \ex{"foo"} is an error.
+
+    The syntax of suffix-delimited records is:
+        \begin{inset}
+        \begin{tabular}{lcll}
+        \synvar{record} & ::=  & \ex{""} \qquad (Empty record) \\
+                        &  $|$ & \synvar{element} \synvar{delim} 
+                                 \synvar{record}
+        \end{tabular}
+        \end{inset}
+
+    It is an error if a non-empty record does not end with a delimiter.
+    To make the last delimiter optional, make sure the delimiter regexp
+    matches the end-of-string (sre \ex{eos}).
+
+    \item [\ex{infix-splitter}]
+    Delimiters are interpreted as element \emph{separators}. If comma is the
+    delimiter, then the string \ex{"foo,"} produces a two-field 
+    record \ex{("foo" "")}.
+
+    The syntax of infix-delimited records is:
+        \begin{inset}
+        \begin{tabular}{lcll}
+        \synvar{record} & ::=  & \ex{""} \qquad (Forced to be empty record) \\
+                        &  $|$ & \synvar{real-infix-record} \\
+        \\
+        \synvar{real-infix-record} & ::=  & \synvar{element} \synvar{delim}
+                                            \synvar{real-infix-record} \\
+                                    & $|$ & \synvar{element}
+        \end{tabular}
+        \end{inset}
+
+    Note that separator semantics doesn't really allow for empty 
+    records---the straightforward grammar (\ie, \synvar{real-infix-record}) 
+    parses an empty string as a singleton list whose one field is the empty 
+    string, \ex{("")}, not as the empty record \ex{()}. This is unfortunate, 
+    since it means that infix string parsing doesn't make \ex{string-append}
+    and \ex{append} isomorphic. For example,
+        \codex{((infix-splitter ":") (string-append \var{x} ":" \var{y}))}
+    doesn't always equal
+\begin{code}    
+(append ((infix-splitter ":") \var{x})
+        ((infix-splitter ":") \var{y}))\end{code}
+    It fails when \var{x} or \var{y} are the empty string. 
+    Terminator semantics \emph{does} preserve a similar isomorphism.
+
+    However, separator semantics is frequently what other Unix software
+    uses, so to parse their strings, we need to use it. For example,
+    Unix \verb|$PATH| lists have separator semantics. The path list 
+    \ex{"/bin:"} is broken up into \ex{("/bin" "")}, not \ex{("/bin")}. 
+    Comma-separated lists should also be parsed this way.
+
+    \item[\ex{sloppy-suffix}]
+    The same as the \ex{suffix} case, except that the parser will skip an
+    initial delimiter string if the string begins with one instead of parsing 
+    an initial empty field. This can be used, for example, to field-split a
+    sequence of English text at white-space boundaries, where the string may
+    begin or end with white space, by using regex
+\begin{code}{(rx (| (+ white) eos))}\end{code}
+    (But you would be better off using \ex{field-splitter} in this case.)
+    \end{description}
+    \end{desc}
+
+    Figure~\ref{fig:splitters} shows how the different parser grammars
+    split apart the same strings.
+%
+\begin{boxedfigure}{tbp}
+\begin{center}\small
+\begin{tabular}{lllll}
+Record & : suffix & \verb!:|$! suffix & : infix & non-: field \\
+\hline
+\ex{""} &       \ex{()} &       \ex{()} &       \ex{()} &       \ex{()} \\
+\ex{":"} &      \ex{("")} &     \ex{("")} &     \ex{("" "")} &  \ex{()} \\
+\ex{"foo:"} & \ex{("foo")} &    \ex{("foo")} &  \ex{("foo" "")} & \ex{("foo")} \\
+\ex{":foo"}& \emph{error} & \ex{("" "foo")}& \ex{("" "foo")}& \ex{("foo")} \\
+\ex{"foo:bar"} & \emph{error} & \ex{("foo" "bar")} & \ex{("foo" "bar")} & \ex{("foo" "bar")}
+\end{tabular}
+\end{center}
+\caption{Using different grammars to split records into fields.}
+\label{fig:splitters}
+\end{boxedfigure}
+%
+    Having to choose between the different grammars requires you to decide
+    what you want, but at least you can be precise about what you are parsing.
+    Take fifteen seconds and think it out. Say what you mean; mean what you
+    say.
+
+
+\defun{join-strings} {string-list [delimiter grammar]} \str
+\begin{desc}
+    This procedure is a simple unparser---it pastes strings together using
+    the delimiter string. 
+
+    The \var{grammar} argument is one of the symbols \ex{infix} (the default)
+    or \ex{suffix}; it determines whether the
+    delimiter string is used as a separator or as a terminator.
+
+    The delimiter is the string used to delimit elements; it defaults to
+    a single space \ex{" "}.
+
+    Example:
+\begin{code}
+(join-strings '("foo" "bar" "baz") ":")
+\qquad{\evalto} "foo:bar:baz"\end{code}
+\end{desc}
+
+\subsection{Field readers}
+
+\defun{field-reader} {[field-parser rec-reader]} \proc
+\begin{desc}    
+    This utility returns a procedure that reads records with field structure 
+    from a port.
+    The reader's interface is designed to make it useful in the \ex{awk}
+            loop macro (section~\ref{sec:awk}).
+    The reader is used as follows:
+    \codex{(\var{reader} \var{[port]}) {\evalto} \var{[raw-record parsed-record]} or \var{[eof ()]}}
+    
+    When the reader is applied to an input port (default: the current
+    input port), it reads a record using \var{rec-reader}. If this record isn't
+    the eof object, it is parsed with \var{field-parser}. These two 
+    values---the record, and its parsed representation---are returned
+    as multiple values from the reader.
+    
+    When called at eof, the reader returns [eof-object \ex{()}].
+    
+    Although the record reader typically returns a string, and
+    the field-parser typically takes a string argument, this is not
+    required. The record reader can produce, and the field-parser consume,
+    values of any type. However, the empty list returned as the
+    parsed value on eof is hardwired into the field reader.
+
+    For example, if port \ex{p} is open on \ex{/etc/passwd}, then
+        \codex{((field-reader (infix-splitter ":" 7)) p)}
+    returns two values:
+{\small
+\begin{widecode}
+"dalbertz:mx3Uaqq0:107:22:David Albertz:/users/dalbertz:/bin/csh"
+("dalbertz" "mx3Uaqq0" "107" "22" "David Albertz" "/users/dalbertz"
+            "/bin/csh")\end{widecode}}
+    The \var{field-parser} defaults to the value of \ex{(field-splitter)},
+    a parser that picks out sequences of non-white-space strings.
+
+    The \var{rec-reader} defaults to \ex{read-line}.
+      
+    Figure~\ref{fig:field-readers} shows \ex{field-reader} being
+    used to read different kinds of Unix records.
+
+\begin{boxedfigure}{tbhp}
+\begin{centercode}
+;;; /etc/passwd reader
+(field-reader (infix-splitter ":" 7))
+    ; wandy:3xuncWdpKhR.:73:22:Wandy Saetan:/usr/wandy:/bin/csh
+
+;;; Two ls -l output readers
+(field-reader (infix-splitter (rx (+ white)) 8))
+(field-reader (infix-splitter (rx (+ white)) -7))
+    ; -rw-r--r--  1 shivers    22880 Sep 24 12:45 scsh.scm
+
+;;; Internet hostname reader
+(field-reader (field-splitter (rx (+ (~ ".")))))
+    ; stat.sinica.edu.tw
+
+;;; Internet IP address reader
+(field-reader (field-splitter (rx (+ (~ "."))) 4))
+    ; 18.24.0.241
+
+;;; Line of integers
+(let ((parser (field-splitter (rx (? ("+-")) (+ digit)))))
+  (field-reader (\l{s} (map string->number (parser s))))
+    ; 18 24 0 241
+
+;;; Same as above.
+(let ((reader (field-reader (field-splitter (rx (? ("+-")) 
+                                                (+ digit))))))
+  (\lx{maybe-port} (map string->number (apply reader maybe-port))))
+    ; Yale beat harvard 26 to 7.\end{centercode}
+\caption{Some examples of \protect\ex{field-reader}}
+\label{fig:field-readers}
+\end{boxedfigure}
+
+\end{desc}
+
+
+\subsection{Forward-progress guarantees and empty-string matches}
+A loop that pulls text off a string by repeatedly matching a regexp 
+against that string can conceivably get stuck in an infinite loop if 
+the regexp matches the empty string. For example, the SREs
+\ex{bos}, \ex{eos}, \ex{(* any)}, and \ex{(| "foo" (* (~ "f")))}
+can all match the empty string.
+
+The routines in this package that iterate through strings with regular
+expressions are careful to handle this empty-string case.
+If a regexp matches the empty string, the next search starts, not from
+the end of the match (which in the empty string case is also the 
+beginning---that's the problem), but from the next character over.
+This is the correct behaviour. Regexps match the longest possible
+string at a given location, so if the regexp matched the empty string
+at location $i$, then it is guaranteed it could not have matched
+a longer pattern starting with character $i$. So we can safely begin
+our search for the next match at char $i+1$.
+
+With this provision, every iteration through the loop makes some forward
+progress, and the loop is guaranteed to terminate.
+
+This has the effect you want with field parsing. For example, if you split
+a string with the empty pattern, you will explode the string into its
+individual characters:
+    \codex{((suffix-splitter (rx)) "foo") {\evalto} ("" "f" "o" "o")}
+However, even though this boundary case is handled correctly, we don't
+recommend using it. Say what you mean---just use a field splitter:
+    \codex{((field-splitter (rx any)) "foo") {\evalto} ("f" "o" "o")}
+Or, more efficiently,
+    \codex{((\l{s} (map string (string->list s))) "foo")}
+
+    
+\subsection{Reader limitations}
+Since all of the readers in this package require the ability to peek
+ahead one char in the input stream, they cannot be applied to raw 
+integer file descriptors, only Scheme input ports. This is because
+Unix doesn't support peeking ahead into input streams.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Awk}
+\label{sec:awk}
+
+Scsh provides a loop macro and a set of field parsers that can
+be used to perform text processing very similar to the Awk programming
+language.
+The basic functionality of Awk is factored in scsh into its component
+parts.
+The control structure is provided by the \ex{awk} loop macro;
+the text I/O and parsers are provided by the field-reader subroutine library
+(section~\ref{sec:field-reader}).
+This factoring allows the programmer to compose the basic loop structure
+with any parser or input mechanism at all.
+If the parsers provided by the field-reader package are insufficient,
+the programmer can write a custom parser in Scheme and use it with
+equal ease in the awk framework.
+
+Awk-in-scheme is given by a loop macro called \ex{awk}. It looks like
+this:
+\begin{code}\cdmath
+(awk \synvar{next-record} \synvar{record\&field-vars}
+     {\rm[\synvar{counter}]} \synvar{state-var-decls}
+  \synvar{clause$_1$} \ldots)\index{awk}\end{code}
+
+The body of the loop is a series of clauses, each one representing
+a kind of condition/action pair. The loop repeatedly reads a record,
+and then executes each clause whose condition is satisfied by the record.
+
+Here's an example that reads lines from port \ex{p}
+and prints the line number and line of every line containing the
+string ``\ex{Church-Rosser}'':
+\begin{code}
+(awk (read-line) (ln) lineno ()
+  ("Church-Rosser" (format #t "~d: ~s~%" lineno ln)))\end{code}
+This example has just one clause in the loop body, the one that
+tests for matches against the regular expression ``\ex{Church-Rosser}''.
+
+The \synvar{next-record} form is an expression that is evaluated each time 
+through the loop to produce a record to process.
+This expression can return multiple values;
+these values are bound to the variables given in the 
+\synvar{record\&field-vars} list of variables.
+The first value returned is assumed to be the record;
+when it is the end-of-file object, the loop terminates.
+
+For example, let's suppose we want to read items from \ex{/etc/password},
+and we use the \ex{field-reader} procedure to define a record parser for
+\ex{/etc/passwd} entries:
+      \codex{(define read-passwd (field-reader (infix-splitter ":" 7)))}
+binds \ex{read-passwd} to a procedure that reads in a line of text when
+it is called, and splits the text at colons. It returns two values: 
+the entire line read, and a seven-element list of the split-out fields.
+(See section~\ref{sec:field-reader} for more on \ex{field-reader} and 
+\ex{infix-splitter}.)
+
+So if the \synvar{next-record} form in an \ex{awk} expression is 
+\ex{(read-passwd)}, then \synvar{record\&field-vars} must be a list of
+two variables, \eg,
+                          \codex{(record field-vec)}
+since \ex{read-passwd} returns two values.
+
+Note that \ex{awk} allows us to use \emph{any} record reader we want in the
+loop, returning whatever number of values we like. These values
+don't have to be strings or string lists. The only requirement
+is that the record reader return the eof object as its first value
+when the loop should terminate.
+
+The \ex{awk} loop allows the programmer to have loop variables. These are
+declared and initialised by the \synvar{state-var-decls} form, a
+    \codex{((\var{var} \var{init-exp}) (\var{var} \var{init-exp}) \ldots)}
+list rather like the \ex{let} form. Whenever a clause in the loop body
+executes, it evaluates to as many values as there are state variables,
+updating them.
+
+The optional \synvar{counter} variable is an iteration counter. 
+It is bound to 0 when the loop starts. 
+The counter is incremented each time a non-eof record is read.
+
+There are several kinds of loop clause. When evaluating the body of the
+loop, \ex{awk} evaluates \emph{all} the clauses sequentially. 
+Unlike \ex{cond}, it does not stop after the first clause is satisfied; 
+it checks them all.
+
+\begin{itemize}
+
+    \itum{\ex{(\var{test} \vari{body}1 \vari{body}2 \ldots)}}
+        If \var{test} is true, execute the body forms. The last body form
+        is the value of the clause. The test and body forms are evaluated
+        in the scope of the record and state variables.
+
+        The \var{test} form can be one of:
+        \begin{inset}
+        \begin{tabular}{lp{0.6\linewidth}}
+          \var{integer}: &      The test is true for that iteration of the loop.
+                        The first iteration is \#1. \\
+    
+          \var{sre}: &  A regular expression, in SRE notation 
+                        (see chapter~\ref{chapt:sre}) can be used as
+                        a test. The test is successful if the pattern
+                        matches the record.
+                        In particular, note that any string is an SRE. \\
+    
+          \ex{(when \var{expr})}: &
+                        The body of a \ex{when} test is evaluated as a
+                        Scheme boolean expression in the inner scope of the
+                        \ex{awk} form. \\
+
+          \var{expr}: & If the form is none of the above, it is treated as
+                        a Scheme expression---in practice, the \ex{when}
+                        keyword is only needed in cases where SRE/Scheme
+                        expression ambiguity might occur.
+        \end{tabular}
+        \end{inset}
+
+
+    \itum{\begin{tabular}[t]{l}
+\ex{(range\ \ \ \var{start-test} \var{stop-test}  \vari{body}1 \ldots)} \\
+\ex{(:range\ \ \var{start-test} \var{stop-test}  \vari{body}1 \ldots)}  \\
+\ex{(range:\ \ \var{start-test} \var{stop-test}  \vari{body}1 \ldots)}  \\
+\ex{(:range:\ \var{start-test} \var{stop-test}  \vari{body}1 \ldots)}   
+          \end{tabular}}
+%
+        These clauses become activated when \var{start-test} is true; 
+        they stay active on all further iterations until \var{stop-test}
+        is true.
+
+        So, to print out the first ten lines of a file, we use the clause:
+                \codex{(:range: 1 10 (display record))}
+
+        The colons control whether or not the start and stop lines
+        are processed by the clause. For example:
+        \begin{inset}\begin{tabular}{l@{\qquad}l}
+            \ex{(range\ \ \ 1 5\ \ \ldots)} &   Lines \phantom{1} 2 3 4 \\
+            \ex{(:range\ \ 1 5\ \ \ldots)}  &   Lines 1 2 3 4           \\
+            \ex{(range:\ \ 1 5\ \ \ldots)}  &   Lines \phantom{1} 2 3 4 5 \\
+            \ex{(:range: 1 5\ \ \ldots)}    &   Lines 1 2 3 4 5
+        \end{tabular}
+        \end{inset}
+
+        A line can trigger both tests, either simultaneously starting and
+        stopping an active region, or simultaneously stopping one and starting
+        a new one, so ranges can abut seamlessly.
+
+    \itum{\ex{(else \vari{body}1 \vari{body}2 \ldots)}}
+        If no other clause has executed since the top of the loop, or
+        since the last \ex{else} clause, this clause executes.
+
+    \itum{\ex{(\var{test} => \var{exp})}}
+        If evaluating \ex{test} produces a true value, 
+        apply \var{exp} to that value.
+        If \var{test} is a regular expression, then \var{exp} is applied
+        to the match data structure returned by the regexp match routine.
+
+    \itum{\ex{(after \vari{body}1 \ldots)}}
+        This clause executes when the loop encounters EOF. The body forms
+        execute in the scope of the state vars and the record-count var,
+        if there are any. The value of the last body form is the value
+        of the entire awk form.
+
+        If there is no \ex{after} clause, \ex{awk} returns the loop's state
+        variables as multiple values.
+\end{itemize}
+
+\subsection{Examples}
+Here are some examples of \ex{awk} being used to process various types
+of input stream.
+
+\begin{code}
+(define $ list-ref)     ; Saves typing.
+
+;;; Print out the name and home-directory of everyone in /etc/passwd:
+(let ((read-passwd (field-reader (infix-splitter ":" 7))))
+  (call-with-input-file "/etc/passwd"
+    (lambda (port)
+      (awk (read-passwd port) (record fields) ()
+        (#t (format #t "~a's home directory is ~a~%"
+                    ($ fields 0)
+                    ($ fields 5)))))))\end{code}
+
+\begin{code}
+;;; Print out the user-name and home-directory of everyone whose
+;;; name begins with "S"
+(let ((read-passwd (field-reader (infix-splitter ":" 7))))
+  (call-with-input-file "/etc/passwd"
+    (lambda (port)
+      (awk (read-passwd port) (record fields) ()
+        ((: bos "S") 
+         (format #t "~a's home directory is ~a~%"
+                    ($ fields 0)
+                    ($ fields 5)))))))\end{code}
+
+\begin{code}
+;;; Read a series of integers from stdin. This expression evaluates
+;;; to the number of positive numbers that were read. Note our
+;;; "record-reader" is the standard Scheme READ procedure.
+(awk (read) (i)   ((npos 0))
+  ((> i 0) (+ npos 1)))\end{code}
+
+\begin{code}
+;;; Filter -- pass only lines containing my name.
+(awk (read-line) (line) ()
+  ("Olin" (display line) (newline)))\end{code}
+
+\begin{code}
+;;; Count the number of non-comment lines of code in my Scheme source.
+(awk (read-line) (line) ((nlines 0))
+  ((: bos (* white) ";")  nlines)         ; A comment line.
+  (else                   (+ nlines 1)))  ; Not a comment line.\end{code}
+
+\begin{code}
+;;; Read numbers, counting the evens and odds.
+(awk (read) (val) ((evens 0) (odds 0))
+  ((> val 0) (display "pos ")  (values evens odds)) ; Tell me about
+  ((< val 0) (display "neg ")  (values evens odds)) ; sign, too.
+  (else      (display "zero ") (values evens odds)) 
+
+  ((even? val) (values (+ evens 1) odds))
+  (else        (values evens       (+ odds 1))))\end{code}
+
+\begin{code}
+;;; Determine the max length of all the lines in the file.
+(awk (read-line) (line) ((max-len 0))
+  (#t (max max-len (string-length line))))\end{code}
+
+\begin{code}
+;;; (This could also be done with PORT-FOLD:)
+(port-fold (current-input-port) read-line
+           (lambda (line maxlen) (max (string-length line) maxlen))
+           0)\end{code}
+
+\begin{code}
+;;; Print every line longer than 80 chars.
+;;; Prefix each line with its line #.
+(awk (read-line) (line) lineno ()
+  ((> (string-length line) 80)
+   (format #t "~d: ~s~%" lineno line)))\end{code}
+
+\begin{code}
+;;; Strip blank lines from input.
+(awk (read-line) (line) ()
+  ((~ white)   (display line) (newline)))\end{code}
+
+\begin{code}
+;;; Sort the entries in /etc/passwd by login name.
+(for-each (lambda (entry) (display (cdr entry)) (newline))          ; Out
+          (sort (lambda (x y) (string<? (car x) (car y)))           ; Sort
+                (let ((read (field-reader (infix-splitter ":" 7)))) ; In
+                  (awk (read) (line fields) ((ans '()))
+                    (#t (cons (cons ($ fields 0) line) ans))))))\end{code}
+
+\begin{code}
+;;; Prefix line numbers to the input stream.
+(awk (read-line) (line) lineno ()
+  (#t (format #t "~d:\\t~a~%" lineno line)))\end{code}
+
+
+\section{Backwards compatibility}
+
+Previous scsh releases provided an \ex{awk} form with a different syntax,
+designed around regular expressions written in Posix notation as strings,
+rather than SREs.
+
+This form is still available in a separate module for old code.
+It'll be documented in the next release of this manual. Dig around
+in the sources for it.

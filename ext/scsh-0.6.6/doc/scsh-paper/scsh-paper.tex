@@ -1,0 +1,2004 @@
+%&latex -*- latex -*-
+\documentstyle[code,11pt,lcs-note,boxedminipage,openbib,twoside,
+	       palatino,ct]{article}
+\input{headings}
+
+% Squeeeeeeze those figures onto the page.
+\renewcommand{\floatpagefraction}{0.7}
+\renewcommand{\topfraction}{.9}
+\renewcommand{\bottomfraction}{.9}
+\renewcommand{\textfraction}{.1}
+
+\raggedbottom
+
+\makeatletter    
+%% For chapter and section quotes:
+\newcommand{\headingquote}[2]
+{\begin{flushright}\em\begin{tabular}{@{}l@{}}#1 \\
+    {\rm \qquad --- \begin{tabular}[t]{@{}l@{}}#2\end{tabular}}\end{tabular}
+    \end{flushright}\par\noindent}
+
+\newcommand{\halfpage}[1]{\parbox[t]{0.5\linewidth}{#1}}
+
+\def\ie{\mbox{\em i.e.}}        % \mbox keeps the last period from
+\def\Ie{\mbox{\em I.e.}}        % looking like an end-of-sentence.
+\def\eg{\mbox{\em e.g.}}
+\def\Eg{\mbox{\em E.g.}}
+\def\etc{\mbox{\em etc.}}
+
+\def\Lisp{{\sc Lisp}}
+\def\CommonLisp{{\sc Common Lisp}}
+\def\Ascii{{\sc Ascii}}
+\def\Unix{{Unix}} % No \sc, according to Bart.
+\def\Scheme{{Scheme}} % No \sc.
+\def\scm{{Scheme 48}}
+\def\R4RS{R4RS}
+
+\newcommand{\synteq}{{\rm ::=}}
+
+% One-line code examples
+%\newcommand{\codex}[1]%                One line, centred. Tight spacing.
+%  {$$\abovedisplayskip=.75ex plus 1ex minus .5ex%
+%     \belowdisplayskip=\abovedisplayskip%
+%     \abovedisplayshortskip=0ex plus .5ex%
+%     \belowdisplayshortskip=\abovedisplayshortskip%
+%     \hbox{\ttt #1}$$}
+%\newcommand{\codex}[1]{\begin{tightinset}\ex{#1}\end{tightinset}\ignorespaces}
+\newcommand{\codex}[1]{\begin{leftinset}\ex{#1}\end{leftinset}\ignorespaces}
+
+
+% For multiletter vars in math mode:
+\newcommand{\var}[1]{{\it #1}}
+\newcommand{\vari}[2]{${\it #1}_{#2}$}
+
+%% What you frequently want when you say \tt:
+\def\ttt{\tt\catcode``=13\@noligs\frenchspacing}
+
+% Works in math mode; all special chars remain special; cheaper than \cd.
+% Will not be correct size in super and subscripts, though.
+\newcommand{\ex}[1]{\mbox{\ttt #1}} 
+
+\newenvironment{inset}
+ {\bgroup\parskip=1ex plus 1ex\begin{list}{}%
+        {\topsep=0pt\rightmargin\leftmargin}%
+        \item[]}%
+ {\end{list}\leavevmode\egroup\global\@ignoretrue}
+
+\newenvironment{leftinset}
+ {\bgroup\parskip=1ex plus 1ex\begin{list}{}%
+        {\topsep=0pt}%
+        \item[]}%
+ {\end{list}\leavevmode\egroup\global\@ignoretrue}
+
+\newenvironment{tightinset}
+ {\bgroup\parskip=0pt\begin{list}{}%
+        {\topsep=0pt\rightmargin\leftmargin}%
+        \item[]}%
+ {\end{list}\leavevmode\egroup\ignorespaces}
+
+\newcommand{\remark}[1]{\mbox{$<<$}{\bf #1}\mbox{$>>$}}
+\newcommand{\note}[1]{\{Note #1\}}
+
+% For use in code. The \llap magicness makes the lambda exactly as wide as
+% the other chars in \tt; the \hskip shifts it right a bit so it doesn't
+% crowd the left paren -- which is necessary if \tt is cmtt.
+% Note that (\l{x y} (+ x y)) uses the same number of columns in TeX form
+% as it produces when typeset. This makes it easy to line up the columns
+% in your input. \l is bound to some useless command in LaTeX, so we have to
+% define it w/renewcommand.
+\let\oldl\l %Save the old \l on \oldl
+\renewcommand{\l}[1]{\ \llap{$\lambda$\hskip-.05em}\ (#1)}
+
+% This horrible hack is for typesetting procedure doc.
+\newcommand{\proto}[3] {\makebox[\protowidth][l]{{\ttt(#1 {\it #2}\/)} \hfill{\sl #3}}}
+\newcommand{\protoitem}[3]{\item[\proto{#1}{#2}{#3}]}
+\newlength{\protowidth} \protowidth \linewidth
+\newenvironment{protos}{\protowidth \linewidth \begin{description}}
+{\end{description}}
+\newenvironment{column}{\protowidth \linewidth\begin{tabular}{@{}l@{}}}{\end{tabular}}
+
+% For subcaptions
+\newcommand{\subcaption}[1]
+{\unskip\vspace{-2mm}\begin{center}\unskip\em#1\end{center}}
+
+\makeatother
+%%% End preamble
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\notenum{3}
+\project{Personal Information Architecture}
+\title{A {\Scheme} Shell}
+\author{Olin Shivers \\ {\ttt shivers@lcs.mit.edu}}
+\date{4/94}
+
+\maketitle
+\pagestyle{empty}
+\thispagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\headingquote{
+        Although robust enough for general use, adventures  \\
+        into the esoteric periphery of the C shell may reveal \\
+        unexpected quirks.}
+        {SunOS 4.1 csh(1) man page, 10/2/89}
+\vspace{-2em}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Prologue}
+%\addcontentsline{toc}{section}{Prologue}
+Shell programming terrifies me. There is something about writing a simple
+shell script that is just much, much more unpleasant than writing a simple C
+program, or a simple {\CommonLisp} program, or a simple Mips assembler program.
+Is it trying to remember what the rules are for all the different quotes? Is
+it having to look up the multi-phased interaction between filename expansion,
+shell variables, quotation, backslashes and alias expansion? Maybe it's having
+to subsequently look up which of the twenty or thirty flags I need for my
+grep, sed, and awk invocations. Maybe it just gets on my nerves that I have to
+run two complete programs simply to count the number of files in a directory
+(\ex{ls | wc -l}), which seems like several orders of magnitude more cycles 
+than was really needed.
+
+Whatever it is, it's an object lesson in angst. Furthermore, during late-night
+conversations with office mates and graduate students, I have formed the
+impression that I am not alone. In late February\footnote{February 1992, that
+is.}, I got embroiled in a multi-way email flamefest about just exactly what it
+was about Unix that drove me nuts. In the midst of the debate, I did a rash
+thing.  I claimed that it would be easy and so much nicer to do shell
+programming from {\Scheme}. Some functions to interface to the OS and a few
+straightforward macros would suffice to remove the spectre of \cd{#!/bin/csh}
+from my life forever.  The serious Unix-philes in the debate expressed their
+doubts.  So I decided to go do it.
+
+Probably only take a week or two.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Keywords page for the MIT TR
+{
+\clearpage
+\vspace*{\fill}
+
+\newcommand{\keywords}[1]%
+    {\newlength{\kwlength}\settowidth{\kwlength}{\bf Keywords: }%
+     \setlength{\kwlength}{-\kwlength}\addtolength{\kwlength}{\linewidth}%
+     \noindent{\bf Keywords: }\parbox[t]{\kwlength}{\raggedright{}#1.}}
+
+
+\keywords{operating systems, programming languages, Scheme,
+          Unix, shells, functional languages, systems programming}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cleardoublepage
+\tableofcontents
+\cleardoublepage
+\setcounter{page}{1}
+\pagestyle{plain}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+The central artifact of this paper is a new {\Unix} shell called scsh.
+However, I have a larger purpose beyond simply giving a description of
+the new system.
+It has become fashionable recently to claim that ``language doesn't matter.''
+After twenty years of research, operating systems and systems
+applications are still mainly written in C and its complex successor, C++.
+Perhaps advanced programming languages offer too little for the price they
+demand in efficiency and formal rigor.
+
+I disagree strongly with this position, and
+I would like to use scsh, in comparison to other {\Unix} systems programming
+languages, to make the point that language {\em does\/} matter.
+After presenting scsh in the initial sections of the paper,
+I will describe its design principles, 
+and make a series of points concerning the effect language design has
+upon systems programming.
+I will use scsh, C, and the traditional shells as linguistic exemplars,
+and show how their various notational and semantic tradeoffs affect
+the programmer's task.
+In particular, I wish to show that a functional language such as Scheme is an
+excellent tool for systems programming.
+Many of the linguistic points I will make are well-known to the members of
+the systems programming community that employ modern programming
+languages, such as DEC SRC's Modula-3 \cite{Nelson}.
+In this respect, I will merely be serving to recast these ideas in
+a different perspective, and perhaps diffuse them more widely.
+
+The rest of this paper is divided into four parts:
+\begin{itemize}
+\item In part one, I will motivate the design of scsh 
+	(section~\ref{sec:shells}), and then give a brief
+	tutorial on the system 
+	(\ref{sec:proc-forms}, \ref{sec:syscall-lib}).
+\item In part two, I discuss the design issues behind scsh, 
+	and cover some of the relevant implementation details
+	(\ref{sec:zen}--\ref{sec:size}).
+\item Part three concerns systems programming with advanced languages.
+      I will illustrate my points by comparing scsh to other {\Unix}
+      programming systems (\ref{sec:scm-sysprog}, \ref{sec:opl}).
+\item Finally, we conclude, with some indication of future directions
+      and a few final thoughts.
+\end{itemize}
+
+
+%\part{Shell Programming}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Unix shells}
+\label{sec:shells}
+Unix shells, such as sh or csh, provide two things at once: an interactive
+command language and a programming language. Let us focus on the latter
+function: the writing of ``shell scripts''---interpreted programs
+that perform small tasks or assemble a collection of Unix tools into
+a single application.
+
+Unix shells are real programming languages. They have variables, if/then
+conditionals, and loops. But they are terrible programming languages.  The
+data structures typically consist only of integers and vectors of strings.
+The facilities for procedural abstraction are non-existent to minimal. The
+lexical and syntactic structures are multi-phased, unprincipled, and baroque.
+
+If most shell languages are so awful, why does anyone use them?
+There are a few important reasons.
+\begin{itemize}
+\item 
+  A programming language is a notation for expressing computation.  Shells
+  have a notation that is specifically tuned for running Unix programs and
+  hooking them together. For example, suppose you want to run programs
+  \ex{foo} and \ex{bar} with \ex{foo} feeding output into \ex{bar}. If you do
+  this in C, you must write: two calls to \ex{fork()}, two calls to
+  \ex{exec()}, one call to \ex{pipe()}, several calls to \ex{close()}, 
+  two calls to \ex{dup()}, and a lot of error checks (fig.~\ref{fig:C-pipe}). 
+  This is a lot of picky bookkeeping: tedious to write, tedious to read, 
+  and easy to get wrong on the first try. In sh, on the other hand, 
+  you simply write ``\ex{foo | bar}'' which is much easier to write and 
+  much clearer to read.
+  One can look at this expression and instantly understand it; 
+  one can write it and instantly be sure that it is correct.
+
+\begin{figure}
+\begin{boxedminipage}{\linewidth}\vskip 1.5ex
+\footnotesize
+\begin{verbatim}
+int fork_foobar(void)       /* foo | bar in C */
+{
+    int pid1 = fork();
+    int pid2, fds[2];
+
+    if( pid1 == -1 ) {
+        perror("foo|bar");
+        return -1;
+        }
+
+    if( !pid1 ) {
+        int status;
+        if( -1 == waitpid(pid1, &status, 0) ) {
+            perror("foo|bar");
+            return -1;
+            }
+        return status;
+        }
+
+    if( -1 == pipe(fds) ) {
+        perror("foo|bar");
+        exit(-1);
+        }
+    
+    pid2 = fork();
+    if( pid2 == -1 ) {
+        perror("foo|bar");
+        exit(-1);
+        }
+    
+    if( !pid2 ) {
+        close(fds[1]);
+        dup2(fds[0], 1);
+        execlp("foo", "foo", NULL);
+        perror("foo|bar");
+        exit(-1);
+        }
+    
+    close(fds[0]);
+    dup2(fds[1], 0);
+    execlp("bar", "bar", NULL);
+    perror("foo|bar");
+    exit(-1);
+    }\end{verbatim}
+\caption{Why we program with shells.}
+\label{fig:C-pipe}
+\end{boxedminipage}
+\end{figure}
+
+\item 
+  They are interpreted. Debugging is easy and interactive; programs are small.
+  On my workstation, the ``hello, world'' program is 16kb as a compiled C
+  program, and 29 bytes as an interpreted sh script.
+
+  In fact, \ex{/bin/sh} is just about the only language interpreter
+  that a programmer can absolutely rely upon having available
+  on the system, so this is just about the only reliable way to
+  get interpreted-code density and know that one's program
+  will run on any Unix system.
+
+\item 
+  Because the shell is the programmer's command language, the programmer
+  is usually very familiar with its commonly-used command-language
+  subset (this familiarity tails off rapidly, however, as the demands
+  of shell programming move the programmer out into the dustier recesses
+  of the language's definition.)
+\end{itemize}
+
+There is a tension between the shell's dual role as interactive command
+language and shell-script programming language.  A command language should be
+terse and convenient to type. It doesn't have to be comprehensible.  Users
+don't have to maintain or understand a command they typed into a shell a month
+ago. A command language can be ``write-only,'' because commands are thrown
+away after they are used.  However, it is important that most commands fit on
+one line, because most interaction is through tty drivers that don't let the
+user back up and edit a line after its terminating newline has been entered.
+This seems like a trivial point, but imagine how irritating it would be if
+typical shell commands required several lines of input. Terse notation is
+important for interactive tasks.
+
+Shell syntax is also carefully designed to allow it to be parsed
+on-line---that is, to allow parsing and interpretation to be interleaved.
+This usually penalizes the syntax in other ways (for example, consider 
+rc's clumsy if/then/else syntax \cite{rc}).
+
+Programming languages, on the other hand, can be a little more verbose, in
+return for generality and readability. The programmer enters programs into a
+text editor, so the language can spread out a little more.
+
+The constraints of the shell's role as command language are one of the
+things that make it unpleasant as a programming language. 
+
+The really compelling advantage of shell languages over other programming
+languages is the first one mentioned above. Shells provide a powerful
+notation for connecting processes and files together. In this respect,
+shell languages are extremely well-adapted to the general paradigm of
+the Unix operating system.
+In Unix, the fundamental computational agents are programs, running
+as processes in individual address spaces.
+These agents cooperate and communicate among themselves to solve a problem
+by communicating over directed byte streams called pipes.
+Viewed at this level, Unix is a data-flow architecture.
+From this perspective, the shell serves a critical role
+as the language designed to assemble the individual computational
+agents to solve a particular task.
+
+As a programming language, this interprocess ``glue'' aspect of the
+shell is its key desireable feature.
+This leads us to a fairly obvious idea: instead of adding weak
+programming features to a Unix process-control language, 
+why not add process invocation features to a strong programming language?
+
+What programming language would make a good base?
+We would want a language that was powerful and high-level.
+It should allow for implementations based on interactive interpreters, for
+ease of debugging and to keep programs small.
+Since we want to add new notation to the language, it would help if the
+language was syntactically extensible.
+High-level features such as automatic storage allocation would help keep
+programs small and simple.
+{\Scheme} is an obvious choice.
+It has all of the desired features, and its weak points, such as it lack of a
+module system or its poor performance relative to compiled C on certain
+classes of program, do not apply to the writing of shell scripts.
+
+I have designed and implemented a {\Unix} shell called scsh that is
+embedded inside {\Scheme}.
+I had the following design goals and non-goals:
+\begin{itemize}
+\item  
+  The general systems architecture of {\Unix} is cooperating computational
+  agents that are realised as processes running in separate, protected address
+  spaces, communicating via byte streams.
+  The point of a shell language is to act as the glue to connect up these
+  computational agents.
+  That is the goal of scsh.
+  I resisted the temptation to delve into other programming models.
+  Perhaps cooperating lightweight threads communicating through shared memory
+  is a better way to live, but it is not {\Unix}.
+  The goal here was not to come up with a better systems architecture, but
+  simply to provide a better way to drive {\Unix}.
+  \note{Agenda}
+
+\item 
+  I wanted a programming language, not a command language, and I was
+  unwilling to compromise the quality of the programming language to
+  make it a better command language. I was not trying to replace use of
+  the shell as an interactive command language. I was trying to provide
+  a better alternative for writing shell scripts. So I did not focus
+  on issues that might be important for a command language, such as job
+  control, command history, or command-line editing. There are no write-only
+  notational conveniences. I made no effort to hide the
+  base {\Scheme} syntax, even though an interactive user might find all
+  the necessary parentheses irritating.  
+  (However, see section \ref{sec:future-work}.)
+
+\item 
+  I wanted the result to fit naturally within {\Scheme}. For example, 
+  this ruled out complex non-standard control-flow paradigms, 
+  such as awk's or sed's.
+\end{itemize}
+
+The result design, scsh, has two dependent components, embedded
+within a very portable {\Scheme} system:
+\begin{itemize}
+\item A high-level process-control notation.
+\item A complete library of {\Unix} system calls.
+\end{itemize}
+The process-control notation allows the user to control {\Unix} programs
+with a compact notation.
+The syscall library gives the programmer full low-level access to the kernel
+for tasks that cannot be handled by the high-level notation.
+In this way, scsh's functionality spans a spectrum of detail that is
+not available to either C or sh.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Process notation}
+\label{sec:proc-forms}
+Scsh has a notation for controlling {\Unix} processes that takes the
+form of s-expressions; this notation can then be embedded inside of 
+standard {\Scheme} code.
+The basic elements of this notation are {\em process forms}, 
+{\em extended process forms}, and {\em redirections}.
+
+\subsection{Extended process forms and i/o redirections}
+An {\em extended process form\/} is a specification of a {\Unix} process to
+run, in a particular I/O environment:
+        \codex{\var{epf} {\synteq} (\var{pf} $\var{redir}_1$ {\ldots} $\var{redir}_n$)}
+where \var{pf} is a process form and the $\var{redir}_i$ are redirection specs.
+A {\em redirection spec} is one of:
+\begin{inset}
+\begin{tabular}{@{}l@{\qquad{\tt; }}l@{}}
+  \ex{(< \var{[fdes]} \var{file-name})} & \ex{Open file for read.}
+\\\ex{(> \var{[fdes]} \var{file-name})} & \ex{Open file create/truncate.}
+\\\ex{(<< \var{[fdes]} \var{object})}   & \ex{Use \var{object}'s printed rep.}
+\\\ex{(>> \var{[fdes]} \var{file-name})} & \ex{Open file for append.}
+\\\ex{(= \var{fdes} \var{fdes/port})}    & \ex{Dup2}
+\\\ex{(- \var{fdes/port})}               & \ex{Close \var{fdes/port}.}
+\\\ex{stdports}                          & \ex{0,1,2 dup'd from standard ports.}
+\end{tabular}
+\end{inset}
+The \var{fdes} file descriptors have these defaults:
+\begin{center}
+{\ttt
+\begin{tabular}{|cccc|}\hline < & << & > & >> \\
+                              0 &  0 & 1 &  1 \\ \hline
+\end{tabular}
+}
+\end{center}
+
+The subforms of a redirection are implicitly backquoted, 
+and symbols stand for their print-names. 
+So \ex{(> ,x)} means 
+``output to the file named by {\Scheme} variable \ex{x},'' 
+and \ex{(< /usr/shivers/.login)} means ``read from  \ex{/usr/shivers/.login}.''
+This implicit backquoting is an important feature of the process notation,
+as we'll see later (sections~\ref{sec:zen} and \ref{sec:sexp}).
+
+Here are two more examples of i/o redirection:
+%
+\begin{center}
+\begin{codebox}
+(< ,(vector-ref fv i)) 
+(>> 2 /tmp/buf)\end{codebox}
+\end{center}
+%
+These two redirections cause the file \ex{fv[i]} to be opened on stdin, and
+\ex{/tmp/buf} to be opened for append writes on stderr.
+
+The redirection \ex{(<< \var{object})} causes input to come from the 
+printed representation of \var{object}. 
+For example,
+         \codex{(<< "The quick brown fox jumped over the lazy dog.")}
+causes reads from stdin to produce the characters of the above string.
+The object is converted to its printed representation using the \ex{display}
+procedure, so
+                      \codex{(<< (A five element list))}
+is the same as
+                     \codex{(<< "(A five element list)")}
+is the same as
+                \codex{(<< ,(reverse '(list element five A))){\rm.}}
+(Here we use the implicit backquoting feature to compute the list to 
+be printed.)
+
+The redirection \ex{(= \var{fdes} \var{fdes/port})} causes \var{fdes/port} 
+to be dup'd into file descriptor \var{fdes}.
+For example, the redirection
+                               \codex{(= 2 1)}
+causes stderr to be the same as stdout. 
+\var{fdes/port} can also be a port, for example:
+                     \codex{(= 2 ,(current-output-port))}
+causes stderr to be dup'd from the current output port. 
+In this case,  it is an error if the port is not a file port
+(\eg, a string port). \note{No port sync}
+
+More complex redirections can be accomplished using the \ex{begin}
+process form, discussed below, which gives the programmer full control
+of i/o redirection from {\Scheme}.
+
+\subsection{Process forms}
+A {\em process form\/} specifies a computation to perform as an independent
+{\Unix} process. It can be one of the following:
+%
+\begin{leftinset}
+\begin{codebox}
+(begin . \var{scheme-code})     
+(| \vari{pf}{\!1} {\ldots} \vari{pf}{\!n})          
+(|+ \var{connect-list} \vari{pf}{\!1} {\ldots} \vari{pf}{\!n})      
+(epf . \var{epf})                       
+(\var{prog} \vari{arg}{1} {\ldots} \vari{arg}{n})       
+\end{codebox}
+\qquad
+\begin{codebox}
+; Run \var{scheme-code} in a fork.
+; Simple pipeline
+; Complex pipeline
+; An extended process form.
+; Default: exec the program.
+\end{codebox}
+\end{leftinset}
+%
+The default case \ex{(\var{prog} \vari{arg}1 {\ldots} \vari{arg}n)} 
+is also implicitly backquoted.
+That is, it is equivalent to:
+%
+\codex{(begin (apply exec-path `(\var{prog} \vari{arg}1 {\ldots} \vari{arg}n)))}
+%
+\ex{Exec-path} is the version of the \ex{exec()} system call that 
+uses scsh's path list to search for an executable.
+The program and the arguments must be either strings, symbols, or integers.
+Symbols and integers are coerced to strings.
+A symbol's print-name is used.
+Integers are converted to strings in base 10.
+Using symbols instead of strings is convenient, since it suppresses the
+clutter of the surrounding \ex{"{\ldots}"} quotation marks.
+To aid this purpose, scsh reads symbols in a case-sensitive manner, 
+so that you can say
+\codex{(more Readme)}
+and get the right file.
+(See section \ref{sec:lex} for further details on lexical issues.)
+
+A \var{connect-list} is a specification of how two processes are to be wired
+together by pipes. 
+It has the form \ex{((\vari{from}1 \vari{from}2 {\ldots} \var{to}) \ldots)}
+and is implicitly backquoted.
+For example,
+%
+\codex{(|+ ((1 2 0) (3 3)) \vari{pf}{\!1} \vari{pf}{\!2})}
+%
+runs \vari{pf}{\!1} and \vari{pf}{\!2}. 
+The first clause \ex{(1 2 0)} causes \vari{pf}{\!1}'s 
+stdout (1) and stderr (2) to be connected via pipe 
+to \vari{pf}{\!2}'s stdin (0). 
+The second clause \ex{(3 3)} causes \vari{pf}{\!1}'s file descriptor 3 to be
+connected to \vari{pf}{\!2}'s file descriptor 3.
+%---this is unusual, and not expected to occur very often.
+
+%[Note that {\R4RS} does not specify whether or not | and |+ are readable
+%symbols. Scsh does.]
+
+\subsection{Using extended process forms in \Scheme}
+Process forms and extended process forms are {\em not\/} {\Scheme}.
+They are a different notation for expressing computation that, like {\Scheme},
+is based upon s-expressions.
+Extended process forms are used in {\Scheme} programs by embedding them inside
+special Scheme forms.
+\pagebreak
+There are three basic {\Scheme} forms that use extended process forms: 
+\ex{exec-epf}, \cd{&}, and \ex{run}:
+\begin{inset}
+\begin{codebox}[t]
+(exec-epf . \var{epf})
+(& . \var{epf})         
+(run . \var{epf})
+\end{codebox}
+\quad
+\begin{codebox}[t]
+; Nuke the current process.
+; Run \var{epf} in background; return pid.
+; Run \var{epf}; wait for termination.
+;    Returns exit status.\end{codebox}
+\end{inset}
+These special forms are macros that expand into the equivalent
+series of system calls.
+The definition of the \ex{exec-epf} macro is non-trivial, 
+as it produces the code to handle i/o redirections and set up pipelines.
+However, the definitions of the \cd{&} and \ex{run} macros are very simple:
+\begin{leftinset}
+\begin{tabular}{@{}l@{\quad$\Rightarrow$\quad}l@{}}
+\cd{(& . \var{epf})} & \ex{(fork (\l{} (exec-epf . \var{epf})))} \\
+\ex{(run . \var{epf})} & \cd{(wait (& . \var{epf}))}
+\end{tabular}
+\end{leftinset}
+
+Figures \ref{fig:ex1} and \ref{fig:ex2} show a series of examples
+employing a mix of the process notation and the syscall library.
+Note that regular Scheme is used to provide the control structure,
+variables, and other linguistic machinery needed by the script fragments.
+%
+\begin{figure}[bp]\footnotesize
+\begin{boxedminipage}{\linewidth}\vskip 1.5ex
+\begin{center}\begin{codebox}
+;; If the resource file exists, load it into X.
+(if (file-exists? f))
+    (run (xrdb -merge ,f)))
+
+;; Decrypt my mailbox; key is "xyzzy".
+(run (crypt xyzzy) (< mbox.crypt) (> mbox))
+
+;; Dump the output from ls, fortune, and from into log.txt.
+(run (begin (run (ls))
+            (run (fortune))
+            (run (from)))
+     (> log.txt))
+
+;; Compile FILE with FLAGS.
+(run (cc ,file ,@flags))
+
+;; Delete every file in DIR containing the string "/bin/perl":
+(with-cwd dir
+  (for-each (\l{file}
+              (if (zero? (run (grep -s /bin/perl ,file)))
+                  (delete-file file)))
+            (directory-files)))\end{codebox}
+\end{center}
+\caption{Example shell script fragments (a)}
+\label{fig:ex1}
+\end{boxedminipage}
+\end{figure}
+
+\begin{figure}\footnotesize
+\begin{boxedminipage}{\linewidth}\vskip 1.5ex
+\begin{center}\begin{codebox}
+;; M4 preprocess each file in the current directory, then pipe
+;; the input into cc. Errlog is foo.err, binary is foo.exe.
+;; Run compiles in parallel.
+(for-each (\l{file}
+            (let ((outfile (replace-extension file ".exe"))
+                  (errfile (replace-extension file ".err")))
+              (& (| (m4) (cc -o ,outfile))
+                 (< ,file)
+                 (> 2 ,errfile))))
+          (directory-files))
+
+;; Same as above, but parallelise even the computation
+;; of the filenames.
+(for-each (\l{file}
+            (& (begin (let ((outfile (replace-extension file ".exe"))
+                            (errfile (replace-extension file ".err")))
+                        (exec-epf (| (m4) (cc -o ,outfile))
+                                  (< ,file)
+                                  (> 2 ,errfile))))))
+          (directory-files))
+
+;; DES encrypt string PLAINTEXT with password KEY. My DES program
+;; reads the input from fdes 0, and the key from fdes 3. We want to
+;; collect the ciphertext into a string and return that, with error
+;; messages going to our stderr. Notice we are redirecting Scheme data
+;; structures (the strings PLAINTEXT and KEY) from our program into
+;; the DES process, instead of redirecting from files. RUN/STRING is
+;; like the RUN form, but it collects the output into a string and 
+;; returns it (see following section).
+
+(run/string (/usr/shivers/bin/des -e -3)
+            (<< ,plaintext) (<< 3 ,key))
+
+;; Delete the files matching regular expression PAT.
+;; Note we aren't actually using any of the process machinery here --
+;; just pure Scheme.
+(define (dsw pat)
+  (for-each (\l{file}
+              (if (y-or-n? (string-append "Delete " file))
+                  (delete-file file)))
+            (file-match #f pat)))\end{codebox}
+\end{center}
+\caption{Example shell script fragments (b)}
+\label{fig:ex2}
+\end{boxedminipage}
+\end{figure}
+
+
+\subsection{Procedures and special forms}
+It is a general design principle in scsh that all functionality
+made available through special syntax is also available in a
+straightforward procedural form.
+So there are procedural equivalents for all of the process notation.
+In this way, the programmer is not restricted by the particular details of
+the syntax.
+Here are some of the syntax/procedure equivalents:
+\begin{inset}
+\begin{tabular}{@{}|ll|@{}}
+\hline
+Notation        & Procedure \\ \hline \hline
+\ex{|}          & \ex{fork/pipe} \\
+\ex{|+}         & \ex{fork/pipe+} \\
+\ex{exec-epf}   & \ex{exec-path} \\
+redirection     & \ex{open}, \ex{dup} \\
+\cd{&}          & \ex{fork} \\
+\ex{run}        & $\ex{wait} + \ex{fork}$ \\
+\hline
+\end{tabular}
+\end{inset}
+%
+Having a solid procedural foundation also allows for general notational
+experimentation using Scheme's macros.
+For example, the programmer can build his own pipeline notation on top of the
+\ex{fork} and \ex{fork/pipe} procedures.
+%Because the shell notation has {\Scheme} escapes 
+%(\eg, the \ex{begin} process form),
+%the programmer can move back and forth easily, using the simple notation
+%where possible, and escaping to general {\Scheme} only where necessary.
+
+\begin{protos}
+\protoitem{fork}{[thunk]}{procedure}
+    \ex{Fork} spawns a {\Unix} subprocess.
+    Its exact behavior depends on whether it is called with the optional
+    \var{thunk} argument.
+
+    With the \var{thunk} argument, \ex{fork} spawns off a subprocess that
+    calls \var{thunk}, exiting when \var{thunk} returns. 
+    \ex{Fork} returns the subprocess' pid to the parent process.
+
+    Without the \var{thunk} argument, \ex{fork} behaves like the C \ex{fork()}
+    routine.
+    It returns in both the parent and child process. 
+    In the parent, \ex{fork} returns the child's pid;
+    in the child, \ex{fork} returns \cd{#f}.
+
+\protoitem{fork/pipe}{[thunk]}{procedure}
+    Like \ex{fork}, but the parent and child communicate via a pipe 
+    connecting the parent's stdin to the child's stdout. This function 
+    side-effects the parent by changing his stdin.
+
+    In effect, \ex{fork/pipe} splices a process into the data stream
+    immediately upstream of the current process.
+    This is the basic function for creating pipelines.
+    Long pipelines are built by performing a sequence of \ex{fork/pipe} calls.
+\pagebreak
+    For example, to create a background two-process pipe \ex{a | b}, we write:
+%
+\begin{tightcode}
+(fork (\l{} (fork/pipe a) (b)))\end{tightcode}
+%
+    which returns the pid of \ex{b}'s process.
+
+    To create a background three-process pipe \ex{a | b | c}, we write:
+%
+\begin{code}
+(fork (\l{} (fork/pipe a)
+            (fork/pipe b)
+            (c)))\end{code}
+%    
+    which returns the pid of \ex{c}'s process.
+
+
+\protoitem{fork/pipe+}{conns [thunk]}{procedure}
+    Like \ex{fork/pipe}, but the pipe connections between the child and parent
+    are specified by the connection list \var{conns}. 
+    See the 
+            \codex{(|+ \var{conns} \vari{pf}{\!1} \ldots{} \vari{pf}{\!n})}
+    process form for a description of connection lists.
+\end{protos}
+
+\subsection{Interfacing process output to {\Scheme}}
+\label{sec:io-interface}
+There is a family of procedures and special forms that can be used
+to capture the output of processes as {\Scheme} data. 
+Here are the special forms for the simple variants:
+\\[2ex]%\begin{center}
+\begin{codebox}
+(run/port    . \var{epf}) ; Return port open on process's stdout.
+(run/file    . \var{epf}) ; Process > temp file; return file name.
+(run/string  . \var{epf}) ; Collect stdout into a string and return.
+(run/strings . \var{epf}) ; Stdout->list of newline-delimited strings.
+(run/sexp    . \var{epf}) ; Read one sexp from stdout with READ.
+(run/sexps   . \var{epf}) ; Read list of sexps from stdout with READ.\end{codebox}
+\\[2ex]%\end{center}
+%
+\ex{Run/port} returns immediately after forking off the process;
+other forms wait for either the process to die (\ex{run/file}),
+or eof on the communicating pipe 
+(\ex{run/string}, \ex{run/strings}, \ex{run/sexps}).
+These special forms just expand into calls to the following analogous
+procedures:
+%
+\begin{center}
+\begin{column}
+\proto{run/port*}       {thunk}{procedure} \\
+\proto{run/file*}       {thunk}{procedure} \\
+\proto{run/string*}     {thunk}{procedure} \\
+\proto{run/strings*}    {thunk}{procedure} \\
+\proto{run/sexp*}       {thunk}{procedure} \\
+\proto{run/sexps*}      {thunk}{procedure}
+\end{column}
+\end{center}
+%
+For example, \ex{(run/port . \var{epf})} expands into
+\codex{(run/port* (\l{} (exec-epf . \var{epf}))).}
+
+These procedures can be used to manipulate the output of {\Unix}
+programs with {\Scheme} code. For example, the output of the \ex{xhost(1)}
+program can be manipulated with the following code:
+\begin{code}
+;;; Before asking host REMOTE to do X stuff, 
+;;; make sure it has permission.
+(while (not (member remote (run/strings (xhost))))
+  (display "Pausing for xhost...")
+  (read-char))\end{code}
+
+The following procedures are also of utility for generally parsing 
+input streams in scsh:
+%(port->string \var{port}) 
+%(port->sexp-list \var{port})
+%(port->string-list \var{port})
+%(port->list \var{reader} \var{port})
+\begin{center}
+\begin{column}
+\proto{port->string}{port}{procedure} \\
+\proto{port->sexp-list}{port}{procedure} \\
+\proto{port->string-list}{port}{procedure} \\
+\proto{port->list}{reader port}{procedure}
+\end{column}
+\end{center}
+\ex{Port->string} reads the port until eof,
+then returns the accumulated string.
+\ex{Port->sexp-list} repeatedly reads data from the port until eof, 
+then returns the accumulated list of items.  
+\ex{Port->string-list} repeatedly reads newline-terminated strings from the
+port until eof, then returns the accumulated list of strings.
+The delimiting newlines are not part of the returned strings.
+\ex{Port->list} generalises these two procedures.
+It uses \var{reader} to repeatedly read objects from a port.
+It accumulates these objects into a list, which is returned upon eof.
+The \ex{port->string-list} and \ex{port->sexp-list} procedures
+are trivial to define, being merely \ex{port->list} curried with
+the appropriate parsers:
+\begin{code}\cddollar
+(port->string-list \var{port}) $\equiv$ (port->list read-line \var{port})
+(port->sexp-list   \var{port}) $\equiv$ (port->list read \var{port})\end{code}
+%
+The following compositions also hold:
+\begin{code}\cddollar
+run/string*   $\equiv$  port->string      $\circ$ run/port*
+run/strings*  $\equiv$  port->string-list $\circ$ run/port*
+run/sexp*     $\equiv$  read              $\circ$ run/port*
+run/sexps*    $\equiv$  port->sexp-list   $\circ$ run/port*\end{code}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{System calls}
+\label{sec:syscall-lib}
+We've just seen scsh's high-level process-form notation,
+for running programs, creating pipelines, and performing I/O redirection.
+This notation is at roughly the same level as traditional {\Unix} shells.
+The process-form notation is convenient, but does not provide detailed,
+low-level access to the operating system.
+This is provided by the second component of scsh: its system-call library.
+
+Scsh's system-call library is a nearly-complete set of {\sc Posix} bindings,
+with some extras, such as symbolic links.
+As of this writing, network and terminal i/o controls have still not yet
+been implemented; work on them is underway.
+Scsh also provides a convenient set of systems programming utility procedures,
+such as routines to perform pattern matching on file-names and general strings,
+manipulate {\Unix} environment variables, and parse file pathnames.
+Although some of the procedures have been described in passing,
+a detailed description of the system-call library is beyond the scope of
+this note. 
+The reference manual \cite{ref-man} contains the full details.
+
+%\part{Design Notes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The Tao of {\Scheme} and {\Unix}}
+\label{sec:zen}
+Most attempts at embedding shells in functional programming languages
+\cite{fsh,ellis}
+try to hide the difference between running a program and calling a procedure.
+That is, if the user tries
+\codex{(lpr "notes.txt")}
+the shell will first treat \ex{lpr} as a procedure to be called.
+If \ex{lpr} isn't found in the variable environment, the shell will then
+do a path search of the file system for a program.
+This sort of transparency is in analogy to the function-binding mechanisms
+of traditional shells, such as ksh.
+
+This is a fundamental error that has hindered these previous designs.
+Scsh, in contrast, is explicit about the distinction between 
+procedures and programs.
+In scsh, the programmer must know which are which---the mechanisms
+for invocation are different for the two cases 
+  (procedure call {\em versus\/} the \ex{(run . \var{epf})} special form),
+and the namespaces are different 
+  (the program's lexical environment {\em versus\/}
+   \ex{\$PATH} search in the file system).
+
+Linguistically separating these two mechanisms was an important design
+decision in the language.
+It was done because the two computational models are fundamentally different;
+any attempt to gloss over the distinctions would have made the semantics
+ugly and inconsistent.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}
+\begin{boxedminipage}{\linewidth}\vskip 1.5ex
+\begin{center}
+\begin{tabular}{ll}
+\bf Unix: &
+\begin{tabular}[t]{l}
+Computational agents are processes, \\ communicate via byte streams.
+\end{tabular} \\
+\\
+\bf Scheme: &
+\begin{tabular}[t]{l}
+Computational agents are procedures, \\ communicate via procedure call/return.
+\end{tabular}
+\end{tabular}
+\end{center}
+\caption{The Tao of {\Scheme} and {\Unix}}
+\label{fig:tao}
+\end{boxedminipage}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+There are two computational worlds here (figure~\ref{fig:tao}),
+where the basic computational agents are procedures or processes.
+These agents are composed differently.
+In the world of applicative-order procedures, agents execute serially, 
+and are composed with function composition: \ex{(g (f x))}.
+In the world of processes, agents execute concurrently 
+and are composed with pipes, in a data-flow network: \ex{f | g}.
+A language with both of these computational structures, such as scsh, 
+must provide a way to interface them. \note{Normal order}
+In scsh, we have ``adapters'' for crossing between these paradigms:
+%(figure~\ref{fig:cross-connect}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\begin{figure}[bhp]
+%\begin{center}
+\begin{inset}
+\def\foo{\rule[-1.5ex]{0in}{4ex}}
+\begin{tabular}{l|c|c|}
+\multicolumn{1}{l}{} & \multicolumn{1}{c}{Scheme}
+		     & \multicolumn{1}{c}{Unix} \\ \cline{2-3}
+\foo Scheme	& \ex{(g (f x))}	& \ex{(<< ,x)} \\ \cline{2-3}
+\foo Unix	& \ex{run/string},\ldots	& \ex{f | g} \\ \cline{2-3}
+\end{tabular}
+\end{inset}
+%\end{center}
+%\caption{Scheme/Unix cross-connectors}
+%\label{fig:cross-connect}
+%\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The \ex{run/string} form and its cousins (section~\ref{sec:io-interface})
+map process output to procedure input;
+the \ex{<<} i/o redirection maps procedure output to process input.
+For example:
+\begin{code}
+(run/string (nroff -ms)
+            (<< ,(texinfo->nroff doc-string)))\end{code}
+By separating the two worlds, and then providing ways for them to
+cross-connect, scsh can cleanly accommodate the two paradigms within
+one notational framework.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{I/O}
+\label{sec:io}
+Perhaps the most difficult part of the design of scsh was the integration
+of {\Scheme} ports and {\Unix} file descriptors.
+Dealing with {\Unix} file descriptors in a {\Scheme} environment is difficult. 
+In {\Unix}, open files are part of the process state, and are referenced
+by small integers called {\em file descriptors}. 
+Open file descriptors are the fundamental way i/o redirections are passed to
+subprocesses, since file descriptors are preserved across \ex{fork()}
+and \ex{exec()} calls.
+
+{\Scheme}, on the other hand, uses ports for specifying i/o sources.  
+Ports are anonymous, garbage-collected Scheme objects, not integers.  
+When a port is collected, it is also closed.  Because file
+descriptors are just integers, it's impossible to garbage collect them---in
+order to close file descriptor 3, you must prove that the process will never
+again pass a 3 as a file descriptor to a system call doing I/O, and that it
+will never \ex{exec()} a program that will refer to file descriptor 3.
+
+This is difficult at best.
+
+If a {\Scheme} program only used {\Scheme} ports, and never directly used
+file descriptors, this would not be a problem. 
+But {\Scheme} code must descend to the file-descriptor level in at least two
+circumstances:
+\begin{itemize}
+    \item when interfacing to foreign code;
+    \item when interfacing to a subprocess.
+\end{itemize}
+This causes problems. Suppose we have a {\Scheme} port constructed
+on top of file descriptor 2. We intend to fork off a C program that
+will inherit this file descriptor. If we drop references to the port,
+the garbage collector may prematurely close file 2 before we exec
+the C program. 
+
+Another difficulty arising between the anonymity of ports
+and the explicit naming of file descriptors arises when the
+user explicitly manipulates file descriptors, as is required by
+{\Unix}.
+For example, when a file port is opened in {\Scheme}, the underlying run-time
+{\Scheme} kernel must open a file and allocate an integer file descriptor.
+When the user subsequently explicitly manipulates particular file descriptors,
+perhaps preparatory to executing some {\Unix} subprocess, the port's 
+underlying file descriptor could be silently redirected to some new file.
+
+Scsh's {\Unix} i/o interface is intended to fix this and 
+other problems arising from the mismatch between ports and file descriptors.
+The fundamental principle is that in scsh, most ports are attached to files,
+not to particular file descriptors.
+When the user does an i/o redirection (\eg, with \ex{dup2()})
+that must allocate a particular file descriptor \var{fd}, there is a chance
+that \var{fd} has already been inadvertently allocated to a port by a prior
+operation (\eg, an \ex{open-input-file} call).
+If so, \var{fd}'s original port will be shifted to some new file descriptor 
+with a \ex{dup(\var{fd})} operation, freeing up \var{fd} for use.
+The port machinery is allowed to do this as it does not in general
+reveal which file descriptors are allocated to particular {\Scheme} ports.
+Not revealing the particular file descriptors allocated to {\Scheme}
+ports allows the system two important freedoms:
+\begin{itemize}
+\item When the user explicitly allocates a particular file descriptor,
+      the run-time system is free to shuffle around the port/file-descriptor
+      associations as required to free up that descriptor.
+\item When all pointers to an unrevealed file port have been dropped, 
+      the run-time system is free to close the underlying file descriptor.
+      If the user doesn't know which file descriptor was associated with the
+      port, then there is no way he could refer to that i/o channel by its
+      file-descriptor name.
+      This allows scsh to close file descriptors during gc or when
+      performing an \ex{exec()}.
+\end{itemize}
+Users {\em can\/} explicitly manipulate file descriptors, if so desired.
+In this case, the associated ports are marked by the run time as ``revealed,''
+and are no longer subject to automatic collection.
+The machinery for handling this is carefully marked in the documentation, 
+and with some simple invariants in mind, follow the user's intuitions.
+This facility preserves the transparent close-on-collect property
+for file ports that are used in straightforward ways, yet allows
+access to the underlying {\Unix} substrate without interference from
+the garbage collector. This is critical, since shell programming
+absolutely requires access to the {\Unix} file descriptors, as their
+numerical values are a critical part of the process interface.
+
+Under normal circumstances, all this machinery just works behind the scenes
+to keep things straightened out. The only time the user has to think about
+it is when he starts accessing file descriptors from ports, which he should
+almost never have to do. If a user starts asking what file descriptors
+have been allocated to what ports, he has to take responsibility for managing
+this information.
+
+Further details on the port mechanisms in scsh are beyond the scope of
+this note; for more information, see the reference manual \cite{ref-man}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Lexical issues}
+\label{sec:lex}
+
+Scsh's lexical syntax is not fully {\R4RS}-compliant in two ways:
+\begin{itemize}
+\item In scsh, symbol case is preserved by \ex{read} and is significant on
+      symbol comparison. This means 
+      \codex{(run (less Readme))}
+      displays the right file.
+
+\item ``\ex{-}'' and ``\ex{+}'' are allowed to begin symbols. 
+      So the following are legitimate symbols:
+      \codex{-O2 -geometry +Wn}
+\end{itemize}
+%
+Scsh also extends {\R4RS} lexical syntax in the following ways:
+\begin{itemize}
+\item ``\ex{|}'' and ``\ex{.}'' are symbol constituents.
+  This allows \ex{|} for the pipe symbol, and \ex{..} for the parent-directory
+  symbol. (Of course, ``\ex{.}'' alone is not a symbol, but a 
+  dotted-pair marker.)
+
+\item A symbol may begin with a digit.
+      So the following are legitimate symbols:
+\codex{9x15 80x36-3+440}
+
+\item Strings are allowed to contain the {\sc Ansi} C escape sequences
+      such as \verb|\n| and \verb|\161|.
+        
+\item \cd{#!} is a comment read-macro similar to \ex{;}. 
+      This is important for writing shell scripts.
+\end{itemize}
+
+The lexical details of scsh are perhaps a bit contentious.
+Extending the symbol syntax remains backwards compatible
+with existing correct {\R4RS} code.
+Since flags to {\Unix} programs always begin with a dash,
+not extending the syntax would have required the user to explicitly
+quote every flag to a program, as in
+\codex{(run (cc "-O" "-o" "-c" main.c)).}
+This is unacceptably obfuscatory, so the change was made to cover
+these sorts of common {\Unix} flags.
+
+More serious was the decision to make symbols read case-sensitively, 
+which introduces a true backwards incompatibility with {\R4RS} {\Scheme}.
+This was a true case of clashing world-views: 
+{\Unix}'s tokens are case-sensitive; {\Scheme}'s, are not.
+
+It is also unfortunate that the single-dot token, ``\ex{.}'', is both
+a fundamental {\Unix} file name and a deep, primitive syntactic token
+in {\Scheme}---it means the following will not parse correctly in scsh:
+\codex{(run/strings (find . -name *.c -print))}
+You must instead quote the dot: 
+\codex{(run/strings (find "." -name *.c -print))}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Implementation}
+\label{sec:impl}
+
+Scsh is currently implemented on top of {\scm}, a freely-available
+{\Scheme} implementation written by Kelsey and Rees \cite{S48}.
+{\scm} uses a byte-code interpreter for portability, good code density,
+and medium efficiency. It is {\R4RS}-compliant, and includes a module
+system designed by Rees.
+
+The scsh design is not {\scm}-specific, although the current implementation
+is necessarily so. Scsh is intended to be implementable in other {\Scheme}
+implementations---although such a port may require some work. (I would
+be very interested to see scsh ported to some of the {\Scheme} systems designed
+to serve as embedded command languages---\eg, elk, esh, or any of the other
+C-friendly interpreters.)
+
+Scsh scripts currently have a few problems owing to the current
+{\scm} implementation technology. 
+\begin{itemize}
+\item Before running even the smallest shell script, the {\scm} vm must first 
+  load in a 1.4Mb heap image.  This i/o load adds a few seconds to the startup
+  time of even trivial shell scripts.
+
+\item Since the entire {\scm} and scsh runtime is in the form of byte-code
+  data in the {\Scheme} heap, the heap is fairly large. As the {\scm} vm
+  uses a non-generational gc, all of this essentially permanent data
+  gets copied back and forth by the collector.
+
+\item The large heap size is compounded by {\Unix} forking. 
+If you run a
+four-stage pipeline, \eg,
+\begin{code}
+(run (| (zcat paper.tex.Z)
+        (detex)
+        (spell)
+        (enscript -2r)))\end{code}
+  then, for a brief instant, you could have up to five copies of scsh 
+  forked into existence. This would briefly quintuple the virtual memory
+  demand placed by a single scsh heap, which is fairly large to begin with. 
+  Since all the code is actually in the data pages of the process, the OS
+  can't trivially share pages between the processes. Even if the OS is clever
+  enough to do copy-on-write page sharing, it may insist on reserving enough
+  backing store on disk for worst-case swapping requirements. If disk space
+  is limited, this may overflow the paging area, causing the \ex{fork()}
+  operations to fail.
+\end{itemize}
+%
+Byte-coded virtual machines are intended to be a technology
+that provides memory savings through improved code density.
+It is ironic that the straightforward implementation of such a byte-code
+interpreter actually has high memory cost through bad interactions with
+{\Unix} \ex{fork()} and the virtual memory system.
+
+The situation is not irretrievable, however.  A recent release of {\scm}
+allows the pure portion of a heap image to be statically linked with the
+text pages of the vm binary. Putting static data---such as all the code for
+the runtime---into the text pages should drastically shorten start-up time,
+move a large amount of data out of the heap, improve paging, 
+and greatly shrink the dynamic size.  This should all lessen
+the impact of \ex{fork()} on the virtual memory system.
+
+Arranging for the garbage collector to communicate with the virtual memory
+system with the near-standard \ex{madvise()} system call would further improve
+the system. Also, breaking the system run-time into separate modules (\eg,
+bignums, list operations, i/o, string operations, scsh operations, compiler,
+\etc), each of which can be demand-loaded shared-text by the {\scm} vm
+(using \ex{mmap()}), will allow for a full-featured system with a surprisingly
+small memory footprint.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Size}
+\label{sec:size}
+Scsh can justifiably be criticised for being a florid design.
+There are a lot of features---perhaps too many.
+The optional arguments to many procedures, the implicit backquoting, and
+the syntax/procedure equivalents are all easily synthesized by the user.
+For example, \ex{port->strings}, \ex{run/strings*}, \ex{run/sexp*}, 
+and \ex{run/sexps*} are all trivial compositions and curries of other base
+procedures.
+The \ex{run/strings} and \ex{run/sexps} forms are easily
+written as macros, or simply written out by hand.
+Not only does scsh provide the basic \ex{file-attributes} procedure
+(\ie, the \ex{stat()} system call),
+it also provides a host of derived procedures: \ex{file-owner}, \ex{file-mode},
+\ex{file-directory?}, and so forth.
+Still, my feeling is that it is easier and clearer to read
+\codex{(filter file-directory? (directory-files))}
+    than
+\begin{code}
+(filter (\l{fname}
+          (eq? 'directory 
+               (fileinfo:type (file-attributes fname))))
+        (directory-files))\end{code}
+A full library can make for clearer user code.
+
+One measure of scsh's design is that the source code consists of
+a large number of small procedures: the source code for scsh has 448
+top-level definitions; the definitions have an average length of 5 lines of
+code.
+That is, scsh is constructed by connecting together a lot of
+small, composable parts, instead of designing one inflexible monolithic
+structure.
+These small parts can also be composed and abstracted by the programmer
+into his own computational structures.
+Thus the total functionality of scsh is greater than more traditional
+large systems.
+
+
+%\part{Systems Programming}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Systems programming in {\Scheme}}
+\label{sec:scm-sysprog}
+{\Unix} systems programming in {\Scheme} is a much more pleasant experience
+than {\Unix} systems programming in C.
+Several features of the language remove a lot of the painful or error-prone
+problems C systems programmers are accustomed to suffering.
+The most important of these features are:
+\begin{itemize}
+\item exceptions
+\item automatic storage management
+\item real strings
+\item higher-order procedures
+\item S-expression syntax and backquote
+\end{itemize}
+%
+Many of these features are available in other advanced programming languages,
+such as Modula-3 or ML. None are available in C.
+
+\subsection{Exceptions and robust error handling}
+In scsh, system calls never return the error codes that make careful
+systems programming in C so difficult. Errors are signaled by raising
+exceptions.
+Exceptions are usually handled by default handlers that either abort the
+program or invoke a run-time debugger; the programmer can override these when
+desired by using exception-handler expressions.
+Not having to return error codes frees up procedures to return useful values, 
+which encourages procedural composition.
+It also keeps the programmer from cluttering up his code with
+(or, as is all too often the case, just forgetting to include)
+error checks for every system call.
+In scsh, the programmer can assume that if a system call returns at all, it
+returns successfully.
+This greatly simplifies the flow of the code from the programmer's point
+of view, as well as greatly increasing the robustness of the program.
+
+\subsection{Automatic storage management}
+Further, {\Scheme}'s automatic storage allocation removes the
+``result'' parameters from the procedure argument lists.
+When composite data is returned, it is simply returned in a 
+freshly-allocated data structure.
+Again, this helps make it possible for procedures to return useful values.
+
+For example, the C system call \ex{readlink()}
+dereferences a symbolic link in the file system.
+A working definition for the system call is given in 
+figure~\ref{fig:symlink}b.
+It is complicated by many small bookkeeping details, 
+made necessary by C's weak linguistic facilities.
+
+In contrast, scsh's equivalent procedure, \ex{read-symlink},
+has a much simpler definition (fig.~\ref{fig:symlink}a).
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}\fboxsep=1.5em
+\renewcommand{\subcaption}[1]
+{\unskip\begin{center}\unskip\em#1\end{center}}
+
+\begin{boxedminipage}{\linewidth} \vskip 1.5 ex
+\ex{(read-symlink fname)}\\[1.5ex]
+\ex{read-symlink} returns the filename referenced by symbolic link
+\ex{fname}.
+An exception is raised if there is an error.
+\subcaption{(a) {\Scheme} definition of \ex{readlink}}
+\end{boxedminipage}
+
+\vskip 3ex plus 1fil
+
+\begin{boxedminipage}{\linewidth}\vskip 1.5ex
+\ex{readlink(char *path, char *buf, int bufsiz)}\\[1.5ex]
+\ex{readlink} dereferences the symbolic link \ex{path}.
+If the referenced filename is less than or equal to \ex{bufsiz} characters
+in length,
+it is written into the \ex{buf} array, which we fondly hope the
+programmer has arranged to be at least of size \ex{bufsiz} characters.
+If the referenced filename is longer than \ex{bufsiz} characters,
+the system call returns an error code;
+presumably the programmer should then reallocate a larger buffer and try
+again.
+If the system call succeeds, it returns the length of the result filename.
+When the referenced filename is written into \ex{buf}, it is {\em not\/}
+nul-terminated; it is the programmer's responsibility to leave space
+in the buffer for the terminating nul 
+(remembering to subtract one from the actual buffer length when passing it to
+the system call), and deposit the terminal nul after the system call returns.
+
+If there is a real error,
+the procedure will, in most cases, return an error code.
+	(We will gloss over the error-code mechanism for the sake of
+	brevity.)
+%        I will gloss over the -1/\ex{errno} mechanism involved, with its
+%        dependency upon a global, shared variable, for the sake of
+%        brevity.
+However, if the length of \ex{buf} does not actually match the argument
+\ex{bufsiz},
+the system call may either%
+\begin{itemize}%
+\item succeed anyway,
+\item dump core,
+\item overwrite other storage and silently proceed,
+\item report an error, 
+\item or perform some fifth action.
+\end{itemize}%
+It all depends.
+\subcaption{(b) C definition of \ex{readlink}}
+\end{boxedminipage}
+
+\caption{Two definitions of \protect\ex{readlink}}
+\label{fig:symlink}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+With the scsh version, there is no possibility that the result buffer will be
+too small.
+There is no possibility that the programmer will misrepresent the
+size of the result buffer with an incorrect \ex{bufsiz} argument.
+These sorts of issues are completely eliminated by the {\Scheme} programming
+model.
+Instead of having to worry about seven or eight trivial but potentially
+fatal issues, and write the necessary 10 or 15 lines of code to correctly
+handle the operation, the programmer can write a single function call and
+get on with his task.
+
+\subsection{Return values and procedural composition}
+Exceptions and automatic storage allocation make it easier for
+procedures to return useful values.
+This increases the odds that the programmer can use the compact notation
+of function composition---\ex{f(g(x))}---to connect producers and consumers
+of data, which is surprisingly difficult in C.
+%Making it possible for procedures to return useful values is quite
+%useful, as it encourages programmers to use the compact notation of function
+%composition---\ex{f(g(x))}---to indicate data flow, which is surprisingly
+%difficult in C.
+
+In C, if we wish to compose two procedure calls, we frequently must write:
+\begin{code}
+/* C style: */
+g(x,&y);
+{\ldots}f(y)\ldots\end{code}
+Procedures that compute composite data structures for a result
+commonly return them by storing them into a data structure passed
+by-reference as a parameter.
+If \ex{g} does this, we cannot nest calls, but must write the code as shown.
+
+In fact, the above code is not quite what we want; we forgot to check \ex{g}
+for an error return.
+What we really wanted was:
+\begin{code}
+/* Worse/better: */
+err=g(x,&y);
+if( err ) \{
+    <{\it{handle error on {\tt{g}} call}}>
+    \}
+{\ldots}f(y)\ldots\end{code}
+The person who writes this code has to remember to check for the error;
+the person who reads it has to visually link up the data flow by
+connecting \ex{y}'s def and use points.
+% puzzle out the data flow that goes from \ex{g}'s output value \ex{y} to
+% \ex{f}'s input value.
+% This is the data-flow equivalent of puzzling out the control flow
+% of a program by tracing its \ex{goto}'s.
+This is the data-flow equivalent of \ex{goto}'s, 
+with equivalent effects on program clarity.
+
+In {\Scheme}, none of this is necessary. We simply write
+\codex{(f (g x)) ; Scheme}
+Easy to write; easy to read and understand.
+Figure \ref{fig:stat-file} shows an example of this problem, where the
+task is determining if a given file is owned by root.
+\begin{figure}[bthp]
+\begin{boxedminipage}{\linewidth}\vskip 1.5ex
+\begin{tightcode}
+(if (zero? (fileinfo:owner (file-attributes fname)))
+    \ldots)\end{tightcode}
+\subcaption{\Scheme}
+
+\medskip
+
+\begin{tightinset}
+\begin{verbatim}
+if( stat(fname,&statbuf) ) {
+    perror(progname);
+    exit(-1);
+    }
+if( statbuf.st_uid == 0 ) ...\end{verbatim}
+\end{tightinset}
+\subcaption{C}
+\caption{Why we program with Scheme.}
+\label{fig:stat-file}
+\end{boxedminipage}
+\end{figure}
+
+\subsection{Strings}
+Having a true string datatype turns out to be surprisingly valuable
+in making systems programs simpler and more robust.
+The programmer never has to expend effort to make sure that a string
+length kept in a variable matches the actual length of the string;
+never has to expend effort wondering how it will affect his program if
+a nul byte gets stored into his string.
+This is a minor feature, but like garbage collection, it eliminates a whole
+class of common C programming bugs.
+
+\subsection{Higher-order procedures}
+Scheme's first-class procedures are very convenient for systems programming.
+Scsh uses them to parameterise the action of procedures that create
+{\Unix} processes.
+The ability to package up an arbitrary computation as a thunk turns
+out to be as useful in the domain of {\Unix} processes as it is in the domain
+of {\Scheme} computation.
+Being able to pass computations in this way to the procedures that create
+{\Unix} processes, such as \ex{fork}, \ex{fork/pipe} and \ex{run/port*} is a
+powerful programming technique.
+
+First-class procedures allow us to parameterise port readers over different
+parsers, with the 
+\codex{(port->list \var{parser} \var{port})}
+procedure.
+This is the essential {\Scheme} ability to capture abstraction in a procedure
+definition.
+If the user wants to read a list of objects written in some syntax from an
+i/o source, he need only write a parser capable of parsing a single
+object.
+The \ex{port->list} procedure can work with the user's parser as easily as it
+works with \ex{read} or \ex{read-line}.
+\note{On-line streams}
+
+First-class procedures also allow iterators such as \ex{for-each} and
+\ex{filter} to loop over lists of data.
+For example, to build the list of all my files in \ex{/usr/tmp}, I write:
+\begin{code}
+(filter (\l{f} (= (file-owner f) (user-uid)))
+        (glob "/usr/tmp/*"))\end{code}
+To delete every C file in my directory, I write:
+\codex{(for-each delete-file (glob "*.c"))}
+
+\subsection{S-expression syntax and backquote}
+\label{sec:sexp}
+In general, {\Scheme}'s s-expression syntax is much, much simpler to
+understand and use than most shells' complex syntax, with their embedded
+pattern matching, variable expansion, alias substitution, and multiple
+rounds of parsing.
+This costs scsh's notation some compactness, at the gain of comprehensibility.
+
+\subsubsection*{Recursive embeddings and balls of mud}
+Scsh's ability to cover a high-level/low-level spectrum of expressiveness
+is a function of its uniform s-expression notational framework.
+Since scsh's process notation is embedded within Scheme,
+and Scheme escapes are embedded within the process notation,
+the programmer can easily switch back and forth as needed,
+using the simple notation where possible, 
+and escaping to system calls and general {\Scheme} where necessary.
+This recursive embedding is what gives scsh its broad-spectrum coverage
+of systems functionality not available to either shells or traditional
+systems programming languages;
+it is essentially related to the ``ball of mud'' extensibility of the 
+Lisp and Scheme family of languages.
+
+\subsubsection*{Backquote and reliable argument lists}
+Scsh's use of implicit backquoting in the process notation is a particularly
+nice feature of the s-expression syntax.
+%Most {\Unix} shells provide the user with a way to compute a list of strings
+%and use these strings as arguments to a program.
+Most {\Unix} shells provide the user with a way to take a computed string,
+split it into pieces, and pass them as arguments to a program.
+This usually requires the introduction of some sort of \ex{\$IFS} separator
+variable to control how the string is parsed into separate arguments.
+This makes things error prone in the cases where a single argument
+might contain a space or other parser delimiter.
+Worse than error prone, \ex{\$IFS} rescanning is in fact the source of a
+famous security hole in {\Unix} \cite{Reeds}.
+
+In scsh, data are used to construct argument lists using the implicit backquote
+feature of process forms, \eg:
+\begin{tightcode}
+(run (cc ,file -o ,binary ,@flags)).\end{tightcode}
+Backquote completely avoids the parsing issue because it deals
+with pre-parsed data: it constructs expressions from lists, not character
+strings.
+When the programmer computes a list of arguments, he has complete
+confidence that they will be passed to the program exactly as is,
+without running the risk of being re-parsed by the shell.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Other programming languages}
+\label{sec:opl}
+Having seen the design of scsh, 
+we can now compare it to other approaches in some detail.
+
+\subsection{Functional languages}
+The design of scsh could be ported without much difficulty
+to any language that provides first-class procedures, GC, and exceptions,
+such as {\CommonLisp} or ML.
+However, {\Scheme}'s syntactic extensibility (macros) plays an important
+role in making the shell features convenient to use.
+In this respect, {\Scheme} and {\CommonLisp} are better choices than ML.
+Using the \ex{fork/pipe} procedure with a series of closures
+involves more low-level detail than 
+using scsh's \ex{(| \vari{pf}{\!1} {\ldots} \vari{pf}{\!n})}
+process form with the closures implied.
+Good notations suppress unnecessary detail.
+
+The payoff for using a language such as ML would come not with small
+shell scripts, but with larger programs, where the power provided by the
+module system and the static type checking would come into play.
+
+\subsection{Shells}
+Traditional {\Unix} shells, such as sh, have no advantage at all as
+scripting languages.
+
+\subsubsection*{Escaping the least common denominator trap}
+One of the attractions of scsh is that it is a {\Unix} shell that isn't
+constrained by the limits of {\Unix}'s uniform ``least common denominator''
+representation of data as a text string.
+Since the standard medium of interchange at the shell level is {\Ascii}
+byte strings, shell programmers are forced to parse and reparse data, often
+with tools of limited power.
+For example, to determine the number of files in a directory, a shell
+programmer typically uses an expression of the form \ex{ls | wc -l}.
+This traditional idiom is in fact buggy: {\Unix} files are allowed to contain
+newlines in their names, which would defeat the simple \ex{wc} parser.
+Scsh, on the other hand, gives the programmer direct access to the system
+calls, and employs a much richer set of data structures.
+Scsh's \ex{directory-files} procedure returns a {\em list\/} of strings,
+directly taken from the system call.
+There is no possibility of a parsing error.
+
+As another example, consider the problem of determining if a file has its
+setuid bit set.
+The shell programmer must grep the text-string output of \ex{ls -l} 
+for the ``s'' character in the right position.
+Scsh gives the programmer direct access to the \ex{stat()} system call,
+so that the question can be directly answered.
+
+\subsubsection*{Computation granularity and impedance matching}
+Sh and csh provide minimal computation facilities on the assumption that all
+real computation will happen in C programs invoked from the shell.
+This is a granularity assumption.
+As long as the individual units of computation are large, then the cost of
+starting up a separate program is amortised over the actual computation.
+However, when the user wants to do something simple---\eg, split an X
+\verb|$DISPLAY| string at the colon,
+count the number of files in a directory, 
+or lowercase a string---then the overhead of program invocation
+swamps the trivial computation being performed.
+One advantage of using a real programming language for the shell language is
+that we can get a wider-range ``impedance match'' of computation to process
+overhead.
+Simple computations can be done in the shell; 
+large grain computations can still be spawned off
+to other programs if necessary.
+
+\subsection{New-generation scripting languages}
+A newer generation of scripting languages has been supplanting sh in {\Unix}.
+Systems such as perl and tcl provide many of the advantages of scsh for
+programming shell scripts \cite{perl, tcl}.
+However, they are still limited by weak linguistic features.
+Perl and tcl still deal with the world primarily in terms of strings,
+which is both inefficient and expressively limiting.
+Scsh makes the full range of Scheme data types available to the programmer:
+lists, records, floating point numbers, procedures, and so forth.
+Further, the abstraction mechanisms in perl and tcl are also much more limited
+than Scheme's lexically scoped, first-class procedures and lambda expressions.
+As convenient as tcl and perl are, they are in no sense full-fledged
+general systems-programming languages: you would not, for example, want
+to write an optimizing compiler in tcl.
+Scsh is Scheme, hence a powerful, full-featured general programming tool.
+
+It is, however, instructive to consider the reasons for the popular success of
+tcl and perl.
+I would argue that good design is necessary but insufficient for
+a successful tool.
+Tcl and perl are successful because they are more than just competently 
+designed; 
+critically, they are also available on the Net in turn-key forms, 
+with solid documentation.
+A potential user can just down-load and compile them.
+Scheme, on the other hand, has existed in multiple mutually-incompatible
+implementations that are not widely portable, do not portably address
+systems issues, and are frequently poorly documented.
+A contentious and standards-cautious Scheme community has not standardised
+on a record datatype or exception facility for the language,
+features critical for systems programming.
+Scheme solves the hard problems, but punts the necessary, simpler ones.
+This has made Scheme an impractical systems tool,
+banishing it to the realm of pedagogical programming languages.
+Scsh, together with Scheme 48, fills in these lacunae.
+Its facilities may not be the ultimate solutions,
+but they are useable technology: clean, consistent, portable and documented.
+
+%\part{Conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Future work}
+\label{sec:future-work}
+Several extensions to scsh are being considered or implemented.
+\subsection{Command language features}
+The primary design effort of scsh was for programming.
+We are now designing and implementing features to make scsh
+a better interactive command language, such as job control.
+A top-level parser for an sh-like notation has been designed;
+the parser will allow the user to switch back to {\Scheme} notation
+when desired.
+
+We are also considering a display-oriented interactive shell, 
+to be created by merging the edwin screen editor and scsh.
+The user will interact with the operating system using single-keystroke
+commands, defining these commands using scsh, and reverting to
+{\Scheme} when necessary for complex tasks.
+Given a reasonable set of GUI widgets, the same trick could be played
+directly in X.
+
+\subsection{Little languages}
+Many {\Unix} tools are built around the idea of ``little languages,'' that is,
+custom, limited-purpose languages that are designed to fit the area of
+application.  The problem with the little-languages approach is that these
+languages are usually ugly, idiosyncratic, and limited in expressiveness.
+The syntactic quirks of these little languages are notorious. 
+The well-known problem with \ex{make}'s syntax distinguishing tab and
+space has been tripping up programmers for years.
+Because each little language is different
+from the next, the user is required to master a handful of languages,
+unnecessarily increasing the cognitive burden to use these tools.
+
+An alternate approach is to embed the tool's primitive operations inside
+{\Scheme},
+and use the rest of {\Scheme} as the procedural glue to connect the
+primitives into complex systems.  This sort of approach doesn't require the
+re-invention of all the basic functionality needed by a language---{\Scheme}
+provides variables, procedures, conditionals, data structures, and so
+forth. This means there is a greater chance of the designer ``getting it
+right'' since he is really leveraging off of the enormous design effort that
+was put into designing the {\Scheme} language. It also means the user doesn't
+have to learn five or six different little languages---just {\Scheme} plus the
+set of base primitives for each application. Finally, it means the base
+language is not limited because the designer didn't have the time or resources
+to implement all the features of a real programming language.
+
+With the scsh {\Unix} library, these ``little language'' {\Unix} tools could
+easily be redesigned from a {\Scheme} perspective and have their interface and
+functionality significantly improved.
+Some examples under consideration are:
+\begin{itemize}
+\item The awk pattern-matching language can be implemented in
+  scsh by adding a single record-input procedure to the existing code.
+
+\item Expect is a scripting language used for automating the
+  use of interactive programs, such as ftp. With the exception of the tty
+  control syscalls currently under construction, all the pieces needed to
+  design an alternate scsh-based {\Unix} scripting tool already exist in scsh.
+
+\item A dependency-directed system for controlling recompilation such
+  as make could easily be implemented on top of scsh. Here, instead of
+  embedding the system inside of {\Scheme}, we embed {\Scheme} inside
+  of the system. The dependency language would use s-expression notation,
+  and the embedded compilation actions would be specified as {\Scheme}
+  expressions, including scsh notation for running {\Unix} programs.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+Scsh is a system with several faces.
+From one perspective,
+it is not much more than a system-call library and
+a few macros.
+Yet, there is power in this minimalist description---it points up the
+utility of embedding systems in languages such as {\Scheme}.
+{\Scheme} is at core what makes scsh a successful design.
+Which leads us to three final thoughts on the subject of scsh and
+systems programming in {\Unix}:
+\begin{itemize}
+\item A Scheme shell wins because it is broad-spectrum.
+\item A functional language is an excellent tool for systems programming.
+\item Hacking Unix isn't so bad, actually, if you don't have to use C.
+\end{itemize}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Acknowledgements}
+John Ellis' 1980 {\em SIGPLAN Notices\/} paper \cite{ellis} got me thinking
+about this entire area.
+Some of the design for the system calls was modeled after
+Richard Stallman's emacs \cite{emacs}, 
+Project MAC's MIT {\Scheme} \cite{c-scheme}, and {\CommonLisp} \cite{cltl2}.
+Tom Duff's {\Unix} shell, rc, was also inspirational; 
+his is the only elegant {\Unix} shell I've seen \cite{rc}.
+Flames with Bennet Yee and Scott Draves drove me to design scsh in the
+first place;
+polite discussions with John Ellis and Scott Nettles subsequently improved it.
+Douglas Orr was my private {\Unix} kernel consultant.
+Richard Kelsey and Jonathan Rees provided me with twenty-four hour
+turnaround time on requested modifications to {\scm}, and
+spent a great deal of time explaining the internals of the implementation
+to me.
+Their elegant {\Scheme} implementation was a superb platform for development.
+The design and the major portion of the implementation of scsh were completed
+while I was visiting on the faculty of the University of Hong Kong
+in 1992.
+It was very pleasant to work in such a congenial atmosphere.
+Doug Kwan was a cooperative sounding-board during the design phase.
+Hsu Suchu has patiently waited quite a while for this document to
+be finished.
+Members of the MIT LCS and AI Lab community encouraged me to polish
+the research prototype version of the shell into something releasable
+to the net. 
+Henry Minsky and Ian Horswill did a lot of the encouraging;
+my students Dave Albertz and Brian Carlstrom did a lot of the polishing.
+
+Finally,
+the unix-haters list helped a great deal to maintain my perspective.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cleardoublepage
+\begin{thebibliography}{MIT Scheme}
+\addcontentsline{toc}{section}{References}
+\sloppy
+\def\\{\newblock}
+
+\renewcommand{\=}{\discretionary{/}{}{/}}
+\renewcommand{\.}{\discretionary{.}{}{.}}
+\newcommand{\ob}{\linebreak[0]}
+
+\itemsep= 2ex plus 1fil
+\let\Bibitem=\bibitem
+
+\Bibitem[CLtL2]{cltl2} Guy L.~Steele Jr. \\
+	{\em Common Lisp: The Language.} \\
+	Digital Press, Maynard, Mass., second edition 1990.
+
+\Bibitem[Ellis]{ellis} John R.~Ellis. \\ A {\sc Lisp} shell. \\
+	{\em SIGPLAN Notices}, 15(5):24--34, May 1980.
+
+\Bibitem[emacs]{emacs} Bil Lewis, Dan LaLiberte, Richard M.~Stallman, 
+		       {\em et al.} \\
+	{\em The GNU Emacs Lisp Reference Manual, vol.~2.} \\
+	Free Software Foundation, Cambridge, Mass., edition 2.1 September 1993.
+	(Also available from many ftp sites.)
+
+\Bibitem[fsh]{fsh} Chris S.~McDonald. \\
+	{\em fsh}---A functional {\Unix} command interpreter. \\
+	{\em Software---Practice and Experience}, 17(10):685--700, 
+	October 1987.
+	
+\Bibitem[MIT Scheme]{c-scheme} Chris Hanson. \\ 
+	{\em MIT Scheme Reference Manual.} \\
+	MIT Artificial Intelligence Laboratory Technical Report 1281,
+	January 1991.
+	(Also URL
+`	{\tt http://zurich\.ai\.mit\.edu\=emacs-html\.local\=scheme\_toc.html})
+
+\Bibitem[Nelson]{Nelson} Greg Nelson, ed. \\ 
+	{\em Systems Programming with Modula-3.} \\
+	Prentice Hall, Englewood Cliffs, New Jersey, 1991.
+
+\Bibitem[perl]{perl} Larry Wall and Randal Schwartz. \\
+	{\em Programming Perl.} \\
+	O'Reilly \& Associates.
+
+\Bibitem[rc]{rc} Tom Duff. \\ Rc---A shell for Plan 9 and {\Unix} systems. \\
+	In {\em Proceedings of the Summer 1990 UKUUG Conference},
+	pages 21--33, July 1990, London.
+	(A revised version is reprinted in ``Plan 9: The early papers,''
+	Computing Science Technical Report 158, AT\&T Bell Laboratories.
+	Also available in Postscript form as URL
+	\ex{ftp:{\ob}/\=research.att.com/dist/plan9doc/7}.)
+
+\Bibitem[Reeds]{Reeds} J.~Reeds. \\ 
+	\ex{/bin/sh}: the biggest UNIX security loophole. \\
+	11217-840302-04TM, AT\&T Bell Laboratories (1988).
+
+\Bibitem[refman]{ref-man} Olin Shivers. \\ Scsh reference manual. \\
+	In preparation.
+
+\Bibitem[S48]{S48} Richard A.~Kelsey and Jonathan A.~Rees. \\
+	A tractable Scheme implementation. \\
+	To appear, {\em Lisp and Symbolic Computation},
+	Kluwer Academic Publishers, The Netherlands.	
+	(Also URL {\tt ftp:/\=altdorf\.ai\.mit\.edu\=pub\=jar\=lsc.ps})
+
+\Bibitem[tcl]{tcl} John~K.~Ousterhout. \\
+	Tcl: An embeddable command language. \\
+	In {\em The Proceedings of the 1990 Winter USENIX Conference},
+	pp.~133--146.
+	(Also URL
+	{\tt ftp:{\ob}/\=ftp\.cs\.berkeley\.edu\=ucb\=tcl\=tclUsenix90.ps})
+\vfill
+\end{thebibliography}
+
+\appendix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cleardoublepage
+\section*{Notes}
+\addcontentsline{toc}{section}{Notes}
+\newcommand{\notetext}[1]{\subsection*{\{Note #1\}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notetext{Agenda}
+In fact, I have an additional hidden agenda.
+I do believe that computational agents should be expressed as procedures
+or procedure libraries, not as programs.
+Scsh is intended to be an incremental step in this direction, one that
+is integrated with {\Unix}.
+Writing a program as a Scheme 48 module should allow the user to make it
+available as a both a subroutine library callable from other Scheme 48
+programs or the interactive read-eval-print loop, and, by adding a small
+top-level, as a standalone {\Unix} program.
+So {\Unix} programs written this way will also be useable as linkable
+subroutine libraries---giving the programmer module interfaces superior
+to {\Unix}'s ``least common denominator'' of {\sc Ascii} byte streams 
+sent over pipes.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notetext{No port sync}
+\begin{sloppypar}
+In scsh, {\Unix}' stdio file descriptors and {\Scheme}'s standard i/o ports
+(\ie, the values of \ex{(current-input-port)}, \ex{(current-output-port)} and
+\ex{(error-output-port)}) are not necessarily synchronised. 
+This is impossible to do in general, since some {\Scheme} ports are 
+not representable as {\Unix} file descriptors.
+For example, many Scheme implementations provide ``string ports,'' 
+that is, ports that collect characters sent to them into memory buffers.
+The accumulated string can later be retrieved from the port as a string.
+If a user were to bind \ex{(current-output-port)} to such a port, it would
+be impossible to associate file descriptor 1 with this port, as it
+cannot be represented in {\Unix}.
+So, if the user subsequently forked off some other program as a subprocess,
+that program would of course not see the Scheme string port as its standard
+output.
+\end{sloppypar}
+
+To keep stdio synced with the values of {\Scheme}'s current i/o ports,
+use the special redirection \ex{stdports}.
+This causes 0, 1, 2 to be redirected from the current {\Scheme} standard ports.
+It is equivalent to the three redirections:
+\begin{code}
+(= 0 ,(current-input-port))
+(= 1 ,(current-output-port))
+(= 2 ,(error-output-port))\end{code}
+%
+The redirections are done in the indicated order.  This will cause an error if
+the one of current i/o ports isn't a {\Unix} port (\eg, if one is a string
+port).
+This {\Scheme}/{\Unix} i/o synchronisation can also be had in {\Scheme} code 
+(as opposed to a redirection spec) with the \ex{(stdports->stdio)}
+procedure.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notetext{Normal order}
+Having to explicitly shift between processes and functions in scsh is in part
+due to the arbitrary-size nature of a {\Unix} stream.
+A better, more integrated approach might be to use a lazy, normal-order
+language as the glue or shell language.
+Then files and process output streams could be regarded as first-class values,
+and treated like any other sequence in the language.
+However, I suspect that the realities of {\Unix}, such as side-effects, will
+interfere with this simple model.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notetext{On-line streams}
+The \ex{(port->list \var{reader} \var{port})} procedure is a batch processor:
+it reads the port all the way to eof before returning a value.
+As an alternative, we might write a procedure to take a port and a reader,
+and return a lazily-evaluated list of values,
+so that I/O can be interleaved with element processing.
+A nice example of the power of Scheme's abstraction facilities is the
+ease with which we can write this procedure:
+it can be done with five lines of code.
+\begin{code}
+;;; A <lazy-list> is either 
+;;;     (delay '()) or
+;;;     (delay (cons data <lazy-list>)).
+
+(define (port->lazy-list reader port)
+  (let collector ()
+    (delay (let ((x (reader port)))
+             (if (eof-object? x) '()
+                 (cons x (collector)))))))\end{code}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notetext{Tempfile example}
+For a more detailed example showing the advantages of higher-order procedures
+in {\Unix} systems programming, consider the task of making random temporary
+objects (files, directories, fifos, \etc) in the file system.
+Most {\Unix}'s simply provide a function such as \ex{tmpnam()} that creates a
+file with an unusual name, and hope for the best.
+Other {\Unix}'s provide functions that avoid the race condition between
+determining the temporary file's name and creating it, but they do not
+provide equivalent features for non-file objects, such as directories or
+symbolic links.
+\pagebreak
+This functionality is easily generalised with the procedure
+\codex{(temp-file-iterate \var{maker} \var{[template]})}
+This procedure can be used to perform atomic transactions on
+the file system involving filenames, \eg:
+\begin{itemize}
+\item Linking a file to a fresh backup temporary name.
+\item Creating and opening an unused, secure temporary file.
+\item Creating an unused temporary directory.%
+\end{itemize}
+%
+The string \var{template} is a \ex{format} control string used to generate
+a series of trial filenames; it defaults to
+%
+\begin{tightinset}\verb|"/usr/tmp/<pid>.~a"|\end{tightinset}\ignorespaces
+%
+where \ex{<pid>} is the current process' process id.
+Filenames are generated by calling \ex{format} to instantiate the 
+template's \verb|~a| field with a varying string.
+    (It is not necessary for the process' pid to be a part of the filename
+    for the uniqueness guarantees to hold. The pid component of the default
+    prefix simply serves to scatter the name searches into sparse regions, so
+    that collisions are less likely to occur. This speeds things up, but does
+    not affect correctness.)
+
+The \ex{maker} procedure is serially called on each filename generated.
+It must return at least one value; it may return multiple values. If
+the first return value is \ex{\#f} or if \ex{maker} raises the ``file already
+exists'' syscall error exception, \ex{temp-file-iterate} will loop,
+generating a new filename and calling \ex{maker} again.
+If the first return value is true, the loop is terminated, 
+returning whatever \ex{maker} returned.
+
+After a number of unsuccessful trials, \ex{temp-file-iterate} may give up
+and signal an error.
+
+To rename a file to a temporary name, we write:
+\begin{code}
+(temp-file-iterate (\l{backup-name}
+                     (create-hard-link old-file
+                                       backup-name)
+                     backup-name)
+                   ".#temp.~a") ; Keep link in cwd.
+(delete-file old-file)\end{code}
+Note the guarantee: if \ex{temp-file-iterate} returns successfully,
+then the hard link was definitely created, so we can safely delete the
+old link with the following \ex{delete-file}.
+
+To create a unique temporary directory, we write:
+%
+\codex{(temp-file-iterate (\l{dir} (create-directory dir) dir))}
+%
+Similar operations can be used to generate unique symlinks and fifos,
+or to return values other than the new filename (\eg, an open file
+descriptor or port).
+\end{document}
+
+% LocalWords:  Mips grep sed awk ls wc email flamefest philes SRC's dup int pid
+% LocalWords:  foobar fds perror waitpid execlp kb rc's epf pf fdes fv
+% LocalWords:  stdports dup'd subforms backquoted usr backquoting ref tmp
+% LocalWords:  buf stdin stderr stdout sync prog arg Readme xrdb xyzzy  SunOS
+% LocalWords:  mbox txt cc preprocess Errlog exe outfile errfile PLAINTEXT des
+% LocalWords:  plaintext DIR perl cwd dir dsw ll conns xhost lpr ksh namespaces
+% LocalWords:  ms texinfo doc fd RS Wn Ansi esh zcat tex detex enscript madvise
+% LocalWords:  mmap stat fname eq fileinfo backquote readlink symlink fil nul
+% LocalWords:  bufsiz def bthp statbuf progname uid Tempfile IFS pre Ascii bp
+% LocalWords:  reparse setuid

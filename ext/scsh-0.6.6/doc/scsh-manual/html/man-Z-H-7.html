@@ -1,0 +1,1603 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-6.html">previous</a></span><span>, <a href="man-Z-H-8.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_6"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_6">Chapter 6</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_6">Pattern-matching strings with regular expressions</a></h1><p></p>
+<p>
+Scsh provides a rich facility for matching regular-expression patterns 
+in strings.
+The system is composed of several pieces:
+</p>
+<ul><p>
+</p>
+<li><p>An s-expression notation for writing down general regular expressions.
+In most systems, regexp patterns are encoded as string literals, such
+as <code class=verbatim>&quot;g(oo|ee)se&quot;</code>. 
+In scsh, they are written using s-expressions, such as
+<code class=verbatim>(: &quot;g&quot; (| &quot;oo&quot; &quot;ee&quot;) &quot;se&quot;)</code>, and are called <em>sre's</em>. 
+The sre notation has several
+advantages over the traditional string-based notation. It's more expressive,
+can be commented, and can be indented to expose the structure of the form.</p>
+<p>
+</p>
+<li><p>An abstract data type (ADT) representation for regexp values.
+Traditional regular-expression systems compute regular expressions
+from run-time values using strings. This can be awkward. Scsh, instead,
+provides a separate data type for regexps, with a set of basic constructor
+and accessor functions; regular expressions can be dynamically computed
+and manipulated using these functions.</p>
+<p>
+</p>
+<li><p>Some tools that work on the regexp ADT: case-sensitve to case-insensitive
+regexp transform, a regexp simplifier, and so forth.</p>
+<p>
+</p>
+<li><p>Parsers and unparsers that can convert between external representations
+and the regexp ADT. The supported external representations are
+</p>
+<ul>
+<li><p>Posix strings
+</p>
+<li><p>S-expression notation (that is, sre's)
+</p>
+</ul><p>
+Being able to convert regexps to Posix strings allows implementations
+to implement regexp matching using standard Posix C-based engines.</p>
+<p>
+</p>
+<li><p>Macro support for the s-expression notation.
+The <tt>rx</tt> macro provides a new special form that allows you to embed
+regexps in the s-expression notation within a Scheme program. Evaluating
+the macro form produces a regexp ADT value which can be used by
+Scheme pattern-matching procedures and other regexp consumers.</p>
+<p>
+</p>
+<li><p>Pattern-matching and searching procedures.
+Spencer's Posix regexp engine is linked in to the runtime; the
+regexp code uses this engine to provide text matching.
+</p>
+</ul><p></p>
+<p>
+The regexp language supported is a complete superset of Posix functionality,
+providing:
+</p>
+<ul>
+<li><p>sequencing and choice (<tt>|</tt>)
+</p>
+<li><p>repetition (<tt>*</tt>, <tt>+</tt>, <tt>?</tt>, <tt>{<em>m</em>,<em>n</em>}</tt>)
+</p>
+<li><p>character classes (<em>e.g.</em>, <tt>[aeiou]</tt>) and wildcard (<tt>.</tt>)
+</p>
+<li><p>beginning/end of string anchors (<code class=verbatim>^</code>, <code class=verbatim>$</code>)
+</p>
+<li><p>case-sensitivity control
+</p>
+<li><p>submatch-marking
+</p>
+</ul><p></p>
+<p>
+</p>
+<a name="node_sec_6.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_6.1">6.1&nbsp;&nbsp;Summary SRE syntax</a></h2><p>The following figures give a summary of the SRE syntax; 
+the next section is a friendlier tutorial introduction.</p>
+<p>
+
+
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_24"></a>
+<div class=figure align=center><table width=100%><tr><td align=center>
+<table border=0><tr><td valign=top ><i>string</i> </td><td valign=top >Literal match -- interpreted relative to
+the current case-sensitivity lexical context
+(default is case-sensitive) </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(<i>string1</i> <i>string2</i> <tt>...</tt>)</tt>  </td><td valign=top >Set of chars, <em>e.g.</em>, <tt>(&quot;abc&quot; &quot;XYZ&quot;)</tt>.
+Interpreted relative to the current
+case-sensitivity lexical context. </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(* <i>sre</i> <tt>...</tt>)</tt> </td><td valign=top >0 or more matches </td></tr>
+<tr><td valign=top ><tt>(+ <i>sre</i> <tt>...</tt>)</tt>     </td><td valign=top >1 or more matches </td></tr>
+<tr><td valign=top ><tt>(? <i>sre</i> <tt>...</tt>)</tt>     </td><td valign=top >0 or 1 matches </td></tr>
+<tr><td valign=top ><tt>(= <i>n</i> <i>sre</i> <tt>...</tt>)</tt>     </td><td valign=top ><i>n</i> matches </td></tr>
+<tr><td valign=top ><tt>(&gt;= <i>n</i> <i>sre</i> <tt>...</tt>)</tt>    </td><td valign=top ><i>n</i> or more matches </td></tr>
+<tr><td valign=top ><tt>(** <i>n</i> <i>m</i> <i>sre</i> <tt>...</tt>)</tt>    </td><td valign=top ><i>n</i> to <i>m</i> matches </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>N</i> and <i>m</i> are Scheme expressions producing non-negative
+integers. </td></tr>
+<tr><td valign=top ><i>M</i> may also be <tt>#f</tt>, meaning ``infinity.''</td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(| <i>sre</i> <tt>...</tt>)</tt>     </td><td valign=top >Choice (<tt>or</tt> is R5RS symbol; </td></tr>
+<tr><td valign=top ><tt>(or <i>sre</i> <tt>...</tt>)</tt>    </td><td valign=top ><tt>|</tt> is not specified by R5RS.) </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(:   <i>sre</i> <tt>...</tt>)</tt>   </td><td valign=top >Sequence (<tt>seq</tt> is legal </td></tr>
+<tr><td valign=top ><tt>(seq <i>sre</i> <tt>...</tt>)</tt>   </td><td valign=top >Common Lisp symbol) </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(submatch <i>sre</i> <tt>...</tt>)</tt>      </td><td valign=top >Numbered submatch </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(dsm <i>pre</i> <i>post</i> <i>sre</i> <tt>...</tt>)</tt>      </td><td valign=top >Deleted submatches </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>Pre</i> and <i>post</i> are numerals.</td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(uncase <i>sre</i> <tt>...</tt>)</tt>        </td><td valign=top >Case-folded match </td></tr>
+<tr><td valign=top ><tt>(w/case   <i>sre</i> <tt>...</tt>)</tt>      </td><td valign=top >Introduce a lexical case-sensitivity </td></tr>
+<tr><td valign=top ><tt>(w/nocase <i>sre</i> <tt>...</tt>)</tt>      </td><td valign=top >context. </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>,@<i>exp</i></tt>        </td><td valign=top >Dynamically computed regexp </td></tr>
+<tr><td valign=top ><tt>,<i>exp</i></tt>         </td><td valign=top >Same as ,@<i>exp</i>, but no submatch info </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>Exp</i> must produce a character, string, 
+char-set, or regexp.</td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>bos eos</tt>    </td><td valign=top >Beginning/end of string </td></tr>
+<tr><td valign=top ><tt>bol eol</tt>    </td><td valign=top >Beginning/end of line </td></tr>
+<tr><td valign=top ></td></tr></table>
+</td></tr>
+<tr><td align=center><b>Figure 2:</b>&nbsp;&nbsp;SRE syntax summary (part 1)</td></tr>
+<tr><td>
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_25"></a>
+<div class=figure align=center><table width=100%><tr><td align=center>
+<table border=0><tr><td valign=top ><tt>(posix-string <i>string</i>)</tt>        </td><td valign=top >Escape for Posix string notation </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt><i>char</i></tt>         </td><td valign=top >Singleton char set </td></tr>
+<tr><td valign=top ><tt><i>class-name</i></tt>   </td><td valign=top >alphanumeric, whitespace, <em>etc.</em></td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top >These two forms are interpreted subject to
+the lexical case-sensitivity context.</td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(~ <i>cset-sre</i> <tt>...</tt>)</tt>        </td><td valign=top >Complement-of-union (<tt>[^<tt>...</tt>]</tt>) </td></tr>
+<tr><td valign=top ><tt>(- <i>cset-sre</i> <tt>...</tt>)</tt>        </td><td valign=top >Difference </td></tr>
+<tr><td valign=top ><tt>(&amp; <i>cset-sre</i> <tt>...</tt>)</tt>        </td><td valign=top >Intersection </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><tt>(/ <i>range-spec</i> <tt>...</tt>)</tt>      </td><td valign=top >Character range -- interpreted
+subject to 
+the lexical case-sensitivy context </td></tr>
+<tr><td valign=top ></td></tr></table>
+</td></tr>
+<tr><td align=center><b>Figure 3:</b>&nbsp;&nbsp;SRE syntax summary (part 2)</td></tr>
+<tr><td>
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_26"></a>
+<div class=figure align=center><table width=100%><tr><td align=center>
+<tt><table border=1><tr><td valign=top  colspan=1><i>class-name</i>&nbsp;&nbsp;&nbsp;&nbsp;::=&nbsp;&nbsp;&nbsp;&nbsp; </td><td valign=top >any </td></tr>
+<tr><td valign=top ></td><td valign=top >nonl             </td></tr>
+<tr><td valign=top ></td><td valign=top >lower-case       </td><td valign=top >| lower </td></tr>
+<tr><td valign=top ></td><td valign=top >upper-case       </td><td valign=top >| upper </td></tr>
+<tr><td valign=top ></td><td valign=top >alphabetic       </td><td valign=top >| alpha </td></tr>
+<tr><td valign=top ></td><td valign=top >numeric          </td><td valign=top >| digit | num </td></tr>
+<tr><td valign=top ></td><td valign=top >alphanumeric     </td><td valign=top >| alnum </td></tr>
+<tr><td valign=top ></td><td valign=top >punctuation      </td><td valign=top >| punct </td></tr>
+<tr><td valign=top ></td><td valign=top >graphic          </td><td valign=top >| graph </td></tr>
+<tr><td valign=top ></td><td valign=top >whitespace       </td><td valign=top >| space | white </td></tr>
+<tr><td valign=top ></td><td valign=top >printing         </td><td valign=top >| print </td></tr>
+<tr><td valign=top ></td><td valign=top >control          </td><td valign=top >| cntrl </td></tr>
+<tr><td valign=top ></td><td valign=top >hex-digit        </td><td valign=top >| xdigit | hex </td></tr>
+<tr><td valign=top ></td><td valign=top >ascii
+</td></tr></table>
+<br>
+
+<tt><i>range-spec</i> ::= <i>string</i> | <i>char</i></tt> <br>
+</tt>
+The chars are taken in pairs to form inclusive ranges.<p>
+</p>
+</td></tr>
+<tr><td align=center><b>Figure 4:</b>&nbsp;&nbsp;SRE character-class names and range specs.</td></tr>
+<tr><td>
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_27"></a>
+<div class=figure align=center><table width=100%><tr><td align=center>
+<pre class=verbatim>&lt;cset-sre&gt; ::= (~ &lt;cset-sre&gt; ...)    Set complement-of-union
+             | (- &lt;cset-sre&gt; ...)    Set difference
+             | (&amp; &lt;cset-sre&gt; ...)    Intersection
+             | (| &lt;cset-sre&gt; ...)    Set union
+             | (/ &lt;range-spec&gt; ...)  Range
+                                     
+             | (&lt;string&gt;)            Constant set
+             | &lt;char&gt;                Singleton constant set
+             | &lt;string&gt;              For 1-char string &quot;c&quot;
+                                     
+             | &lt;class-name&gt;          Constant set
+                                     
+             | ,&lt;exp&gt;                &lt;exp&gt; evals to a char-set,
+             | ,@&lt;exp&gt;               char, single-char string,
+                                     or re-char-set regexp.
+                                     
+             | (uncase &lt;cset-sre&gt;)   Case-folding
+             | (w/case &lt;cset-sre&gt;)              
+             | (w/nocase &lt;cset-sre&gt;)            
+</pre><p>
+</p>
+</td></tr>
+<tr><td align=center><b>Figure 5:</b>&nbsp;&nbsp;applied to SRE's that specify character sets. 
+These are the ``type-checking'' rules for character-set SRE's.</td></tr>
+<tr><td>
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<a name="node_sec_6.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_6.2">6.2&nbsp;&nbsp;Examples</a></h2><p></p>
+<blockquote><tt><br>
+(-&nbsp;alpha&nbsp;(&quot;aeiouAEIOU&quot;))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Various&nbsp;forms&nbsp;of&nbsp;<br>
+(-&nbsp;alpha&nbsp;(&quot;aeiou&quot;)&nbsp;(&quot;AEIOU&quot;))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;non-vowel&nbsp;letter<br>
+(w/nocase&nbsp;(-&nbsp;alpha&nbsp;(&quot;aeiou&quot;)))<br>
+(-&nbsp;(/&quot;azAZ&quot;)&nbsp;(&quot;aeiouAEIOU&quot;))<br>
+(w/nocase&nbsp;(-&nbsp;(/&quot;az&quot;)&nbsp;(&quot;aeiou&quot;)))<br>
+<br>
+;;;&nbsp;Upper-case&nbsp;letter,&nbsp;lower-case&nbsp;vowel,&nbsp;or&nbsp;digit<br>
+(|&nbsp;upper&nbsp;(&quot;aeiou&quot;)&nbsp;digit)<br>
+(|&nbsp;(/&quot;AZ09&quot;)&nbsp;(&quot;aeiou&quot;))<br>
+<br>
+;;;&nbsp;Not&nbsp;an&nbsp;SRE,&nbsp;but&nbsp;Scheme&nbsp;code&nbsp;containing&nbsp;some&nbsp;embedded&nbsp;SREs.<br>
+(let*&nbsp;((ws&nbsp;(rx&nbsp;(+&nbsp;whitespace)))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Seq&nbsp;of&nbsp;whitespace<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(date&nbsp;(rx&nbsp;(:&nbsp;(|&nbsp;&quot;Jan&quot;&nbsp;&quot;Feb&quot;&nbsp;&quot;Mar&quot;&nbsp;...)&nbsp;&nbsp;&nbsp;;&nbsp;A&nbsp;month/day&nbsp;date.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,ws<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(|&nbsp;(&quot;123456789&quot;)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;1-9<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;(&quot;12&quot;)&nbsp;digit)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;10-29<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;30&quot;&nbsp;&quot;31&quot;)))))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;30-31<br>
+<br>
+&nbsp;&nbsp;;;&nbsp;Now&nbsp;we&nbsp;can&nbsp;use&nbsp;DATE&nbsp;several&nbsp;times:<br>
+&nbsp;&nbsp;(rx&nbsp;...&nbsp;,date&nbsp;...&nbsp;(*&nbsp;...&nbsp;,date&nbsp;...)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...&nbsp;....&nbsp;,date))<br>
+<br>
+;;;&nbsp;More&nbsp;Scheme&nbsp;code<br>
+(define&nbsp;(csl&nbsp;re)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;A&nbsp;comma-separated&nbsp;list&nbsp;of&nbsp;RE's&nbsp;is<br>
+&nbsp;&nbsp;(rx&nbsp;(|&nbsp;&quot;&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;either&nbsp;zero&nbsp;of&nbsp;them&nbsp;(empty&nbsp;string),&nbsp;or<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;,re&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;one&nbsp;RE,&nbsp;followed&nbsp;by<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;&quot;,&nbsp;&quot;&nbsp;,re)))))&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Zero&nbsp;or&nbsp;more&nbsp;comma-space-RE&nbsp;matches.<br>
+<br>
+(csl&nbsp;(rx&nbsp;(|&nbsp;&quot;John&quot;&nbsp;&quot;Paul&quot;&nbsp;&quot;George&quot;&nbsp;&quot;Ringo&quot;)))</tt></blockquote><p>
+</p>
+<a name="node_sec_6.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_6.3">6.3&nbsp;&nbsp;A short tutorial</a></h2><p>S-expression regexps are called &quot;SRE&quot;s. Keep in mind that they are <em>not</em>
+Scheme expressions; they are another, separate notation that is expressed
+using the underlying framework of s-expression list structure: lists,
+symbols, <em>etc.</em> SRE's can be <em>embedded</em> inside of Scheme expressions using
+special forms that extend Scheme's syntax (such as the <tt>rx</tt> macro); 
+there are places in the SRE 
+grammar where one may place a Scheme expression.
+In these ways, SRE's and Scheme expressions can be intertwined. 
+But this isn't fundamental; 
+SRE's may be used in a completely Scheme-independent context. 
+By simply restricting the notation to eliminate two special
+Scheme-embedding forms, they can be a completely independent notation.</p>
+<p>
+</p>
+<a name="node_sec_Temp_28"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_28">Constant strings</a></h5><p>The simplest SRE is a string, denoting a constant regexp. For example, the SRE
+</p>
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&quot;Spot&quot;</tt></blockquote>
+matches only the string 
+&lt;&lt;capital-S, little-p, little-o, little-t&gt;&gt;. 
+There is no interpretation of the characters in the string at all -- the SRE
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&quot;.*[&quot;</tt></blockquote>
+matches the string &lt;&lt;period, asterisk, open-bracket&gt;&gt;.<p>
+</p>
+<a name="node_sec_Temp_29"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_29">Simple character sets</a></h5><p>To specify a set of characters, write a list whose single element is
+a string containing the set's elements. So the SRE
+</p>
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(&quot;aeiou&quot;)</tt></blockquote>
+only matches a vowel. One way to think of this, notationally, is that the
+set brackets are <tt>(&quot;</tt> and <tt>&quot;)</tt>.<p>
+</p>
+<a name="node_sec_Temp_30"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_30">Wild card</a></h5><p>Another simple SRE is the symbol <tt>any</tt>, 
+which matches any single character -- including newline and A<small>S</small><small>C</small><small>I</small><small>I</small> nul.</p>
+<p>
+</p>
+<a name="node_sec_Temp_31"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_31">Sequences</a></h5><p>We can form sequences of SRE's with the SRE <tt>(: <i>sre</i> <tt>...</tt>)</tt>.
+So the SRE
+</p>
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;&quot;x&quot;&nbsp;any&nbsp;&quot;z&quot;)</tt></blockquote>
+matches any three-character string starting with ``x'' and ending with ``z''.
+As we'll see shortly, many SRE forms have bodies that are implicit sequences of
+other SRE's, analogous to the manner in which the body of a Scheme 
+<tt>lambda</tt> or <tt>let</tt> expression is an implicit <tt>begin</tt> sequence. 
+The regexp <tt>(seq <i>sre</i> <tt>...</tt>)</tt> is
+completely equivalent to <tt>(: <i>sre</i> <tt>...</tt>)</tt>; 
+it's included in order to have a syntax that doesn't require 
+<tt>:</tt> to be a legal symbol <a name="call_footnote_Temp_32"></a><a href="#footnote_Temp_32"><sup><small>13</small></sup></a><p>
+</p>
+<a name="node_sec_6.4"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_6.4">6.4&nbsp;&nbsp;Choices</a></h2><p>The SRE <tt>(| <i>sre</i> <tt>...</tt>)</tt> is a regexp that matches anything any of the
+<i>sre</i> regexps match. So the regular expression
+</p>
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(|&nbsp;&quot;sasha&quot;&nbsp;&quot;Pete&quot;)</tt></blockquote>
+matches either the string ``sasha'' or the string ``Pete''. The regexp
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(|&nbsp;(&quot;aeiou&quot;)&nbsp;(&quot;0123456789&quot;))</tt></blockquote>
+is the same as
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(&quot;aeiou0123456789&quot;)&nbsp;</tt></blockquote>
+The regexp <tt>(or <i>sre</i> <tt>...</tt>)</tt> is completely equivalent to 
+<tt>(| <i>sre</i> <tt>...</tt>)</tt>; 
+it's included in order to have a syntax that doesn't require <tt>|</tt> to be a 
+legal symbol.<p>
+</p>
+<a name="node_sec_Temp_33"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_33">Repetition</a></h5><p>There are several SRE forms that match multiple occurences of a regular
+expression. For example, the SRE <tt>(* <i>sre</i> <tt>...</tt>)</tt> matches zero or more
+occurences of the sequence <tt>(: <i>sre</i> <tt>...</tt>)</tt>. Here is the complete list
+of SRE repetition forms:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top >SRE </td><td valign=top >means </td><td valign=top >at least </td><td valign=top >no more than </td></tr>
+<tr><td valign=top ><tt>(* <i>sre</i> <tt>...</tt>)</tt>                       </td><td valign=top >zero-or-more   </td><td valign=top >0      </td><td valign=top >infinity </td></tr>
+<tr><td valign=top ><tt>(+ <i>sre</i> <tt>...</tt>)</tt>                       </td><td valign=top >one-or-more    </td><td valign=top >1      </td><td valign=top >infinity </td></tr>
+<tr><td valign=top ><tt>(? <i>sre</i> <tt>...</tt>)</tt>                       </td><td valign=top >zero-or-one    </td><td valign=top >0      </td><td valign=top >1 </td></tr>
+<tr><td valign=top ><tt>(= <i>from</i> <i>sre</i> <tt>...</tt>)</tt>            </td><td valign=top >exactly-n      </td><td valign=top ><i>from</i>  </td><td valign=top ><i>from</i> </td></tr>
+<tr><td valign=top ><tt>(&gt;= <i>from</i> <i>sre</i> <tt>...</tt>)</tt>           </td><td valign=top >n-or-more      </td><td valign=top ><i>from</i>  </td><td valign=top >infinity </td></tr>
+<tr><td valign=top ><tt>(** <i>from</i> <i>to</i> <i>sre</i> <tt>...</tt>)</tt>  </td><td valign=top >n-to-m         </td><td valign=top ><i>from</i>  </td><td valign=top ><i>to</i>
+</td></tr></table>
+</blockquote><p>
+A <i>from</i> field is a Scheme expression that produces an integer.
+A <i>to</i> field is a Scheme expression that produces either an integer,
+or false, meaning infinity.</p>
+<p>
+While it is illegal for the <i>from</i> or <i>to</i> fields to be negative, 
+it <em>is</em> allowed for <i>from</i> to be greater than <i>to</i> in a 
+<tt>**</tt> form -- this simply produces a regexp that will never match anything.</p>
+<p>
+As an example, we can describe the names of car/cdr access functions
+(&quot;car&quot;, &quot;cdr&quot;, &quot;cadr&quot;, &quot;cdar&quot;, &quot;caar&quot; , &quot;cddr&quot;, &quot;caaadr&quot;, <em>etc.</em>) with
+either of the SREs
+</p>
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;&quot;c&quot;&nbsp;(+&nbsp;(|&nbsp;&quot;a&quot;&nbsp;&quot;d&quot;))&nbsp;&quot;r&quot;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;&quot;c&quot;&nbsp;(+&nbsp;(&quot;ad&quot;))&nbsp;&quot;r&quot;)</tt></blockquote>
+We can limit the a/d chains to 4 characters or less with the SRE
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;&quot;c&quot;&nbsp;(**&nbsp;1&nbsp;4&nbsp;(&quot;ad&quot;))&nbsp;&quot;r&quot;)</tt></blockquote><p>
+Some boundary cases:
+</p>
+<blockquote><tt><br>
+&nbsp;&nbsp;&nbsp;&nbsp;(**&nbsp;5&nbsp;2&nbsp;&quot;foo&quot;)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Will&nbsp;never&nbsp;match<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(**&nbsp;0&nbsp;0&nbsp;&quot;foo&quot;)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;Matches&nbsp;the&nbsp;empty&nbsp;string</tt></blockquote><p>
+</p>
+<a name="node_sec_Temp_34"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_34">Character classes</a></h5><p>There is a special set of SRE's that form ``character classes'' -- basically, 
+a regexp that matches one character from some specified set of characters.
+There are operators to take the intersection, union, complement, and
+difference of character classes to produce a new character class. (Except 
+for union, these capabilities are not provided for general regexps as they 
+are computationally intractable in the general case.)</p>
+<p>
+A single character is the simplest character class: <code class=verbatim>#\x</code> is a character
+class that matches only the character ``x''.  A string that has only one
+letter is also a character class: <tt>&quot;x&quot;</tt> is the same SRE as <code class=verbatim>#\x</code>.</p>
+<p>
+The character-set notation <tt>(<i>string</i>)</tt> we've seen is a primitive character
+class, as is the wildcard <tt>any</tt>. 
+When arguments to the choice operator, <tt>|</tt>, are
+all character classes, then the choice form is itself a character-class. 
+So these SREs are all character-classes:
+</p>
+<blockquote><tt><br>
+(&quot;aeiou&quot;)<br>
+(|&nbsp;#\a&nbsp;#\e&nbsp;#\i&nbsp;#\o&nbsp;#\u)<br>
+(|&nbsp;(&quot;aeiou&quot;)&nbsp;(&quot;1234567890&quot;))</tt></blockquote>
+However, these SRE's are <em>not</em> character-classes:
+<blockquote><tt><br>
+&quot;aeiou&quot;<br>
+(|&nbsp;&quot;foo&quot;&nbsp;#\x)</tt></blockquote><p>
+The <tt>(~ <i>cset-sre</i> <tt>...</tt>)</tt> char class matches one character 
+not in the specified classes:
+</p>
+<blockquote><tt><br>
+(&nbsp;&nbsp;(&quot;0248&quot;)&nbsp;(&quot;1359&quot;))</tt></blockquote>
+matches any character that is not a digit. <p>
+More compactly, we can use the <tt>/</tt> operator to specify character sets by 
+giving the endpoints of contiguous ranges, where the endpoints are specified 
+by a sequence of strings and characters.  
+For example, any of these char classes
+</p>
+<blockquote>
+<pre class=verbatim>(/ #\A#\Z#\a#\z#\0 #\9)
+(/ &quot;AZ&quot; #\a#\z&quot;09&quot;)
+(/ &quot;AZ&quot; #\a&quot;z09&quot;)
+(/&quot;AZaz09&quot;)
+</pre><p></p>
+</blockquote>matches a letter or a digit. The range endpoints are taken in pairs to
+form inclusive ranges of characters. Note that the exact set of characters
+included in a range is dependent on the underlying implementation's 
+character type, so ranges may not be portable across different implementations.<p>
+There is a wide selection of predefined, named character classes that may be
+used. One such SRE is the wildcard <tt>any</tt>. 
+<tt>nonl</tt> is a character class matching anything but newline; 
+it is equivalent to
+</p>
+<blockquote>
+<pre class=verbatim>(~ #\newline)
+</pre><p></p>
+</blockquote>and is useful as a wildcard in line-oriented matching.<p>
+There are also predefined named char classes for the standard Posix and Gnu
+character classes:
+</p>
+<blockquote>
+<table border=0><tr><td valign=top >scsh name       </td><td valign=top >Posix/ctype   </td><td valign=top >Alternate name        </td><td valign=top >Comment </td></tr>
+<tr><td valign=top ><tt>lower-case</tt> </td><td valign=top ><tt>lower</tt>    </td></tr>
+<tr><td valign=top ><tt>upper-case</tt> </td><td valign=top ><tt>upper</tt>    </td></tr>
+<tr><td valign=top ><tt>alphabetic</tt> </td><td valign=top ><tt>alpha</tt>    </td></tr>
+<tr><td valign=top ><tt>numeric</tt>    </td><td valign=top ><tt>digit</tt>    </td><td valign=top ><tt>num</tt>      </td></tr>
+<tr><td valign=top ><tt>alphanumeric</tt> </td><td valign=top ><tt>alnum</tt>  </td><td valign=top ><tt>alphanum</tt> </td></tr>
+<tr><td valign=top ><tt>punctuation</tt> </td><td valign=top ><tt>punct</tt>   </td></tr>
+<tr><td valign=top ><tt>graphic</tt>    </td><td valign=top ><tt>graph</tt>    </td></tr>
+<tr><td valign=top ><tt>blank</tt>      </td><td valign=top >(Gnu extension)       </td></tr>
+<tr><td valign=top ><tt>whitespace</tt> </td><td valign=top ><tt>space</tt>    </td><td valign=top ><tt>white</tt> </td><td valign=top >``<tt>space</tt>'' is deprecated.</td></tr>
+<tr><td valign=top ><tt>printing</tt>   </td><td valign=top ><tt>print</tt>    </td></tr>
+<tr><td valign=top ><tt>control</tt>    </td><td valign=top ><tt>cntrl</tt>    </td></tr>
+<tr><td valign=top ><tt>hex-digit</tt>  </td><td valign=top ><tt>xdigit</tt>   </td><td valign=top ><tt>hex</tt>      </td></tr>
+<tr><td valign=top ><tt>ascii</tt>      </td><td valign=top >(Gnu extension)       </td></tr>
+<tr><td valign=top ></td></tr></table>
+</blockquote>
+See the scsh character-set documentation or the Posix isalpha(3) man page
+for the exact definitions of these sets.<p>
+You can use either the long scsh name or the shorter Posix and alternate names
+to refer to these char classes. 
+The standard Posix name ``<tt>space</tt>'' is provided,
+but deprecated, since it is ambiguous. It means ``whitespace,'' the set of
+whitespace characters, not the singleton set of the <code class=verbatim>#\space</code> character.
+If you want a short name for the set of whitespace characters, use the
+char-class name ``white'' instead.</p>
+<p>
+Char classes may be intersected with the operator 
+<tt>(&amp; <i>cset-sre</i> <tt>...</tt>)</tt>, 
+and set-difference can be performed with
+<tt>(- <i>cset-sre</i> <tt>...</tt>)</tt>. 
+These operators are
+particularly useful when you want to specify a set by negation
+<em>with respect to a limited universe.</em>
+For example, the set of all non-vowel letters is
+</p>
+<blockquote><tt><br>
+(-&nbsp;alpha&nbsp;(&quot;aeiou&quot;)&nbsp;(&quot;AEIOU&quot;))</tt></blockquote>whereas writing a simple complement 
+<blockquote><tt><br>
+(&nbsp;&nbsp;(&quot;aeiouAEIOU&quot;))</tt></blockquote>gives a char class that will match any non-vowel -- including punctuation,
+digits, white space, control characters, and A<small>S</small><small>C</small><small>I</small><small>I</small> nul.<p>
+We can <em>compute</em> a char class by writing the SRE 
+</p>
+<blockquote><tt><br>
+,<i>cset-exp</i></tt></blockquote>where <i>cset-exp</i> is a Scheme expression producing a value that can be
+coerced to a character set: a character set, character, one-character
+string, or char-class regexp value. This regexp matches one character
+from the set.<p>
+The char-class SRE <tt>,@<i>cset-exp</i></tt> is entirely equivalent to 
+<tt>,<i>cset-exp</i></tt>
+when <i>cset-exp</i> produces a character set (but see below for the more
+general non-char-class context, where there <em>is</em> a distinction between
+<tt>,<i>exp</i></tt> and <tt>,@<i>exp</i></tt>.</p>
+<p>
+As an example of character-class SREs, 
+an SRE that matches a lower-case vowel, upper-case letter, or digit is
+</p>
+<blockquote><tt><br>
+(|&nbsp;(&quot;aeiou&quot;)&nbsp;(/&quot;AZ09&quot;))</tt></blockquote>or, equivalently
+<blockquote><tt><br>
+(|&nbsp;(&quot;aeiou&quot;)&nbsp;upper-case&nbsp;numeric)</tt></blockquote>Boundary cases: the empty-complement char class
+<blockquote><tt><br>
+(&nbsp;)</tt></blockquote>matches any character; it is equivalent to <tt>any</tt>.
+The empty-union char class
+<blockquote><tt><br>
+(|)</tt></blockquote>never matches at all. This is rarely useful for human-written regexps,
+but may be of occasional utility in machine-generated regexps, perhaps
+produced by macros.<p>
+The rules for determining if an SRE is a simple, char-class SRE or a
+more complex SRE form a little ``type system'' for SRE's. See the summary
+section preceding this one for a complete listing of these rules.</p>
+<p>
+{Note There is no way to include the ASCII NUL character in a
+character set or search for it in any other way using regular
+expression.  This is because the POSIX regexp facility is based on
+the C language which uses ASCII NUL to terminate strings.}</p>
+<p>
+</p>
+<a name="node_sec_Temp_35"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_35">Case sensitivity</a></h5><p>There are three forms that control case sensitivity:
+</p>
+<blockquote><tt><br>
+(uncase&nbsp;&nbsp;&nbsp;<i>sre</i>&nbsp;<tt>...</tt>)<br>
+(w/case&nbsp;&nbsp;&nbsp;<i>sre</i>&nbsp;<tt>...</tt>)<br>
+(w/nocase&nbsp;<i>sre</i>&nbsp;<tt>...</tt>)</tt></blockquote><p>
+<tt>uncase</tt> is a regexp operator producing a regexp that matches any
+case permutation of any string that matches <tt>(: <i>sre</i> <tt>...</tt>)</tt>.
+For example, the regexp
+</p>
+<blockquote><tt><br>
+(uncase&nbsp;&quot;foo&quot;)</tt></blockquote>matches the strings ``foo'', ``foO'', ``fOo'', ``fOO'', ``Foo'', <tt>...</tt><p>
+Expressions in SRE notation are interpreted in a lexical case-sensitivy
+context. The forms <tt>w/case</tt> and <tt>w/nocase</tt> are the scoping operators 
+for this context, which controls how constant strings and char-class forms are
+interpreted in their bodies. So, for example, the regexp
+</p>
+<blockquote><tt><br>
+(w/nocase&nbsp;&quot;abc&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;&quot;FOO&quot;&nbsp;(w/case&nbsp;&quot;Bar&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(&quot;aeiou&quot;))</tt></blockquote>defines a case-insensitive match for all of its elements except for the
+sub-element &quot;Bar&quot;, which must match exactly capital-B, little-a, little-r.
+The default, the outermost, top-level context is case sensitive.<p>
+The lexical case-sensitivity context affects the interpretation of
+</p>
+<ul>
+<li><p>constant strings, such as <tt>&quot;foo&quot;</tt>,
+</p>
+<li><p>chars, such as <code class=verbatim>#\x</code>,
+</p>
+<li><p>char sets, such as <tt>(&quot;abc&quot;)</tt>, and
+</p>
+<li><p>ranges, such as <tt>(/&quot;az&quot;)</tt>
+that appear within that context. It does not affect dynamically computed
+regexps -- ones that are introduced by ,<i>exp</i> and ,@<i>exp</i> forms. 
+It does not affect named char-classes -- presumably, 
+if you wrote <tt>lower</tt>, you didn't mean <tt>alpha</tt>.</p>
+<p>
+<tt>uncase</tt> is <em>not</em> the same as <tt>w/nocase</tt>. 
+To point up one distinction, consider the two regexps
+</p>
+<blockquote><tt><br>
+(uncase&nbsp;&nbsp;&nbsp;(&nbsp;&nbsp;&quot;a&quot;))<br>
+(w/nocase&nbsp;(&nbsp;&nbsp;&quot;a&quot;))</tt></blockquote></ul><p></p>
+<p>
+The regexp <tt>(~ &quot;a&quot;)</tt> matches any character except ``a,'' 
+which means it <em>does</em> match ``A.'' 
+Now, <tt>(uncase <i>re</i>)</tt> matches any case-permutation of a string that
+<i>re</i> matches. 
+<tt>(~ &quot;a&quot;)</tt> matches ``A,'' 
+so <tt>(uncase (~ &quot;a&quot;))</tt> matches ``A'' and ``a'' -- and,
+for that matter, every other character. 
+So <tt>(uncase (~ &quot;a&quot;))</tt> is equivalent to <tt>any</tt>.</p>
+<p>
+In contrast, <tt>(w/nocase (~ &quot;a&quot;))</tt> establishes a case-insensitive lexical
+context in which the <tt>&quot;a&quot;</tt> is interpreted, making the SRE equivalent to
+<tt>(~ (&quot;aA&quot;))</tt>.</p>
+<p>
+</p>
+<a name="node_sec_Temp_36"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_36">Dynamic regexps</a></h5><p>SRE notation allows you to compute parts of a regular expressions
+at run time. The SRE
+</p>
+<blockquote><tt><br>
+,<i>exp</i></tt></blockquote>is a regexp whose body <i>exp</i> is a Scheme expression producing a
+string, character, char-set, or regexp as its value. Strings and
+characters are converted into constant regexps; char-sets are converted
+into char-class regexps; and regexp values are substituted in place.
+So we can write regexps like this
+<blockquote><tt><br>
+(:&nbsp;&quot;feeding&nbsp;the&nbsp;&quot;<br>
+&nbsp;&nbsp;&nbsp;,(if&nbsp;(&gt;&nbsp;n&nbsp;1)&nbsp;&quot;geese&quot;&nbsp;&quot;goose&quot;))</tt></blockquote>This is how you can drop computed strings, such as someone's name,
+or the decimal numeral for a computed number, into a complex regexp.<p>
+If we have a large, complex regular expression that is used multiple
+times in some other, containing regular expression, we can name it, using 
+the binding forms of the embedding language (<em>e.g.</em>, Scheme), and refer to
+it by name in the containing expression. 
+For example, consider the Scheme expression
+</p>
+<blockquote><tt><br>
+(let*&nbsp;((ws&nbsp;(rx&nbsp;(+&nbsp;whitespace)))&nbsp;&nbsp;;&nbsp;Seq&nbsp;of&nbsp;whitespace<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;Something&nbsp;like&nbsp;&quot;Mar&nbsp;14&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(date&nbsp;(rx&nbsp;(:&nbsp;(|&nbsp;&quot;Jan&quot;&nbsp;&quot;Feb&quot;&nbsp;&quot;Mar&quot;&nbsp;<tt>...</tt>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;,ws<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(|&nbsp;(&quot;123456789&quot;)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;1-9<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;(&quot;12&quot;)&nbsp;digit)&nbsp;&nbsp;&nbsp;;&nbsp;10-29<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;30&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;30<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;31&quot;)))))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;31<br>
+&nbsp;&nbsp;;;&nbsp;Now&nbsp;we&nbsp;can&nbsp;use&nbsp;DATE&nbsp;several&nbsp;times:<br>
+&nbsp;&nbsp;(rx&nbsp;<tt>...</tt>&nbsp;,date&nbsp;<tt>...</tt>&nbsp;(*&nbsp;<tt>...</tt>&nbsp;,date&nbsp;<tt>...</tt>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<tt>...</tt>&nbsp;,date&nbsp;<tt>...</tt>))</tt></blockquote>where the <tt>(rx <i>sre</i> <tt>...</tt>)</tt> 
+macro is the Scheme special form that produces
+a Scheme regexp value given a body in SRE notation.<p>
+As we saw in the char-class section, if a dynamic regexp is used
+in a char-class context (<em>e.g.</em>, as an argument to a <code class=verbatim>~</code> operation),
+the expression must be coercable not merely to a general regexp,
+but to a character sre -- so it must be either a singleton string,
+a character, a scsh char set, or a char-class regexp.</p>
+<p>
+We can also define and use functions on regexps in the host language. 
+For example, consider the following Scheme expressions, containing
+embedded SRE's (inside the <tt>rx</tt> macro expressions) 
+which in term contain embedded Scheme expressions computing dynamic regexps:
+</p>
+<blockquote><tt><br>
+(define&nbsp;(csl&nbsp;re)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>
+&nbsp;&nbsp;;;&nbsp;A&nbsp;comma-separated&nbsp;list&nbsp;of&nbsp;RE's&nbsp;is&nbsp;either<br>
+&nbsp;&nbsp;(rx&nbsp;(|&nbsp;&quot;&quot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;zero&nbsp;of&nbsp;them&nbsp;(empty&nbsp;string),&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(:&nbsp;,re&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;or&nbsp;RE&nbsp;followed&nbsp;by<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*&nbsp;&quot;,&nbsp;&quot;&nbsp;,re)))));&nbsp;zero&nbsp;or&nbsp;more&nbsp;comma-space-RE&nbsp;matches.<br>
+<br>
+(rx&nbsp;...&nbsp;,date&nbsp;...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;,(csl&nbsp;(rx&nbsp;(|&nbsp;&quot;John&quot;&nbsp;&quot;Paul&quot;&nbsp;&quot;George&quot;&nbsp;&quot;Ringo&quot;)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;,(csl&nbsp;date)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;...)</tt></blockquote>We leave the extension of <tt>csl</tt> to allow for an optional ``and'' between
+the last two matches as an exercise for the interested reader (<em>e.g.</em>, to match
+``John, Paul, George and Ringo'').<p>
+Note, in passing, one of the nice features of SRE notation: they can
+be commented, and indented in a fashion to show the lexical extent of
+the subexpressions.</p>
+<p>
+When we embed a computed regexp inside another regular expression with
+the ,<i>exp</i> form, we must specify how to account for the submatches that
+may be in the computed part. For example, suppose we have the regexp
+</p>
+<blockquote><tt><br>
+(rx&nbsp;(submatch&nbsp;(*&nbsp;&quot;foo&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(submatch&nbsp;(?&nbsp;&quot;bar&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;,(f&nbsp;x)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(submatch&nbsp;&quot;baz&quot;))</tt></blockquote>It's clear that the submatch for the <tt>(* &quot;foo&quot;)</tt> part of the regexp is
+submatch #1, and the <tt>(? &quot;bar&quot;)</tt> part is submatch #2. But what number
+submatch is the <tt>&quot;baz&quot;</tt> submatch? It's not clear. Suppose the Scheme
+expression <tt>(f x)</tt> produces a regular expression that itself has 3
+subforms. Are these counted (making the <tt>&quot;baz&quot;</tt> submatch #6), or not
+counted (making the <tt>&quot;bar&quot;</tt> submatch #3)?<p>
+SRE notation provides for both possibilities. The SRE
+</p>
+<blockquote><tt><br>
+,<i>exp</i></tt></blockquote>does <em>not</em> contribute its submatches to its containing regexp; it
+has zero submatches. So one can reliably assign submatch indices to
+forms appearing after a <tt>,<i>exp</i></tt> form in a regexp.<p>
+On the other hand, the SRE
+</p>
+<blockquote><tt><br>
+,@<i>exp</i></tt></blockquote>``splices'' its resulting regexp into place, <em>exposing</em> its submatches
+to the containing regexp. This is useful if the computed regexp is defined
+to produce a certain number of submatches -- if that is part of <i>exp</i>'s
+``contract.''<p>
+</p>
+<a name="node_sec_Temp_37"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_37">String and line units</a></h5><p>The regexps <tt>bos</tt> and <tt>eos</tt> match the empty string at the
+beginning and end of the string, respectively.</p>
+<p>
+The regexps <tt>bol</tt> and <tt>eol</tt> match the empty string at the beginning and
+end of a line, respectively. A line begins at the beginning of the string, and
+just after every newline character. A line ends at the end of the string, and
+just before every newline character. The char class <tt>nonl</tt> matches any
+character except newline, and is useful in conjunction with line-based pattern
+matching.</p>
+<p>
+{Note <tt>bol</tt> and <tt>eol</tt> are not supported by scsh's current 
+regexp search engine, which is Spencer's Posix matcher. This is the only
+element of the notation that is not supported by the current scsh
+reference implementation.}</p>
+<p>
+</p>
+<p>
+</p>
+<a name="node_sec_Temp_38"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_38">Posix string notation</a></h5><p>The SRE <tt>(posix-string <i>string</i>)</tt>, 
+where <i>string</i> is a string literal
+(<em>not</em> a general Scheme expression), allows one to use Posix string
+notation for a regexp. It's intended as backwards compatibility and
+is deprecated. 
+For example, <code class=verbatim>(posix-string &quot;[aeiou]+|x*|y{3,5}&quot;)</code> matches 
+a string of vowels, a possibly empty string of x's, or three to five
+y's.</p>
+<p>
+Note that parentheses are used ambiguously in Posix notation -- both for
+grouping and submatch marking. 
+The <tt>(posix-string <i>string</i>)</tt> form makes the conservative assumption: 
+all parentheses introduce submatches.</p>
+<p>
+</p>
+<a name="node_sec_Temp_39"></a>
+<h5><a href="man-Z-H-1.html#node_toc_node_sec_Temp_39">Deleted submatches</a></h5><p>Deleted submatches, or ``DSM's,'' 
+are a subtle feature that are never required in expressions written
+by humans. They can be introduced by the simplifier when reducing
+regular expressions to simpler equivalents, and are included in the
+syntax to give it expressibility spanning the full regexp ADT. They
+may appear when unparsing simplified regular expressions that have
+been run through the simplifier; otherwise you are not likely to see them.
+Feel free to skip this section.</p>
+<p>
+The regexp simplifier can sometimes eliminate entire sub-expressions from a
+regexp. For example, the regexp
+</p>
+<blockquote><tt><br>
+(:&nbsp;&quot;foo&quot;&nbsp;(**&nbsp;0&nbsp;0&nbsp;&quot;apple&quot;)&nbsp;&quot;bar&quot;)</tt></blockquote>can be simplified to
+<blockquote><tt><br>
+&quot;foobar&quot;</tt></blockquote>since <tt>(** 0 0 &quot;apple&quot;)</tt> will always match the empty string. The regexp
+<blockquote><tt><br>
+(|&nbsp;&quot;foo&quot;<br>
+&nbsp;&nbsp;&nbsp;(:&nbsp;&quot;Richard&quot;&nbsp;(|)&nbsp;&quot;Nixon&quot;)<br>
+&nbsp;&nbsp;&nbsp;&quot;bar&quot;)</tt></blockquote>can be simplified to
+<blockquote><tt><br>
+(|&nbsp;&quot;foo&quot;&nbsp;&quot;bar&quot;)</tt></blockquote>The empty choice <tt>(|)</tt> can't match anything, so the whole
+<blockquote><tt><br>
+(:&nbsp;&quot;Richard&quot;&nbsp;(|)&nbsp;&quot;Nixon&quot;)</tt></blockquote>sequence can't match, and we can remove it from the choice.<p>
+However, if deleting part of a regular expression removes a submatch
+form, any following submatch forms will have their numbering changed,
+which would be an error. For example, if we simplify
+</p>
+<blockquote><tt><br>
+(:&nbsp;(**&nbsp;0&nbsp;0&nbsp;(submatch&nbsp;&quot;apple&quot;))<br>
+&nbsp;&nbsp;&nbsp;(submatch&nbsp;&quot;bar&quot;))</tt></blockquote>to
+<blockquote><tt><br>
+(submatch&nbsp;&quot;bar&quot;)</tt></blockquote>then the <tt>&quot;bar&quot;</tt> submatch changes from submatch #2 to submatch #1 -- so 
+this is not a legal simplification.<p>
+When the simplifier deletes a sub-regexp that contains submatches,
+it introduces a special regexp form to account for the missing,
+deleted submatches, thus keeping the submatch accounting correct.
+</p>
+<blockquote><tt><br>
+(dsm&nbsp;<i>pre</i>&nbsp;<i>post</i>&nbsp;<i>sre</i>&nbsp;<tt>...</tt>)</tt></blockquote>is a regexp that matches the sequence <tt>(: <i>sre</i> <tt>...</tt>)</tt>. 
+<i>pre</i> and <i>post</i> are integer constants.
+The DSM form introduces <i>pre</i> deleted
+submatches before the body, and <i>post</i> deleted submatches after the
+body. 
+If the body <i>(: <i>sre</i> <tt>...</tt>)</i> itself has <i>body-sm</i> submatches,
+then the total number of submatches for the DSM form is
+<div align=center><table><tr><td><i>pre</i>  +  <i>body-sm</i>  +  <i>post</i>.</td></tr></table></div><p>
+These extra, deleted submatches are never assigned string indices in any
+match values produced when matching the regexp against a string.</p>
+<p>
+As examples,
+</p>
+<blockquote><tt><br>
+(|&nbsp;(:&nbsp;(submatch&nbsp;&quot;Richard&quot;)&nbsp;(|)&nbsp;&quot;Nixon&quot;)<br>
+&nbsp;&nbsp;&nbsp;(submatch&nbsp;&quot;bar&quot;))</tt></blockquote>can be simplified to
+<blockquote><tt><br>
+(dsm&nbsp;1&nbsp;0&nbsp;(submatch&nbsp;&quot;bar&quot;))</tt></blockquote>The regexp
+<blockquote><tt><br>
+(:&nbsp;(**&nbsp;0&nbsp;0&nbsp;(submatch&nbsp;&quot;apple&quot;))<br>
+&nbsp;&nbsp;&nbsp;(submatch&nbsp;&quot;bar&quot;))</tt></blockquote>can be simplified to
+<blockquote><tt><br>
+(dsm&nbsp;1&nbsp;0&nbsp;(submatch&nbsp;&quot;bar&quot;))</tt></blockquote><p>
+</p>
+<a name="node_sec_6.4.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_6.4.1">6.4.1&nbsp;&nbsp;Embedding regexps within Scheme programs</a></h3><p>SRE's can be placed in a Scheme program using the <tt>(rx <i>sre</i> <tt>...</tt>) </tt>
+Scheme form, which evaluates to a Scheme regexp value.</p>
+<p>
+</p>
+<a name="node_sec_6.4.1.1"></a>
+<h4><a href="man-Z-H-1.html#node_toc_node_sec_6.4.1.1">6.4.1.1&nbsp;&nbsp;Static and dynamic regexps</a></h4><p>We separate SRE expressions into two classes: static and dynamic
+expressions. 
+A <em>static</em> expression is one that has no run-time dependencies;
+it is a complete, self-contained description of a regular set. 
+A <em>dynamic</em> expression is one that requires run-time computation to 
+determine the particular regular set being described.
+There are two places where one can
+embed run-time computations in an SRE:
+</p>
+<ul>
+<li><p>The <i>from</i> or <i>to</i> repetition counts of 
+<tt>**</tt>, <tt>=</tt>, and <tt>&gt;=</tt> forms;
+</p>
+<li><p><tt>,<i>exp</i></tt> and <tt>,@<i>exp</i></tt> forms.
+</p>
+</ul><p></p>
+<p>
+A static SRE is one that does not contain any <tt>,<i>exp</i></tt> or 
+<tt>,@<i>exp</i></tt> forms, 
+and whose <tt>**</tt>, <tt>=</tt>, and <tt>&gt;=</tt> forms all contain constant 
+repetition counts.</p>
+<p>
+Scsh's <tt>rx</tt> macro is able, at macro-expansion time, to completely parse,
+simplify and translate any static SRE into the equivalent Posix string
+which is used to drive the underlying C-based matching engine; there is 
+no run-time overhead. Dynamic SRE's are partially simplified and then expanded
+into Scheme code that constructs the regexp at run-time.</p>
+<p>
+</p>
+<a name="node_sec_6.5"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_6.5">6.5&nbsp;&nbsp;Regexp functions</a></h2><p></p>
+<a name="node_sec_6.5.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_6.5.1">6.5.1&nbsp;&nbsp;Obsolete, deprecated procedures</a></h3><p>These two procedures are survivors from the previous, now-obsolete scsh regexp
+interface. Old code must open the <tt>re-old-funs</tt> package to access them. They
+should not be used in new code.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1128"></a></p>
+<div align=left><tt>(string-match <i>posix-re-string string [start]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>match or false</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1130"></a><div align=left><tt>(make-regexp <i>posix-re-string</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>regexp</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+These are old functions included for backwards compatibility with
+previous releases. They are deprecated and will go away at some point in
+the future.<p>
+Note that the new release has no ``regexp compiling'' procedure at
+all -- regexp values are compiled for the matching engine on-demand,
+and the necessary data structures are cached inside the ADT values.
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_6.5.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_6.5.2">6.5.2&nbsp;&nbsp;Standard procedures and syntax</a></h3><p></p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1132"></a></p>
+<div align=left><tt>(rx <i>sre <tt>...</tt></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>regexp</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Syntax)&nbsp;</div>
+
+<blockquote>
+This allows you to describe a regexp value with SRE notation.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1134"></a></p>
+<div align=left><tt>(regexp? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Returns true if the value is a regular expression.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1136"></a></p>
+<div align=left><tt>(regexp-search <i>re string [start flags]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>match-data or false</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1138"></a><div align=left><tt>(regexp-search? <i>re string [start flags]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Search <i>string</i> starting at position <i>start</i>, looking for a match
+for regexp <i>re</i>. If a match is found, return a match structure describing
+the match, otherwise <tt>#f</tt>. <i>Start</i> defaults to 0.<p>
+<i>Flags</i> is the bitwise-or of <tt>regexp/bos-not-bol</tt> and
+<tt>regexp/eos-not-eol</tt>.
+<tt>regexp/bos-not-bol</tt> means the beginning of the string isn't a
+line-begin. <tt>regexp/eos-not-eol</tt> is analogous. 
+{Note They're currently ignored because
+begining/end-of-line anchors aren't supported by the current
+implementation.}</p>
+<p>
+Use <tt>regexp-search?</tt> when you don't need submatch information, as
+it has the potential to be <em>significantly</em> faster on 
+submatch-containing regexps.</p>
+<p>
+There is no longer a separate regexp ``compilation'' function; regexp
+values are compiled for the C engine on demand, and the resulting
+C structures are cached in the regexp structure after the first use.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1140"></a></p>
+<div align=left><tt>(match:start <i>m [i]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>integer</i> or false</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1142"></a><div align=left><tt>(match:end <i>m [i]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>integer</i> or false</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1144"></a><div align=left><tt>(match:substring <i>m [i]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>string</i> or false</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+<tt>match:start</tt> returns the start position of the submatch denoted by 
+<i>match-number</i>.
+The whole regexp is 0; positive integers index submatches in the
+regexp, counting left-to-right.
+<i>Match-number</i> defaults to 0.<p>
+If the regular expression matches as a whole, 
+but a particular sub-expression does not match, then
+<tt>match:start</tt> returns <tt>#f</tt>.</p>
+<p>
+<tt>match:end</tt> is analogous to <tt>match:start</tt>, returning the end
+position of the indexed submatch.</p>
+<p>
+<tt>match:substring</tt> returns the substring matched regexp's submatch.
+If there was no match for the indexed submatch, it returns false.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1146"></a></p>
+<div align=left><tt>(regexp-substitute <i>port-or-false match . items</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure can be used to perform string substitutions based on
+regular-expression matches.
+The results of the substitution can be either output to a port or
+returned as a string.<p>
+The <i>match</i> argument is a regular-expression match structure
+that controls the substitution.
+If <i>port</i> is an output port, the <i>items</i> are written out to
+the port:
+</p>
+<ul>
+<li><p>If an item is a string, it is copied directly to the port.
+</p>
+<li><p>If an item is an integer, the corresponding submatch from <i>match</i>
+is written to the port.
+</p>
+<li><p>If an item is <tt>'pre</tt>, 
+the prefix of the matched string (the text preceding the match) 
+is written to the port.
+</p>
+<li><p>If an item is <tt>'post</tt>, 
+the suffix of the matched string is written.
+</p>
+</ul><p></p>
+<p>
+If <i>port</i> is <tt>#f</tt>, nothing is written, and a string is constructed
+and returned instead.
+</p>
+</blockquote><p>
+</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1148"></a></p>
+<div align=left><tt>(regexp-substitute/global <i>port-or-false re str . items</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure is similar to <tt>regexp-substitute</tt>, 
+but can be used to perform repeated match/substitute operations over
+a string.
+It has the following differences with <tt>regexp-substitute</tt>:
+<ul>
+<li><p>It takes a regular expression and string to be matched as
+parameters, instead of a completed match structure.
+</p>
+<li><p>If the regular expression doesn't match the string, this
+procedure is the identity transform -- it returns or outputs the
+string.
+</p>
+<li><p>If an item is <tt>'post</tt>, the procedure recurses on the suffix string
+(the text from <i>string</i> following the match). 
+Including a <tt>'post</tt> in the list of items is how one gets multiple 
+match/substitution operations.
+</p>
+<li><p>If an item is a procedure, it is applied to the match structure for
+a given match.
+The procedure returns a string to be used in the result.
+</p>
+</ul><p>
+The <i>regexp</i> parameter can be either a compiled regular expression or
+a string specifying a regular expression.</p>
+<p>
+Some examples:
+</p>
+<blockquote><tt><br>
+;;;&nbsp;Replace&nbsp;occurrences&nbsp;of&nbsp;&quot;Cotton&quot;&nbsp;with&nbsp;&quot;Jin&quot;.<br>
+(regexp-substitute/global&nbsp;#f&nbsp;(rx&nbsp;&quot;Cotton&quot;)&nbsp;s<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'pre&nbsp;&quot;Jin&quot;&nbsp;'post)<br>
+<br>
+;;;&nbsp;mm/dd/yy&nbsp;-&gt;&nbsp;dd/mm/yy&nbsp;date&nbsp;conversion.<br>
+(regexp-substitute/global&nbsp;#f&nbsp;(rx&nbsp;(submatch&nbsp;(+&nbsp;digit))&nbsp;&quot;/&quot;&nbsp;;&nbsp;1&nbsp;=&nbsp;M<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(submatch&nbsp;(+&nbsp;digit))&nbsp;&quot;/&quot;&nbsp;;&nbsp;2&nbsp;=&nbsp;D<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(submatch&nbsp;(+&nbsp;digit)))&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;3&nbsp;=&nbsp;Y<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;;&nbsp;Source&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'pre&nbsp;2&nbsp;&quot;/&quot;&nbsp;1&nbsp;&quot;/&quot;&nbsp;3&nbsp;'post)<br>
+<br>
+;;;&nbsp;&quot;9/29/61&quot;&nbsp;-&gt;&nbsp;&quot;Sep&nbsp;29,&nbsp;1961&quot;&nbsp;date&nbsp;conversion.<br>
+(regexp-substitute/global&nbsp;#f&nbsp;(rx&nbsp;(submatch&nbsp;(+&nbsp;digit))&nbsp;&quot;/&quot;&nbsp;;&nbsp;1&nbsp;=&nbsp;M<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(submatch&nbsp;(+&nbsp;digit))&nbsp;&quot;/&quot;&nbsp;;&nbsp;2&nbsp;=&nbsp;D<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(submatch&nbsp;(+&nbsp;digit)))&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;3&nbsp;=&nbsp;Y<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s&nbsp;;&nbsp;Source&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'pre&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;Sleazy&nbsp;converter&nbsp;--&nbsp;ignores&nbsp;&quot;year&nbsp;2000&quot;&nbsp;issue,&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;and&nbsp;blows&nbsp;up&nbsp;if&nbsp;month&nbsp;is&nbsp;out&nbsp;of&nbsp;range.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(lambda&nbsp;(m)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;((mon&nbsp;(vector-ref&nbsp;'#(&quot;Jan&quot;&nbsp;&quot;Feb&quot;&nbsp;&quot;Mar&quot;&nbsp;&quot;Apr&quot;&nbsp;&quot;May&quot;&nbsp;&quot;Jun&quot;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Jul&quot;&nbsp;&quot;Aug&quot;&nbsp;&quot;Sep&quot;&nbsp;&quot;Oct&quot;&nbsp;&quot;Nov&quot;&nbsp;&quot;Dec&quot;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(-&nbsp;(string-&gt;number&nbsp;(match:substring&nbsp;m&nbsp;1))&nbsp;1)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(day&nbsp;(match:substring&nbsp;m&nbsp;2))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(year&nbsp;(match:substring&nbsp;m&nbsp;3)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(string-append&nbsp;mon&nbsp;&quot;&nbsp;&quot;&nbsp;day&nbsp;&quot;,&nbsp;19&quot;&nbsp;year)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'post)<br>
+<br>
+;;;&nbsp;Remove&nbsp;potentially&nbsp;offensive&nbsp;substrings&nbsp;from&nbsp;string&nbsp;S.<br>
+(define&nbsp;(kill-matches&nbsp;re&nbsp;s)<br>
+&nbsp;&nbsp;(regexp-substitute/global&nbsp;#f&nbsp;re&nbsp;s&nbsp;'pre&nbsp;'post))<br>
+<br>
+(kill-matches&nbsp;(rx&nbsp;(|&nbsp;&quot;Windows&quot;&nbsp;&quot;tcl&quot;&nbsp;&quot;Intel&quot;))&nbsp;s)&nbsp;&nbsp;&nbsp;;&nbsp;Protect&nbsp;the&nbsp;children.</tt></blockquote><p>
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1150"></a></p>
+<div align=left><tt>(regexp-fold <i>re kons knil s [finish start]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+The following definition is a bit unwieldy, but the intuition is
+simple: 
+this procedure uses the regexp <i>re</i> to divide up string <i>s</i> into
+non-matching/matching chunks, and then ``folds'' the procedure <i>kons</i>
+across this sequence of chunks. It is useful when you wish to operate
+on a string in sub-units defined by some regular expression, as are
+the related <tt>regexp-fold-right</tt> and <tt>regexp-for-each</tt> procedures.<p>
+Search from <i>start</i> (defaulting to 0) for a match to <i>re</i>; call
+this match <i>m</i>. Let <i>i</i> be the index of the end of the match
+(that is, <tt>(match:end <i>m</i> 0))</tt>. Loop as follows:
+</p>
+<blockquote><tt>&nbsp;&nbsp;&nbsp;<br>
+(regexp-fold&nbsp;<i>re</i>&nbsp;<i>kons</i>&nbsp;(<i>kons</i>&nbsp;<i>start</i>&nbsp;<i>m</i>&nbsp;<i>knil</i>)&nbsp;<i>s</i>&nbsp;<i>finish</i>&nbsp;<i>i</i>)</tt></blockquote>
+If there is no match, return instead 
+<blockquote><tt><br>
+(<i>finish</i>&nbsp;<i>start</i>&nbsp;<i>knil</i>)</tt></blockquote>
+<i>Finish</i> defaults to <tt>(lambda (i knil) knil)</tt>.<p>
+In other words, we divide up <i>s</i> into a sequence of
+non-matching/matching chunks:
+</p>
+<div align=center><table><tr><td> <i>NM</i><sub>1</sub>   <i>M</i><sub>1</sub>   <i>NM</i><sub>1</sub>   <i>M</i><sub>2</sub>   <tt>...</tt>  
+<i>NM</i><sub><em>k</em><tt>-</tt>1</sub>   <i>M</i><sub><em>k</em><tt>-</tt>1</sub>   <i>NM</i><sub><em>k</em></sub> </td></tr></table></div><p>
+where <i>NM</i><sub>1</sub> is the initial part of <i>s</i> that isn't matched by
+the regexp <i>re</i>, <i>M</i><sub>1</sub> is the
+first match, <i>NM</i><sub>2</sub> is the following part of <i>s</i> that
+isn't matched, <i>M</i><sub>2</sub> is the second match, 
+and so forth -- <i>NM</i><sub><em>k</em></sub> is the final non-matching chunk of
+<i>s</i>. 
+We apply <i>kons</i> from left to right to build up a result, passing it one
+non-matching/matching chunk each time: 
+on an application <tt>(<i>kons</i> <i>i</i> <i>m</i> <i>knil</i>)</tt>,
+the non-matching chunk goes from <i>i</i> to <tt>(match:begin <i>m</i> 0)</tt>, 
+and the following matching chunk goes from <tt>(match:begin <i>m</i> 0)</tt>
+to <tt>(match:end <i>m</i> 0)</tt>. The last non-matching chunk <i>NM</i><sub><em>k</em></sub>
+is processed by <i>k</i>. So the computation we perform is
+</p>
+<blockquote><tt><br>
+(<i>final</i>&nbsp;<i>Q</i>&nbsp;(<i>kons</i>&nbsp;<i>j</i><sub><em>k</em></sub>&nbsp;<i>M</i><sub><em>k</em></sub>&nbsp;<tt>...</tt>&nbsp;(<i>kons</i>&nbsp;<i>J</i><sub>1</sub>&nbsp;<i>M</i><sub>1</sub>&nbsp;<i>knil</i>)&nbsp;<tt>...</tt>))</tt></blockquote>where <i>J</i><sub><em>i</em></sub> is the index of the start of <i>NM</i><sub><em>i</em></sub>, 
+<i>M</i><sub><em>i</em></sub> is a match value describing <i>M</i><sub><em>i</em></sub>, 
+and <i>Q</i> is the index of the beginning of <i>NM</i><sub><em>k</em></sub>.<p>
+Hint: The <tt>let-match</tt> macro is frequently useful for operating on the 
+match value <i>M</i> passed to the <i>kons</i> function.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1152"></a></p>
+<div align=left><tt>(regexp-fold-right <i>re kons knil s [finish start]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+<blockquote>
+The right-to-left variant of <tt>regexp-fold</tt>.<p>
+This procedure repeatedly matches regexp <i>re</i> across string <i>s</i>.
+This divides <i>s</i> up into a sequence of matching/non-matching chunks:
+</p>
+<div align=center><table><tr><td> <i>NM</i><sub>1</sub>   <i>M</i><sub>1</sub>   <i>NM</i><sub>1</sub>   <i>M</i><sub>2</sub>   <tt>...</tt>  
+<i>NM</i><sub><em>k</em><tt>-</tt>1</sub>   <i>M</i><sub><em>k</em><tt>-</tt>1</sub>   <i>NM</i><sub><em>k</em></sub> </td></tr></table></div><p>
+where <i>NM</i><sub>1</sub> is the initial part of <i>s</i> that isn't matched by
+the regexp <i>re</i>, <i>M</i><sub>1</sub> is the
+first match, <i>NM</i><sub>2</sub> is the following part of <i>s</i> that
+isn't matched, <i>M</i><sub>2</sub> is the second match, 
+and so forth -- <i>NM</i><sub><em>k</em></sub> is the final non-matching chunk of
+<i>s</i>. 
+We apply <i>kons</i> from right to left to build up a result, passing it one
+non-matching/matching chunk each time:
+</p>
+<blockquote><tt><br>
+(<i>final</i>&nbsp;<i>Q</i>&nbsp;(<i>kons</i>&nbsp;<i>M</i><sub>1</sub>&nbsp;<i>j</i><sub>1</sub>&nbsp;<tt>...</tt>&nbsp;(<i>kons</i>&nbsp;<i>M</i><sub><em>k</em></sub>&nbsp;<i>J</i><sub><em>k</em></sub>&nbsp;<i>knil</i>)&nbsp;<tt>...</tt>))</tt></blockquote>where MTCHi is a match value describing Mi, Ji is the index of the end of
+NMi (or, equivalently, the beginning of Mi+1), and Q is the index of the
+beginning of M1. In other words, KONS is passed a match, an index
+describing the following non-matching text, and the value produced by
+folding the following text. The FINAL function &quot;polishes off&quot; the fold
+operation by handling the initial chunk of non-matching text (NM0, above).
+FINISH defaults to (lambda (i knil) knil)<p>
+Example: To pick out all the matches to <i>re</i> in <i>s</i>, say
+</p>
+<blockquote><tt><br>
+(regexp-fold-right&nbsp;re<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(lambda&nbsp;(m&nbsp;i&nbsp;lis)&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cons&nbsp;(match:substring&nbsp;m&nbsp;0)&nbsp;lis))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'()&nbsp;s)</tt></blockquote>Hint: The <tt>let-match</tt> macro is frequently useful for operating on the 
+match value <i>m</i> passed to the <tt>kons</tt> function.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1154"></a></p>
+<div align=left><tt>(regexp-for-each <i>re proc s [start]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Repeatedly match regexp <i>re</i> against string <i>s</i>. 
+Apply <i>proc</i> to each match that is produced.
+Matches do not overlap.<p>
+Hint: The <tt>let-match</tt> macro is frequently useful for operating on the 
+match value <i>m</i> passed to varproc.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1156"></a></p>
+<div align=left><tt>(let-match <i>match-exp mvars body <tt>...</tt></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Syntax)&nbsp;</div>
+
+<a name="node_idx_1158"></a><div align=left><tt>(if-match <i>match-exp mvars on-match no-match</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Syntax)&nbsp;</div>
+
+<blockquote>
+<i>Mvars</i> is a list of vars that is bound to the match and submatches
+of the string; <code class=verbatim>#F</code> is allowed as a don't-care element. For example,
+<blockquote><tt><br>
+(let-match&nbsp;(regexp-search&nbsp;date&nbsp;s)&nbsp;(whole-date&nbsp;month&nbsp;day&nbsp;year)<br>
+&nbsp;&nbsp;<tt>...</tt>&nbsp;<i>body</i>&nbsp;<tt>...</tt>)</tt></blockquote>matches the regexp against string <tt>s</tt>, then evaluates the body of the
+<tt>let-match</tt> in a scope where <tt>whole-date</tt> is bound to the matched
+string, and <tt>month</tt>, <tt>day</tt> and <tt>year</tt> are bound to the first,
+second and third submatches.<p>
+<tt>if-match</tt> is similar, but if the match expression is false, 
+then the <i>no-match</i> expression is evaluated; this would be an
+error in <tt>let-match</tt>.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1160"></a></p>
+<div align=left><tt>(match-cond <i>clause <tt>...</tt></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>object</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Syntax)&nbsp;</div>
+
+<blockquote>
+This macro allows one to conditionally attempt a sequence of pattern
+matches, interspersed with other, general conditional tests.
+There are four kinds of <tt>match-cond</tt> clause, one introducing a pattern
+match, and the other three simply being regular <tt>cond</tt>-style clauses,
+marked by the <tt>test</tt> and <tt>else</tt> keywords:
+<blockquote><tt><br>
+(match-cond&nbsp;(<i>match-exp</i>&nbsp;<i>match-vars</i>&nbsp;<i>body</i>&nbsp;<tt>...</tt>)&nbsp;;&nbsp;As&nbsp;in&nbsp;if-match<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(test&nbsp;<i>exp</i>&nbsp;<i>body</i>&nbsp;<tt>...</tt>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;As&nbsp;in&nbsp;cond<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(test&nbsp;<i>exp</i>&nbsp;=&gt;&nbsp;<i>proc</i>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;As&nbsp;in&nbsp;cond<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(else&nbsp;<i>body</i>&nbsp;<tt>...</tt>))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;As&nbsp;in&nbsp;cond</tt></blockquote></blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1162"></a></p>
+<div align=left><tt>(flush-submatches <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1164"></a><div align=left><tt>(uncase <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1166"></a><div align=left><tt>(simplify-regexp <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1168"></a><div align=left><tt>(uncase-char-set <i>cset</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1170"></a><div align=left><tt>(uncase-string <i>str</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+These functions map regexps and char sets to other regexps.
+<tt>flush-submatches</tt> returns a regexp which matches exactly what
+its argument matches, but contains no submatches.<p>
+<tt>uncase</tt> returns a regexp that matches any case-permutation of
+its argument regexp.</p>
+<p>
+<tt>simplify-regexp</tt> applies the simplifier to its argument.
+This is done automatically when compiling regular expressions,
+so this is only useful for programmers that are directly examining
+the ADT value with lower-level accessors.</p>
+<p>
+<tt>uncase-char-set</tt> maps a char set to a regular expression that 
+matches any character from that set, regardless of case. 
+Similarly, <tt>uncase-string</tt> returns a regexp that matches any 
+case-permutation of the string. For example, 
+<tt>(uncase-string &quot;Knight&quot;)</tt> returns the same value that
+<tt>(rx (&quot;kK&quot;) (&quot;nN&quot;) (&quot;iI&quot;) (&quot;gG&quot;) (&quot;hH&quot;) (&quot;tT&quot;))</tt>
+or <tt>(rx (w/nocase &quot;Knight&quot;))</tt>.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1172"></a></p>
+<div align=left><tt>(sre-&gt;regexp <i>sre</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1174"></a><div align=left><tt>(regexp-&gt;sre <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>sre</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+These are the SRE parser and unparser.
+That is, <tt>sre-&gt;regexp</tt> maps an SRE to a regexp value, and
+<tt>regexp-&gt;sre</tt> does the inverse.
+The latter function can be useful for printing out regexps in a
+readable format.<p>
+</p>
+<blockquote><tt><br>
+(sre-&gt;regexp&nbsp;'(:&nbsp;&quot;Olin&nbsp;&quot;&nbsp;(?&nbsp;&quot;G.&nbsp;&quot;)&nbsp;&quot;Shivers&quot;))&nbsp;==&gt;&nbsp;&nbsp;<i>regexp</i><br>
+(define&nbsp;re&nbsp;(re-seq&nbsp;(re-string&nbsp;&quot;Pete&nbsp;&quot;)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(re-repeat&nbsp;1&nbsp;#f&nbsp;(re-string&nbsp;&quot;Sz&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(re-string&nbsp;&quot;ilagyi&quot;)))<br>
+(regexp-&gt;sre&nbsp;(re-repeat&nbsp;0&nbsp;1&nbsp;re))&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;==&gt;&nbsp;&nbsp;'(?&nbsp;&quot;Pete&quot;&nbsp;(+&nbsp;&quot;Sz&quot;)&nbsp;&quot;ilagyi&quot;)</tt></blockquote><p>
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1176"></a></p>
+<div align=left><tt>(posix-string-&gt;regexp <i>string</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1178"></a><div align=left><tt>(regexp-&gt;posix-string <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>[string syntax-level paren-count submatches-vector]</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+These two functions are the Posix notation parser and unparser.
+That is, <tt>posix-string-&gt;regexp</tt> maps a Posix-notation regular
+expression, such as <tt>&quot;g(ee|oo)se&quot;</tt>, to a regexp value, and 
+<tt>regexp-&gt;posix-string</tt> does the inverse.<p>
+You can use these tools to map between scsh regexps and Posix
+regexp strings, which can be useful if you want to do conversion
+between SRE's and Posix form. For example, you can write a particularly
+complex regexp in SRE form, or compute it using the ADT constructors,
+then convert to Posix form, print it out, cut and paste it into a
+C or emacs lisp program. Or you can import an old regexp from some other
+program, parse it into an ADT value, render it to an SRE, print it out, 
+then cut and paste it into a scsh program.</p>
+<p>
+Note:</p>
+<ul>
+<li><p>The string parser doesn't handle the exotica of character class
+names such as <code class=verbatim>[[:alnum:]]</code>; the current implementation was written
+in in three hours.
+</p>
+</ul><p>
+</p>
+</blockquote><p>
+</p>
+<a name="node_sec_6.6"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_6.6">6.6&nbsp;&nbsp;The regexp ADT</a></h2><p>The following functions may be used to construct and examine scsh's
+regexp abstract data type. They are in the following Scheme 48 packages:
+re-adt-lib
+re-lib
+scsh</p>
+<p>
+Each basic class of regexp has a predicate, a basic constructor,
+a ``smart'' consructor that performs limited ``peephole'' optimisation
+on its arguments, and a set of accessors.
+The <tt><tt>...</tt>:tsm</tt> accessor returns the total number of submatches
+contained in the regular expression.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1180"></a></p>
+<div align=left><tt>(re-seq? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>boolean</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Type predicate)&nbsp;</div>
+
+<a name="node_idx_1182"></a><div align=left><tt>(make-re-seq <i>re-list</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Basic constructor)&nbsp;</div>
+
+<a name="node_idx_1184"></a><div align=left><tt>(re-seq <i>re-list</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Smart constructor)&nbsp;</div>
+
+<a name="node_idx_1186"></a><div align=left><tt>(re-seq:elts <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re-list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1188"></a><div align=left><tt>(re-seq:tsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1190"></a></p>
+<div align=left><tt>(re-choice? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>boolean</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Type predicate)&nbsp;</div>
+
+<a name="node_idx_1192"></a><div align=left><tt>(make-re-choice <i>re-list</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Basic constructor)&nbsp;</div>
+
+<a name="node_idx_1194"></a><div align=left><tt>(re-choice <i>re-list</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Smart constructor)&nbsp;</div>
+
+<a name="node_idx_1196"></a><div align=left><tt>(re-choice:elts <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re-list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1198"></a><div align=left><tt>(re-choice:tsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1200"></a></p>
+<div align=left><tt>(re-repeat? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>boolean</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Type predicate)&nbsp;</div>
+
+<a name="node_idx_1202"></a><div align=left><tt>(make-re-repeat <i>from to body</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1204"></a><div align=left><tt>(re-repeat:from <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1206"></a><div align=left><tt>(re-repeat:to <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1208"></a><div align=left><tt>(re-repeat:tsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1210"></a></p>
+<div align=left><tt>(re-submatch? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>boolean</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Type predicate)&nbsp;</div>
+
+<a name="node_idx_1212"></a><div align=left><tt>(make-re-submatch <i>body [pre-dsm post-dsm]</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1214"></a><div align=left><tt>(re-submatch:pre-dsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1216"></a><div align=left><tt>(re-submatch:post-dsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1218"></a><div align=left><tt>(re-submatch:tsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1220"></a></p>
+<div align=left><tt>(re-string? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>boolean</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Type predicate)&nbsp;</div>
+
+<a name="node_idx_1222"></a><div align=left><tt>(make-re-string <i>chars</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Basic constructor)&nbsp;</div>
+
+<a name="node_idx_1224"></a><div align=left><tt>(re-string <i>chars</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Basic constructor)&nbsp;</div>
+
+<a name="node_idx_1226"></a><div align=left><tt>(re-string:chars <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>string</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1228"></a></p>
+<div align=left><tt>(re-char-set? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>boolean</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Type predicate)&nbsp;</div>
+
+<a name="node_idx_1230"></a><div align=left><tt>(make-re-char-set <i>cset</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Basic constructor)&nbsp;</div>
+
+<a name="node_idx_1232"></a><div align=left><tt>(re-char-set <i>cset</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Basic constructor)&nbsp;</div>
+
+<a name="node_idx_1234"></a><div align=left><tt>(re-char-set:cset <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>char-set</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1236"></a></p>
+<div align=left><tt>(re-dsm? <i>x</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>boolean</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Type predicate)&nbsp;</div>
+
+<a name="node_idx_1238"></a><div align=left><tt>(make-re-dsm <i>body pre-dsm post-dsm</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Basic constructor)&nbsp;</div>
+
+<a name="node_idx_1240"></a><div align=left><tt>(re-dsm <i>body pre-dsm post-dsm</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Smart constructor)&nbsp;</div>
+
+<a name="node_idx_1242"></a><div align=left><tt>(re-dsm:body <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1244"></a><div align=left><tt>(re-dsm:pre-dsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1246"></a><div align=left><tt>(re-dsm:post-dsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+
+<a name="node_idx_1248"></a><div align=left><tt>(re-dsm:tsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>integer</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Accessor)&nbsp;</div>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1250"></a></p>
+<div align=left><tt>re-bos</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<a name="node_idx_1252"></a><div align=left><tt>re-eos</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<a name="node_idx_1254"></a><div align=left><tt>re-bol</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<a name="node_idx_1256"></a><div align=left><tt>re-eol</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<blockquote>
+These variables are bound to the primitive anchor regexps.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1258"></a></p>
+<div align=left><tt>(re-bos? <i><i>object</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1260"></a><div align=left><tt>(re-eos? <i><i>object</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+                             
+<a name="node_idx_1262"></a><div align=left><tt>(re-bol? <i><i>object</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1264"></a><div align=left><tt>(re-eol? <i><i>object</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+These predicates recognise the associated primitive anchor regexp.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1266"></a></p>
+<div align=left><tt>re-trivial</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<a name="node_idx_1268"></a><div align=left><tt>(re-trivial? <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+The variable <tt>re-trivial</tt> is bound to a regular expression
+that matches the empty string (corresponding to the SRE <tt>&quot;&quot;</tt> or <tt>(:)</tt>);
+it is recognised by the associated predicate. 
+Note that the predicate is only guaranteed to recognise
+this particular trivial regexp; other trivial regexps built using
+other constructors may or may not produce a true value.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1270"></a></p>
+<div align=left><tt>re-empty</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<a name="node_idx_1272"></a><div align=left><tt>(re-empty? <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+The variable <tt>re-empty</tt> is bound to a regular expression
+that never matches (corresponding to the SRE <tt>(|)</tt>);
+it is recognised by the associated predicate. 
+Note that the predicate is only guaranteed to recognise
+this particular empty regexp; other empty regexps built using
+other constructors may or may not produce a true value.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1274"></a></p>
+<div align=left><tt>re-any</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<a name="node_idx_1276"></a><div align=left><tt>(re-any? <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+The variable <tt>re-any</tt> is bound to a regular expression
+that matches any character (corresponding to the SRE <tt>any</tt>); 
+it is recognised by the associated predicate. 
+Note that the predicate is only guaranteed to recognise
+this particular any-character regexp value; other any-character
+regexps built using other constructors may or may not produce a true value.
+</blockquote><p>
+</p>
+<p>
+<a name="node_idx_1278"></a></p>
+<div align=left><tt>re-nonl</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;regexp&nbsp;</div>
+
+<blockquote>
+The variable <tt>re-nonl</tt> is bound to a regular expression
+that matches any non-newline character
+(corresponding to the SRE <code class=verbatim>(~ #\newline)</code>).
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1280"></a></p>
+<div align=left><tt>(regexp? <i><i>object</i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Is the object a regexp?
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1282"></a></p>
+<div align=left><tt>(re-tsm <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>integer</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Return the total number of submatches contained in the regexp.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1284"></a></p>
+<div align=left><tt>(clean-up-cres<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+The current scsh implementation should call this function periodically
+to release C-heap storage associated with compiled regexps.
+Hopefully, this procedure will be removed at a later date.
+</blockquote><p>
+</p>
+<a name="node_sec_6.7"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_6.7">6.7&nbsp;&nbsp;Syntax-hacking tools</a></h2><p>The Scheme 48 package <tt>sre-syntax-tools</tt> exports several tools for macro
+writers that want to use SREs in their macros. In the functions defined
+below, <i>compare</i> and <i>rename</i> parameters are as passed to Clinger-Rees
+explicit-renaming low-level macros.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1286"></a></p>
+<div align=left><tt>(if-sre-form <i>form conseq-form alt-form</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>form</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(Syntax)&nbsp;</div>
+
+<blockquote>
+If <i>form</i> is a legal SRE, this is equivalent to the expression
+<i>conseq-form</i>, otherwise it expands to <i>alt-form</i>.<p>
+This is useful for high-level macro authors who want to write a macro
+where one field in the macro can be an SRE or possibly something
+else. <em>E.g.</em>, we might have a conditional form wherein if the
+test part of one arm is an SRE, it expands to a regexp match
+on some implied value, otherwise the form is evaluated as a boolean 
+Scheme expression.
+For example, a conditional macro might expand into code containing
+the following form, which in turn would have one of two possible
+expansions:
+</p>
+<blockquote><tt><br>
+(if-sre-form&nbsp;test-exp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;If&nbsp;TEST-EXP&nbsp;is&nbsp;SRE,<br>
+&nbsp;&nbsp;(regexp-search?&nbsp;(rx&nbsp;test-exp)&nbsp;line)&nbsp;;&nbsp;match&nbsp;it&nbsp;w/the&nbsp;line,<br>
+&nbsp;&nbsp;test-exp)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;&nbsp;otw&nbsp;it's&nbsp;a&nbsp;text&nbsp;exp.</tt></blockquote></blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1288"></a></p>
+<div align=left><tt>(sre-form? <i>form rename compare</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure is for low-level macros doing things equivalent to
+<tt>if-sre-form</tt>. It returns true if the form is a legal SRE.<p>
+Note that neither <tt>sre-form</tt> nor <tt>if-sre-form</tt> does a deep recursion
+over the form in the case where the form is a list. 
+They simply check the car of the form for one of the legal SRE keywords.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1290"></a></p>
+<div align=left><tt>(parse-sre <i>sre-form  compare rename</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1292"></a><div align=left><tt>(parse-sres <i>sre-forms compare rename</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>re</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Parse <tt>sre-form</tt> into an ADT. Note that if the SRE is dynamic -- contains
+<tt>,<i>exp</i></tt> or <tt>,@<i>exp</i></tt> forms, 
+or has repeat operators whose from/to counts are not constants -- then
+the returned ADT will have <i>Scheme expressions</i> in the corresponding 
+slots of the regexp records instead of the corresponding 
+integer, char-set, or regexp. 
+In other words, we use the ADT as its own AST. It's called a ``hack.''<p>
+<tt>parse-sres</tt> parses a list of SRE forms that comprise an implicit sequence.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1294"></a></p>
+<div align=left><tt>(regexp-&gt;scheme <i>re rename</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>Scheme-expression</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Returns a Scheme expression that will construct the regexp <i>re</i>
+using ADT constructors such as <tt>make-re-sequence</tt>, <tt>make-re-repeat</tt>,
+and so forth.<p>
+If the regexp is static, it will be simplified and pre-translated
+to a Posix string as well, which will be part of the constructed
+regexp value.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1296"></a></p>
+<div align=left><tt>(static-regexp? <i>re</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>boolean</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Is the regexp a static one?
+</blockquote><p>
+
+</p>
+<p>
+</p>
+<div class=footnoterule><hr></div><p></p>
+<div class=footnote><p><a name="footnote_Temp_32"></a><a href="#call_footnote_Temp_32"><sup><small>13</small></sup></a> That is, for use within s-expression
+syntax frameworks that, unlike R5RS, don't allow for <tt>:</tt> as a legal symbol. 
+A Common Lisp embedding of SREs, for example, would need to use 
+<tt>seq</tt> instead of <tt>:</tt>.</p>
+</div>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-6.html">previous</a></span><span>, <a href="man-Z-H-8.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

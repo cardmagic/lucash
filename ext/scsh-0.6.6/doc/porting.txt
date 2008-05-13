@@ -1,0 +1,44 @@
+What to do when your system isn't supported
+
+First of all: DON'T PANIC. It's easy to get scsh to work on a new
+system. Besides, you'll be a hero to the masses waiting for the Scheme
+Shell on your platform. There is a sample "generic" system in
+scsh/generic which you can copy as a base to modify. The modifications
+mainly involve pulling some constants in from C header files and hacking
+a few lines of C based on your standard I/O internals. I know, its C and
+all, together we can survive. If you need some hand holding, feel free
+to write to the scsh mailing list at scsh@zurich.ai.mit.edu.
+
+stdio_dep.c: 
+This is the one C file you have to actually deal with. The code in here
+defines two or three simple operations on stdio FILE*'s that are not
+part of the stdio.h interface. The main things it needs to be able
+to do is see if there is input ready, how much is ready, and to change
+the file descriptor associated with a FILE*. Usually how to do this
+is fairly obvious from <stdio.h>. Check out the other platforms for ideas.
+
+errno.scm:
+Scheme defines for C header values found in <errno.h>.
+
+fdflags.scm:
+Scheme defines for C header values found in <fcntl.h>.
+
+netconst.scm:
+Scheme defines for C header values found in socket and network includes.
+
+signals.scm:
+Scheme defines for C header values found in <sys/signal.h>.
+
+waitcodes.scm:
+Scheme defines for C header values and macros found in <sys/wait.h>.
+
+packages.scm:
+Scheme48 module definitions for the values in the above scheme files.
+
+load-scsh.scm:
+The script of commands and expressions used to build scsh. 
+
+After you've hacked these files together, it'd be nice to also hack
+config.scsh to support your new machine. Run config.guess to see what it
+thinks your machine is. Then, send us the info, and we'll make sure it
+gets in a future release. (That means you, Jonathan.)

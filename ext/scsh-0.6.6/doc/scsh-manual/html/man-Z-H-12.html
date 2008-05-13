@@ -1,0 +1,1105 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+Scsh Reference Manual
+</title>
+<link rel="stylesheet" type="text/css" href="man-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-11.html">previous</a></span><span>, <a href="man-Z-H-13.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+<a name="node_chap_11"></a>
+<h1 class=chapter>
+<div class=chapterheading><a href="man-Z-H-1.html#node_toc_node_chap_11">Chapter 11</a></div><br>
+<a href="man-Z-H-1.html#node_toc_node_chap_11">Running scsh</a></h1><p></p>
+<p>
+Scsh is currently implemented on top of Scheme 48, a freely-available
+Scheme implementation written by Jonathan Rees and Richard Kelsey.
+Scheme 48 uses a byte-code interpreter for good code density, portability
+and medium efficiency. It is R5RS.
+It also has a module system designed by Jonathan Rees.</p>
+<p>
+Scsh's design is not Scheme 48 specific, although the current implementation
+is necessarily so.
+Scsh is intended to be implementable in other Scheme implementations.
+The Scheme 48 virtual machine that scsh uses is a specially modified version;
+standard Scheme 48 virtual machines cannot be used with the scsh heap image.</p>
+<p>
+There are several different ways to invoke scsh.
+You can run it as an interactive Scheme system, with a standard
+read-eval-print interaction loop.
+Scsh can also be invoked as the interpreter for a shell script by putting
+a ``<code class=verbatim>#!/usr/local/bin/scsh -s</code>'' line at the top of the shell script.</p>
+<p>
+Descending a level, it is also possible to invoke the underlying virtual
+machine byte-code interpreter directly on dumped heap images.
+Scsh programs can be pre-compiled to byte-codes and dumped as raw,
+binary heap images.
+Writing heap images strips out unused portions of the scsh runtime
+(such as the compiler, the debugger, and other complex subsystems),
+reducing memory demands and saving loading and compilation times.
+The heap image format allows for an initial <code class=verbatim>#!/usr/local/lib/scsh/scshvm</code> trigger
+on the first line of the image, making heap images directly executable as 
+another kind of shell script.</p>
+<p>
+Finally, scsh's static linker system allows dumped heap images to be compiled
+to a raw Unix a.out(5) format, which can be linked into the text section
+of the vm binary.
+This produces a true Unix executable binary file.
+Since the byte codes comprising the program are in the file's text section,
+they are not traced or copied by the garbage collector, do not occupy space
+in the vm's heap, and do not need to be loaded and linked at startup time.
+This reduces the program's startup time, memory requirements,
+and paging overhead.</p>
+<p>
+This chapter will cover these various ways of invoking scsh programs.</p>
+<p>
+</p>
+<a name="node_sec_11.1"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_11.1">11.1&nbsp;&nbsp;Scsh command-line switches</a></h2><p>When the scsh top-level starts up, it scans the command line
+for switches that control its behaviour.
+These arguments are removed from the command line; 
+the remaining arguments can be accessed as the value of
+the scsh variable <tt>command-line-arguments</tt>.</p>
+<p>
+</p>
+<a name="node_sec_11.1.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.1">11.1.1&nbsp;&nbsp;Scripts and programs</a></h3><p>The scsh command-line switches provide sophisticated support for 
+the authors of shell scripts and programs;
+they also allow the programmer to write programs 
+that use the Scheme 48 module system.</p>
+<p>
+There is a difference between a <em>script</em>, which performs its action
+<em>as it is loaded</em>, and a <em>program</em>, which is loaded/linked, 
+and then performs its action by having control transferred to an entry point
+(<em>e.g.</em>, the <tt>main()</tt> function in C programs) that was defined by the
+load/link operation.</p>
+<p>
+A <em>script</em>, by the above definition, cannot be compiled by the simple
+mechanism of loading it into a scsh process and dumping out a heap image -- it
+executes as it loads. It does not have a top-level <tt>main()</tt>-type entry
+point.</p>
+<p>
+It is more flexible and useful to implement a system 
+as a program than as a script.
+Programs can be compiled straightforwardly; 
+they can also export procedural interfaces for use by other Scheme packages.
+However, scsh supports both the script and the program style of programming.</p>
+<p>
+</p>
+<a name="node_sec_11.1.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.2">11.1.2&nbsp;&nbsp;Inserting interpreter triggers into scsh programs</a></h3><p>When Unix tries to execute an executable file whose first 16 bits are
+the character pair ``<tt>#!</tt>'', it treats the file not as machine-code
+to be directly executed by the native processor, but as source code to
+be executed by some interpreter.
+The interpreter to use is specified immediately after the ``<tt>#!</tt>''
+sequence on the first line of the source file 
+(along with one optional initial argument).
+The kernel reads in the name of the interpreter, and executes that instead.
+The interpreter is passed the source filename as its first argument, with
+the original arguments following.
+Consult the Unix man page for the <tt>exec</tt> system call for more information.</p>
+<p>
+Scsh allows Scheme programs to have these triggers placed on
+their first line.
+Scsh treats the character sequence ``<tt>#!</tt>'' as a block-comment sequence,<a name="call_footnote_Temp_49"></a><a href="#footnote_Temp_49"><sup><small>15</small></sup></a>
+and skips all following characters until it reads the comment-terminating
+sequence newline/exclamation-point/sharp-sign/newline (<em>i.e.</em>, the
+sequence ``<tt>!#</tt>'' occurring on its own line).</p>
+<p>
+In this way, the programmer can arrange for an initial
+</p>
+<blockquote><tt><br>
+#!/usr/local/bin/scsh&nbsp;-s<br>
+!#</tt></blockquote>
+header appearing in a Scheme program
+to be ignored when the program is loaded into scsh.<p>
+</p>
+<a name="node_sec_11.1.3"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.3">11.1.3&nbsp;&nbsp;Module system</a></h3><p>Scsh uses the Scheme 48 module system, which defines
+<em>packages</em>, <em>structures</em>, and <em>interfaces</em>.
+</p>
+<dl><dt></dt><dd><p>
+</p>
+</dd><dt><b>Package</b></dt><dd> A package is an environment -- that is, a set of
+variable/value bindings.
+You can evaluate Scheme forms inside a package, or load a file into a package.
+Packages export sets of bindings; these sets are called <em>structures</em>.<p>
+</p>
+</dd><dt><b>Structure</b></dt><dd> A structure is a named view on a package -- a set of
+bindings. Other packages can <em>open</em> the structure, importing its
+bindings into their environment. Packages can provide more than one
+structure, revealing different portions of the package's environment.<p>
+</p>
+</dd><dt><b>Interface</b></dt><dd> An interface is the ``type'' of a structure. An
+interface is the set of names exported by a structure. These names
+can also be marked with other static information (<em>e.g.</em>, advisory type
+declarations, or syntax information).
+</dd></dl><p>
+More information on the the Scheme 48 module system can be found in the 
+file <tt>module.ps</tt> in the <tt>doc</tt> directory of the Scheme 48 and scsh releases.</p>
+<p>
+Programming Scheme with a module system is different from programming
+in older Scheme implementations,
+and the associated development problems are consequently different.
+In Schemes that lack modular abstraction mechanisms, 
+everything is accessible; the major problem is preventing name-space conflicts.
+In Scheme 48, name-space conflicts vanish; the major problem is that not
+all bindings are accessible from every place.
+It takes a little extra work to specify what packages export which values.</p>
+<p>
+It may take you a little while to get used to the new style of program
+development.
+Although scsh can be used without referring to the module system at
+all, we recommend taking the time to learn and use it.
+The effort will pay off in the construction of modular, factorable programs.</p>
+<p>
+</p>
+<a name="node_sec_11.1.3.1"></a>
+<h4><a href="man-Z-H-1.html#node_toc_node_sec_11.1.3.1">11.1.3.1&nbsp;&nbsp;Module warning</a></h4><p>Most scsh programs will need to import from the <tt>scheme</tt> structure
+as well as from the <tt>scsh</tt> structure. However, putting both of
+these structures in the same <tt>open</tt> clause is a bad idea
+because the structures <tt>scheme</tt> and <tt>scsh</tt> export some names of
+I/O functions in common but with different definitions.  The current
+implementation of the module system does not recognize this as an
+error but silently overwrites the exports of one structure with the
+exports of the other.  If the <tt>scheme</tt> structure overwrites the
+exports of the <tt>scsh</tt> structures the program will access the
+R<sup>5</sup>RS definitions of the I/O functions which is not what you want.</p>
+<p>
+Previous versions of this manual suggested to list <tt>scheme</tt> and
+<tt>scsh</tt> in a specific order in the <tt>open</tt> clause of a
+structure to ensure that the definitions from <tt>scsh</tt> overwrite the
+ones from <tt>scheme</tt>. This approach is error-prone and fragile: A
+simple change in the implementation of the module system will render
+thousands of programs useless.  Starting with release 0.6.3 scsh
+provides a better means to deal with this problem: the structure
+<tt>scheme-with-scsh</tt> provides all the exports of the modules
+<tt>scheme</tt> and <tt>scsh</tt> but exports the right denotations for the
+I/O functions in question. To make a long story short:
+</p>
+<div align=center><table><tr><td>
+
+Scsh programs should open the structure <tt>scheme-with-scsh</tt> if
+they need access to the exports of <tt>scheme</tt> and <tt>scsh</tt>.
+</td></tr></table></div>
+<p>
+For programs which should run in versions of scsh prior to release
+0.6.3, programmers should make sure to always put the <tt>scsh</tt>
+reference first.</p>
+<p>
+</p>
+<a name="node_sec_11.1.4"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.4">11.1.4&nbsp;&nbsp;Library directories search facility</a></h3><p></p>
+<p>
+Scsh's command line switches allow loading of code not present in the
+script file or the heap image at startup. To relief the user from
+specifying full path names and to improve flexibility, scsh offers the
+library directories path list. This list contains directories in which
+scsh searches automatically for a file name argument of the
+<tt>-ll</tt> or <tt>-le</tt> switch.</p>
+<p>
+This section describes the programmatic interface to the library
+directories search facility. In addition, various command line
+switches for scsh modify the library directories path list. Section
+<a href="#node_sec_11.1.5">11.1.5</a> describes these switches and the switches to
+actually load files.</p>
+<p>
+Another way to change the library directories path list is the
+environment variable <tt>$SCSH_LIB_DIRS</tt>. If this variable is
+set, scsh uses it to set library directories path list. The value of
+this environment variable is treated as a sequence of s-expressions,
+which are ``read'' from the string:</p>
+<p>
+</p>
+<ul>
+<li><p>A string is treated as a directory,
+</p>
+<li><p><tt>#f</tt> is replaced with the default list of directories.
+</p>
+</ul><p></p>
+<p>
+A <tt>$SCSH_LIB_DIRS</tt> assignment of this form
+</p>
+
+<pre class=verbatim>SCSH_LIB_DIRS='&quot;.&quot; &quot;/usr/contrib/lib/scsh/&quot; #f &quot;/home/shivers/lib/scsh&quot;'
+</pre><p>
+</p>
+
+would produce this list of strings for the
+<i>library-directories</i> list:
+<pre class=verbatim>          (&quot;.&quot; &quot;/usr/contrib/lib/scsh/&quot; 
+          &quot;/usr/local/lib/scsh/modules/&quot; 
+          &quot;/home/shivers/lib/scsh&quot;)
+</pre><p>
+It is a startup error if reading the <tt>$SCSH_LIB_DIRS</tt>
+environment variable causes a read error, or produces a value that
+isn't a list of strings or <tt>#f</tt>.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1496"></a></p>
+<div align=left><tt>default-lib-dirs</tt> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;string list&nbsp;</div>
+<p>
+</p>
+<blockquote>
+The default list of <i>library directories</i>. The original value
+of this variable is <code class=verbatim>(&quot;$prefix/lib/scsh/modules/&quot;)</code>. starting with version 0.6.5 the option <code class=verbatim>--with-lib-dirs-list</code> of
+the <tt>configure</tt> script changes for a new installation.
+</blockquote>    <p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1498"></a></p>
+<div align=left><tt>(find-library-file <i>file lib-dirs script-file</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Searches the list of library directories <i>lib-dirs</i> for
+<i>file</i> and returns the full path. The variable <i>script-file</i>
+is used to resolve references to the directory of the current
+script. <p>
+When searching for a directory containing a given library module,
+nonexistent or read-protected directories are silently ignored; it
+is not an error to have them in the <i>library-directories</i>
+list.</p>
+<p>
+Directory search can be recursive. A directory name that ends with a
+slash is recursively searched.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1500"></a></p>
+<div align=left><tt>(lib-dirs<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i>string list</i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Returns the current library directories path list.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1502"></a></p>
+<div align=left><tt>(lib-dirs-prepend-script-dir!<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1504"></a><div align=left><tt>(lib-dirs-append-script-dir!<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Add the directory of the current script file to the beginning or end
+of the <i>library-directories</i> path list, respectively.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1506"></a></p>
+<div align=left><tt>(lib-dirs-append! <i>dir</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<a name="node_idx_1508"></a><div align=left><tt>(lib-dirs-prepend! <i>dir</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Add directory <i>lib-dir</i> to the beginning or end of the
+<i>library-directories</i> path list, respectively.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1510"></a></p>
+<div align=left><tt>(clear-lib-dirs!<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Set the <i>library-directories</i> path list to the empty list.
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1512"></a></p>
+<div align=left><tt>(reset-lib-dirs!<i></i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+Set the <i>library-directories</i> path list to system default,
+i.e. to the value of <i>default-lib-dirs</i>.
+</blockquote><p>
+</p>
+<a name="node_sec_11.1.5"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.5">11.1.5&nbsp;&nbsp;Switches</a></h3><p>
+The scsh top-level takes command-line switches in the following
+format:
+</p>
+<blockquote><tt>scsh [<i>meta-arg</i>] [<i>switch</i><sub><em>i</em></sub> <tt>...</tt>] 
+[<i>end-option</i> <i>arg</i><sub>1</sub> <tt>...</tt> <i>arg</i><sub><em>n</em></sub>]</tt></blockquote>where
+<blockquote>
+<div align=left><table><tr><td>
+
+<table border=0><tr><td valign=top ><i>meta-arg:</i>         </td><td valign=top ><code class=verbatim>\</code> <i>script-file-name</i> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>switch:</i>           </td><td valign=top ><tt>-e</tt> <i>entry-point</i> 
+</td><td valign=top >Specify top-level entry-point. </td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-o</tt> <i>structure</i>
+</td><td valign=top >Open structure in current package. </td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-m</tt> <i>structure</i>
+</td><td valign=top >Switch to package. </td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-n</tt> <i>new-package</i>
+</td><td valign=top >Switch to new package. </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-lm</tt> <i>module-file-name</i>
+</td><td valign=top >Load module into config package. </td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-le</tt> <i>exec-file-name</i>
+</td><td valign=top >Load module into exec package. </td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-l</tt> <i>file-name</i>
+</td><td valign=top >Load file into current package. </td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-ll</tt> <i>module-file-name</i> 
+</td><td valign=top >As in -lm, but search the library path list.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-lel</tt> <i>exec-file-name</i> 
+</td><td valign=top >As in -le, but search the library path list.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>+lp</tt>  <i>dir</i>
+</td><td valign=top >Add dir to front of library path list.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>lp+</tt>  <i>dir</i>
+</td><td valign=top >Add dir to end of library path list.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>+lpe</tt> <i>dir</i>
+</td><td valign=top >+lp, with env var and ~user expansion.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>lpe+</tt> <i>dir</i>
+</td><td valign=top >lp+, with env var and ~user expansion.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>+lpsd</tt>                    
+</td><td valign=top >Add script-file's dir to front of path list.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>lpsd+</tt>                    
+</td><td valign=top >Add script-file's dir to end of path list.</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-lp-clear</tt>                
+</td><td valign=top >Clear library path list to ().</td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-lp-default</tt>              
+</td><td valign=top >Reset library path list to system default.</td></tr>
+<tr><td valign=top ><p>
+</p>
+</td><td valign=top ><tt>-ds</tt> </td><td valign=top >Do script. </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-dm</tt> </td><td valign=top >Do script module. </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-de</tt> </td><td valign=top >Do script exec. </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>end-option:</i>       </td><td valign=top ><tt>-s</tt> <i>script</i> </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-sfd</tt> <i>num</i> </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-c</tt> <i>exp</i> </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-</tt>
+</td></tr></table>
+</td></tr></table></div>
+
+</blockquote>
+These command-line switches essentially provide a little linker
+language for linking a shell script or a program together with Scheme 48
+modules or Scheme 48 exec programs <a name="call_footnote_Temp_50"></a><a href="#footnote_Temp_50"><sup><small>16</small></sup></a>.
+The command-line processor serially opens structures and loads code
+into a given package.  Switches that side-effect a package operate on
+a particular ``current'' package; there are switches to change this
+package.  (These switches provide functionality equivalent to the
+interactive <tt>,open</tt> <tt>,load</tt> <tt>,in</tt> and <tt>,new</tt> commands.)
+Except where indicated, switches specify actions that are executed in
+a left-to-right order.  The initial current package is the user
+package, which is completely empty and opens (imports the bindings of)
+the R5RS and scsh structures.<p>
+If the Scheme process is started up in an interactive mode, then the current
+package in force at the end of switch scanning is the one inside which
+the interactive read-eval-print loop is started.</p>
+<p>
+The command-line switch processor works in two passes:
+it first parses the switches, building a list of actions to perform, 
+then the actions are performed serially.
+The switch list is terminated by one of the <i>end-option</i> switches.
+The <i>arg</i><sub><em>i</em></sub> arguments occurring after an end-option switch are 
+passed to the scsh program as the value of <tt>command-line-arguments</tt>
+and the tail of the list returned by <tt>(command-line)</tt>.
+That is, an <i>end-option</i> switch separates switches that control
+the scsh ``machine'' from the actual arguments being passed to the scsh
+program that runs on that machine.</p>
+<p>
+The following switches and end options are defined:
+</p>
+<ul>
+<p>
+</p>
+<li><p><tt>-o <i>struct</i></tt><br>
+Open the structure in the current package.</p>
+<p>
+</p>
+<li><p><tt>-n <i>package</i></tt><br>
+Make and enter a new package. The package has an associated structure
+named <i>package</i> with an empty export list.
+If <i>package</i> is the string ``<tt>#f</tt>'', 
+the new package is anonmyous, with no associated named structure.</p>
+<p>
+The new package initially opens no other structures,
+not even the R5RS bindings. You must follow a ``<tt>-n foo</tt>''
+switch with ``<tt>-o scheme</tt>'' to access the standard identifiers such
+as <tt>car</tt> and <tt>define</tt>.</p>
+<p>
+</p>
+<li><p><tt>-m <i>struct</i></tt><br>
+Change the current package to the package underlying 
+structure <i>struct</i>.
+(The <tt>-m</tt> stands for ``module.'')</p>
+<p>
+</p>
+<li><p><tt>-lm <i>module-file-name</i></tt><br>
+Load the specified file into scsh's config package  --  the file
+must contain source written in the Scheme 48 module language
+(``load module''). Does not alter the current package.</p>
+<p>
+</p>
+<li><p><tt>-le <i>exec-file-name</i></tt><br>
+Load the specified file into scsh's exec package  --  the file
+must contain source written in the Scheme 48 exec language
+(``load exec''). Does not alter the current package.</p>
+<p>
+</p>
+<li><p><tt>-l <i>file-name</i></tt><br>
+Load the specified file into the current package.</p>
+<p>
+</p>
+<li><p><tt>-c <i>exp</i></tt><br>
+Evaluate expression <i>exp</i> in the current package and exit. 
+This is called <tt>-c</tt> after a common shell convention (see sh and csh). 
+The expression is evaluated in the the current package (and hence is
+affected by <tt>-m</tt>'s and <tt>-n</tt>'s.)</p>
+<p>
+When the scsh top-level constructs the scsh command-line in this case,
+it takes <tt>&quot;scsh&quot;</tt> to be the program name.
+This switch terminates argument scanning; following args become
+the tail of the command-line list.</p>
+<p>
+</p>
+<li><p><tt>-e <i>entry-point</i></tt><br>
+Specify an entry point for a program. The <i>entry-point</i> is
+a variable that is taken from the current package in force at the end
+of switch evaluation. The entry point does not have to be exported
+by the package in a structure; it can be internal to the package.
+The top level passes control to the entry point by applying it to
+the command-line list (so programs executing in private
+packages can reference their command-line arguments without opening
+the <tt>scsh</tt> package to access the <tt>(command-line)</tt> procedure).
+Note that, like the list returned by the <tt>(command-line)</tt> procedure,
+the list passed to the entry point includes the name
+of the program being executed (as the first element of the list), 
+not just the arguments to the program.</p>
+<p>
+A <tt>-e</tt> switch can occur anywhere in the switch list, but it is the
+<em>last</em> action performed by switch scanning if it occurs. 
+(We violate ordering here as the shell-script <tt>#!</tt> mechanism
+prevents you from putting the <em>-e</em> switch last, where it belongs.)</p>
+<p>
+</p>
+<li><p><tt>-s <i>script</i></tt><br>
+Specify a file to load.
+A <tt>-ds</tt> (do-script), <tt>-dm</tt> (do-module), or <tt>-de</tt>
+(do-exec) switch occurring earlier in the switch list gives the
+place where the script should be loaded. If there is no <tt>-ds</tt>,
+<tt>-dm</tt>, or <tt>-de</tt> switch, then the script is loaded at the end of switch
+scanning, into the module that is current at the end of switch
+scanning.</p>
+<p>
+We use the <tt>-ds</tt> switch to violate left-to-right switch execution order
+as the <tt>-s</tt> switch is <em>required</em> to be last
+(because of the <tt>#!</tt> machinery), 
+independent of when/where in the switch-processing order 
+it should be loaded.</p>
+<p>
+When the scsh top-level constructs the scsh command-line in this case,
+it takes <i>script</i> to be the program name.
+This switch terminates switch parsing; following args are ignored
+by the switch-scanner and are passed through to the program as
+the tail of the command-line list.</p>
+<p>
+</p>
+<li><p><tt>-sfd <i>num</i></tt><br>
+Loads the script from file descriptor <i>num</i>. 
+This switch is like the <tt>-s</tt> switch, 
+except that the script is loaded from one of the process' open input
+file descriptors.
+For example, to have the script loaded from standard input, specify
+<tt>-sfd 0</tt>.</p>
+<p>
+</p>
+<li><p><tt>-</tt><br>
+Terminate argument scanning and start up scsh in interactive mode.
+If the argument list just runs out, without either a terminating 
+<tt>-s</tt> or <tt>-</tt> arg, then scsh also starts up in interactive mode, 
+with an empty <tt>command-line-arguments</tt> list 
+(for example, simply entering <tt>scsh</tt> at a shell prompt with no
+args at all).</p>
+<p>
+When the scsh top-level constructs the scsh command-line in this case,
+it takes <tt>&quot;scsh&quot;</tt> to be the program name.
+This switch terminates switch parsing; following args are ignored
+by the switch-scanner and are passed through to the program as
+the tail of the command-line list.</p>
+<p>
+</p>
+<li><p><tt>-ds</tt><br>
+Specify when to load the script (``do-script''). If this switch occurs, 
+the switch list <em>must</em> be terminated by a <tt>-s <i>script</i></tt>
+switch. The script is loaded into the package that is current at the
+<tt>-ds</tt> switch.</p>
+<p>
+</p>
+<li><p><tt>-dm</tt><br>
+As above, but the current module is ignored. The script is loaded into the
+<tt>config</tt> package (``do-module''), and hence must be written in the
+Scheme 48 module language.
+This switch doesn't affect the current module -- after executing this 
+switch, the current module is the same as as it was before.</p>
+<p>
+This switch is provided to make it easy to write shell scripts in the
+Scheme 48 module language.</p>
+<p>
+</p>
+<li><p><tt>-de</tt><br>
+As above, but the current module is ignored. The script is loaded into the
+<tt>exec</tt> package (``do-exec''), and hence must be written in the
+Scheme 48 exec language.</p>
+<p>
+This switch is provided to make it easy to write shell scripts in the
+Scheme 48 exec language.</p>
+<p>
+</p>
+<li><p><tt>-ll <i>module-file-name</i></tt><br>
+</p>
+<p>
+Load library module into config package.
+This is just like the <tt>-lm</tt> switch, except that it searches the
+library-directory path list (see Section <a href="#node_sec_11.1.4">11.1.4</a>) 
+for the file to load.</p>
+<p>
+Specifically, it means: search through the
+<i>library-directories</i> list of directories looking for a
+module file of the given name, and load it in. Scsh uses the
+procedure <i>find-library-file</i> from Section <a href="#node_sec_11.1.4">11.1.4</a>
+to perform the search.</p>
+<p>
+</p>
+<li><p><tt>-lel <i>exec-file-name</i></tt><br>
+As above, but load the specified file into scsh's exec package.
+This is just like the <tt>-le</tt> switch, except that it searches the
+library-directory path list for the file to load.</p>
+<p>
+</p>
+<li><p><tt>+lp <i>lib-dir</i>,lp+ <i>lib-dir</i></tt><br>
+Add directory <i>lib-dir</i> to the beginning or end of the
+<i>library-directories</i> path list, respectively.</p>
+<p>
+<i>lib-dir</i> is a single directory. It is not split at colons or
+otherwise processed. These switches correspond to the procedures
+<tt>lib-dirs-prepend!</tt> and <tt>lib-dirs-append!</tt> from Section
+<a href="#node_sec_11.1.4">11.1.4</a>.</p>
+<p>
+</p>
+<li><p><tt>+lpe, lpe+</tt><br>
+As above, except that ~ home-directory syntax and environment
+variables are expanded out.</p>
+<p>
+</p>
+<li><p><tt>+lpsd,lpsd+</tt><br>
+Add script-file's directory to the beginning or end of the
+<i>library-directories</i> path list, respectively. These switches 
+correspond to the procedures
+<tt>lib-dirs-prepend-script-dir!</tt> and <tt>lib-dirs-append-script-dir!</tt> from Section
+<a href="#node_sec_11.1.4">11.1.4</a>.</p>
+<p>
+</p>
+<li><p><tt>-lp-clear, -lp-default</tt><br>
+Set the <i>library-directories</i> path list to the empty list and
+the system default, respectively. These switches correspond to
+the procedures <tt>clear-lib-dirs!</tt> and <tt>reset-lib-dirs!</tt> from Section
+<a href="#node_sec_11.1.4">11.1.4</a>.</p>
+<p>
+The two switches are useful if you would like to protect your
+script from influence by the <tt>$SCSH_LIB_DIRS</tt> variable.</p>
+<p>
+In these cases, the <tt>$SCSH_LIB_DIRS</tt> environment variable is never
+even parsed, so a bogus value will not affect the script's
+execution at all.
+</p>
+</ul><p></p>
+<p>
+</p>
+<a name="node_sec_11.1.6"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.6">11.1.6&nbsp;&nbsp;The meta argument</a></h3><p>
+The scsh switch parser takes a special command-line switch,
+a single backslash called the ``meta-argument,'' which is useful for 
+shell scripts.
+If the initial command-line argument is a ``<code class=verbatim>\</code>''
+argument, followed by a filename argument <i>fname</i>, scsh will open the file
+<i>fname</i> and read more arguments from the second line of this file. 
+This list of arguments will then replace the ``<code class=verbatim>\</code>'' argument -- <em>i.e.</em>,
+the new arguments are inserted in front of <i>fname</i>, 
+and the argument parser resumes argument scanning.
+This is used to overcome a limitation of the <tt>#!</tt> feature: 
+the <tt>#!</tt> line can only specify a single argument after the interpreter.
+For example, we might hope the following scsh script, <tt>ekko</tt>, 
+would implement a simple-minded version of the Unix <tt>echo</tt> program:
+</p>
+<blockquote><tt><br>
+#!/usr/local/bin/scsh&nbsp;-e&nbsp;main&nbsp;-s<br>
+!#<br>
+(define&nbsp;(main&nbsp;args)<br>
+&nbsp;&nbsp;(map&nbsp;(lambda&nbsp;(arg)&nbsp;(display&nbsp;arg)&nbsp;(display&nbsp;&quot;&nbsp;&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cdr&nbsp;args))<br>
+&nbsp;&nbsp;(newline))</tt></blockquote>
+The idea would be that the command
+<blockquote><tt>ekko Hi there.</tt></blockquote>would by expanded by the <tt><a href="http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html">exec(2)</a></tt> kernel call into
+<blockquote><tt><br>
+/usr/local/bin/scsh&nbsp;-e&nbsp;main&nbsp;-s&nbsp;ekko&nbsp;Hi&nbsp;there.</tt></blockquote>
+In theory, this would cause scsh to start up, load in file <tt>ekko</tt>,
+call the entry point on the command-line list
+<blockquote><tt>(main '(&quot;ekko&quot; &quot;Hi&quot; &quot;there.&quot;))</tt></blockquote>and exit.<p>
+Unfortunately, the Unix <tt><a href="http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html">exec(2)</a></tt> syscall's support for scripts is
+not very general or well-designed.
+It will not handle multiple arguments;
+the <tt>#!</tt> line is usually required to contain no more than 32 characters;
+it is not recursive.
+If these restrictions are violated, most Unix systems will not provide accurate
+error reporting, but either fail silently, or simply incorrectly implement
+the desired functionality.
+These are the facts of Unix life.</p>
+<p>
+In the <tt>ekko</tt> example above, our <tt>#!</tt> trigger line has three
+arguments (``<tt>-e</tt>'', ``<tt>main</tt>'', and ``<tt>-s</tt>''), so it will not
+work.
+The meta-argument is how we work around this problem.
+We must instead invoke the scsh interpreter with the single <tt>\</tt> argument,
+and put the rest of the arguments on line two of the program. 
+Here's the correct program:
+</p>
+<blockquote><tt><br>
+#!/usr/local/bin/scsh&nbsp;\<br>
+-e&nbsp;main&nbsp;-s<br>
+!#<br>
+(define&nbsp;(main&nbsp;args)&nbsp;<br>
+&nbsp;&nbsp;(map&nbsp;(lambda&nbsp;(arg)&nbsp;(display&nbsp;arg)&nbsp;(display&nbsp;&quot;&nbsp;&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cdr&nbsp;args))<br>
+&nbsp;&nbsp;(newline))</tt></blockquote>
+Now, the invocation starts as
+<blockquote><tt>ekko Hi there.</tt></blockquote>and is expanded by exec(2) into
+<blockquote><tt>&nbsp;&nbsp;&nbsp;<br>
+/usr/local/bin/scsh&nbsp;\&nbsp;ekko&nbsp;Hi&nbsp;there.</tt></blockquote>
+When scsh starts up, it expands the ``<tt>\</tt>'' argument into the arguments
+read from line two of <tt>ekko</tt>, producing this argument list:
+<blockquote><tt><br>
+<u>-e&nbsp;main&nbsp;-s&nbsp;ekko</u>&nbsp;Hi&nbsp;there.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<table><tr><td>^</td></tr><tr><td>|</td></tr></table><br>
+Expanded&nbsp;from&nbsp;<tt>\</tt>&nbsp;ekko</tt></blockquote>
+With this argument list, processing proceeds as we intended.<p>
+</p>
+<a name="node_sec_11.1.6.1"></a>
+<h4><a href="man-Z-H-1.html#node_toc_node_sec_11.1.6.1">11.1.6.1&nbsp;&nbsp;Secondary argument syntax</a></h4><p>Scsh uses a very simple grammar to encode the extra arguments on 
+the second line of the scsh script.
+The only special characters are space, tab, newline, and backslash.
+</p>
+<ul>
+<li><p>Each space character terminates an argument.
+This means that two spaces in a row introduce an empty-string argument.</p>
+<p>
+</p>
+<li><p>The tab character is not permitted 
+(unless you quote it with the backslash character described below).
+This is to prevent the insidious bug where you believe you have
+six space characters, but you really have a tab character, 
+and <em>vice-versa</em>.</p>
+<p>
+</p>
+<li><p>The newline character terminates an argument, like the space character,
+and also terminates the argument sequence.
+This means that an empty line parses to the singleton list whose one
+element is the empty string: <tt>(&quot;&quot;)</tt>. 
+The grammar doesn't admit the empty list.</p>
+<p>
+</p>
+<li><p>The backslash character is the escape character.
+It escapes backslash, space, tab, and newline, turning off their
+special functions, and allowing them to be included in arguments.
+The A<small>N</small><small>S</small><small>I</small> C escape sequences (<code class=verbatim>\b</code>, <code class=verbatim>\n</code>, <code class=verbatim>\r</code>
+and <code class=verbatim>\t</code>) are also supported; 
+these also produce argument-constituents -- <code class=verbatim>\n</code> doesn't act 
+like a terminating newline. 
+The escape sequence <code class=verbatim>\</code><em>nnn</em> for <em>exactly</em> three
+octal digits reads as the character whose A<small>S</small><small>C</small><small>I</small><small>I</small> code is <em>nnn</em>.
+It is an error if backslash is followed by just one or two octal digits:
+<code class=verbatim>\3Q</code> is an error. 
+Octal escapes are always constituent chars. 
+Backslash followed by other chars is not allowed 
+(so we can extend the escape-code space later if we like).
+</p>
+</ul><p></p>
+<p>
+You have to construct these line-two argument lines carefully.
+In particular, beware of trailing spaces at the end of the line -- they'll
+give you extra trailing empty-string arguments.
+Here's an example:
+</p>
+<blockquote>
+<pre class=verbatim>#!/bin/interpreter \
+foo bar  quux\ yow</pre><p>
+</p>
+</blockquote>
+would produce the arguments
+<blockquote><tt>(&quot;foo&quot; &quot;bar&quot; &quot;&quot; &quot;quux yow&quot;)</tt></blockquote><p>
+</p>
+<a name="node_sec_11.1.7"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.7">11.1.7&nbsp;&nbsp;Examples</a></h3><p></p>
+<ul>
+
+<p>
+</p>
+<li><p><tt>scsh -dm -m myprog -e top -s myprog.scm</tt><br>
+Load <tt>myprog.scm</tt> into the <tt>config</tt> package, then shift to the
+<tt>myprog</tt> package and call <tt>(top '(&quot;myprog.scm&quot;))</tt>, then exit. 
+This sort of invocation is typically used in <tt>#!</tt> script lines
+(see below).</p>
+<p>
+</p>
+<li><p><tt>scsh -c '(display &quot;Hello, world.&quot;)'</tt><br>
+A simple program.</p>
+<p>
+</p>
+<li><p><tt>scsh -o bigscheme</tt><br>
+Start up interactively in the user package after opening 
+structure <tt>bigscheme</tt>.</p>
+<p>
+</p>
+<li><p><tt>scsh -o bigscheme - Three args passed</tt><br>
+Start up interactively in the user package after opening <tt>bigscheme</tt>.
+The <tt>command-line-args</tt> variable in the scsh package is bound to the
+list <tt>(&quot;Three&quot; &quot;args&quot; &quot;passed&quot;)</tt>, and the <tt>(command-line)</tt>
+procedure returns the list <tt>(&quot;scsh&quot; &quot;Three&quot; &quot;args&quot; &quot;passed&quot;)</tt>.</p>
+<p>
+</p>
+<li><p>Program <tt>ekko</tt><br>
+This shell script, called <tt>ekko</tt>, implements a version of 
+the Unix <tt>echo</tt> program:
+</p>
+<blockquote><tt><br>
+#!/usr/local/bin/scsh&nbsp;-s<br>
+!#<br>
+(for-each&nbsp;(lambda&nbsp;(arg)&nbsp;(display&nbsp;arg)&nbsp;(display&nbsp;&quot;&nbsp;&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;command-line-args)</tt></blockquote><p>
+Note this short program is an example of a <em>script</em> -- it
+executes as it loads. 
+The Unix rule for executing <tt>#!</tt> shell scripts causes
+</p>
+<blockquote><tt>ekko Hello, world.</tt></blockquote>to expand as    
+<blockquote><tt>/usr/local/bin/scsh -s ekko Hello, world.</tt></blockquote><p>
+</p>
+<li><p>Program <tt>ekko</tt><br>
+This is the same program, <em>not</em> as a script. 
+Writing it this way makes it possible to compile the program 
+(and then, for instance, dump it out as a heap image).
+</p>
+<blockquote><tt><br>
+#!/usr/local/bin/scsh&nbsp;\<br>
+-e&nbsp;top&nbsp;-s<br>
+!#<br>
+(define&nbsp;(top&nbsp;args)<br>
+&nbsp;&nbsp;(for-each&nbsp;(lambda&nbsp;(arg)&nbsp;(display&nbsp;arg)&nbsp;(display&nbsp;&quot;&nbsp;&quot;))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(cdr&nbsp;args)))</tt></blockquote>
+The <tt><a href="http://www.FreeBSD.org/cgi/man.cgi?query=exec&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html">exec(2)</a></tt> expansion of the <tt>#!</tt> line together with
+the scsh expansion of the ``<code class=verbatim>\ ekko</code>'' meta-argument 
+(see section&nbsp;<a href="#node_sec_11.1.6">11.1.6</a>) gives the following command-line expansion:
+<blockquote><tt><br>
+ekko&nbsp;Hello,&nbsp;world.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;==&gt;&nbsp;&nbsp;/usr/local/bin/scsh&nbsp;\&nbsp;ekko&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hello,&nbsp;world.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;==&gt;&nbsp;&nbsp;/usr/local/bin/scsh&nbsp;-e&nbsp;top&nbsp;-s&nbsp;ekko&nbsp;Hello,&nbsp;world.</tt></blockquote><p>
+</p>
+<li><p>Program <tt>sort</tt><br>
+This is a program to replace the Unix <tt>sort</tt> utility -- sorting lines
+read from stdin, and printing the results on stdout.
+Note that the source code defines a general sorting package, 
+which is useful (1) as a Scheme module exporting sort procedures
+to other Scheme code, and (2) as a standalone program invoked from
+the <tt>top</tt> procedure.
+</p>
+<blockquote><tt><br>
+#!/usr/local/bin/scsh&nbsp;\<br>
+-dm&nbsp;-m&nbsp;sort-toplevel&nbsp;-e&nbsp;top&nbsp;-s<br>
+!#<br>
+<br>
+;;;&nbsp;This&nbsp;is&nbsp;a&nbsp;sorting&nbsp;module.&nbsp;TOP&nbsp;procedure&nbsp;exports<br>
+;;;&nbsp;the&nbsp;functionality&nbsp;as&nbsp;a&nbsp;Unix&nbsp;program&nbsp;akin&nbsp;to&nbsp;sort(1).<br>
+(define-structures&nbsp;((sort-struct&nbsp;(export&nbsp;sort-list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sort-vector!))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(sort-toplevel&nbsp;(export&nbsp;top)))<br>
+&nbsp;&nbsp;(open&nbsp;scheme)<br>
+<br>
+&nbsp;&nbsp;(begin&nbsp;(define&nbsp;(sort-list&nbsp;elts&nbsp;&lt;=)&nbsp;<tt>...</tt>)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(define&nbsp;(sort-vec!&nbsp;vec&nbsp;&lt;=)&nbsp;&nbsp;<tt>...</tt>)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;Parse&nbsp;the&nbsp;command&nbsp;line&nbsp;and&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;;&nbsp;sort&nbsp;stdin&nbsp;to&nbsp;stdout.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(define&nbsp;(top&nbsp;args)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<tt>...</tt>)))</tt></blockquote><p>
+The expansion below shows how the command-line scanner
+(1) loads the config file <tt>sort</tt> (written in the Scheme 48 module language),
+(2) switches to the package underlying the <tt>sort-toplevel</tt> structure,
+(3) calls <tt>(top '(&quot;sort&quot; &quot;foo&quot; &quot;bar&quot;))</tt> in the package, and finally
+(4) exits.
+</p>
+<blockquote><tt><br>
+sort&nbsp;foo&nbsp;bar<br>
+==&gt;&nbsp;&nbsp;/usr/local/bin/scsh&nbsp;\&nbsp;sort&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;foo&nbsp;bar<br>
+==&gt;&nbsp;&nbsp;/usr/local/bin/scsh&nbsp;-dm&nbsp;-m&nbsp;sort-toplevel&nbsp;-e&nbsp;top&nbsp;-s&nbsp;sort&nbsp;foo&nbsp;bar</tt></blockquote><p>
+An alternate method would have used a 
+</p>
+<blockquote><tt><br>
+-n&nbsp;#f&nbsp;-o&nbsp;sort-toplevel</tt></blockquote>
+sequence of switches to specify a top-level package.<p>
+</p>
+</ul><p></p>
+<p>
+Note that the sort example can be compiled into a Unix program by
+loading the file into an scsh process, and dumping a heap with top-level
+<tt>top</tt>.  Even if we don't want to export the sort's functionality as a
+subroutine library, it is still useful to write the sort program with the
+module language. The command line design allows us to run this program as
+either an interpreted script (given the <tt>#!</tt> args in the header) or as a
+compiled heap image.</p>
+<p>
+</p>
+<a name="node_sec_11.1.8"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.1.8">11.1.8&nbsp;&nbsp;Process exit values</a></h3><p>Scsh ignores the value produced by its top-level computation when determining
+its exit status code. 
+If the top-level computation completed with no errors, 
+scsh dies with exit code 0.
+For example, a scsh process whose top-level is specified by a <tt>-c <i>exp</i></tt>
+or a <tt>-e <i>entry</i></tt> entry point ignores the value produced
+by evaluating <i>exp</i> and calling <i>entry</i>, respectively.
+If these computations terminate with no errors, the scsh process
+exits with an exit code of 0.</p>
+<p>
+To return a specific exit status, use the <tt>exit</tt> procedure explicitly, <em>e.g.</em>,
+</p>
+<blockquote><tt><br>
+scsh&nbsp;-c&nbsp;\<br>
+&nbsp;&nbsp;&quot;(exit&nbsp;(status:exit-val&nbsp;(run&nbsp;(|&nbsp;(fmt)&nbsp;(mail&nbsp;shivers)))))&quot;</tt></blockquote><p>
+</p>
+<a name="node_sec_11.2"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_11.2">11.2&nbsp;&nbsp;The scsh virtual machine</a></h2><p>To run the Scheme 48 implementation of scsh, you run a specially modified
+copy of the Scheme 48 virtual machine with a scsh heap image.
+The scsh binary is actually nothing but a small cover program that invokes the
+byte-code interpreter on the scsh heap image for you.
+This allows you to simply start up an interactive scsh from a command
+line, as well as write shell scripts that begin with the simple trigger
+</p>
+<blockquote><tt>#!/usr/local/bin/scsh -s</tt></blockquote><p>
+You can also directly execute the virtual machine, 
+which takes its own set of command-line switches..
+For example,
+this command starts the vm up with a 1Mword heap (split into two semispaces):
+</p>
+<blockquote><tt>scshvm -o scshvm -h 1000000 -i scsh.image arg1 arg2 <tt>...</tt></tt></blockquote>The vm peels off initial vm arguments
+up to the <tt>-i</tt> heap image argument, which terminates vm argument parsing.
+The rest of the arguments are passed off to the scsh top-level.
+Scsh's top-level removes scsh switches, as discussed in the previous section;
+the rest show up as the value of <tt>command-line-arguments</tt>.<p>
+Directly executing the vm can be useful to specify non-standard switches, or
+invoke the virtual machine on special heap images, which can contain
+pre-compiled scsh programs with their own top-level procedures.</p>
+<p>
+</p>
+<a name="node_sec_11.2.1"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.2.1">11.2.1&nbsp;&nbsp;VM arguments</a></h3><p></p>
+<p>
+The vm takes arguments in the following form:
+</p>
+<blockquote><tt>scshvm [<i>meta-arg</i>] [<i>vm-options</i><sup>+</sup>] [<i>end-option</i> <i>scheme-args</i>]</tt></blockquote>where
+<blockquote>
+<table border=0><tr><td valign=top ><i>meta-arg:</i>         </td><td valign=top ><code class=verbatim>\ </code><i>filename</i> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>vm-option</i>:        </td><td valign=top ><tt>-h </tt><i>heap-size-in-words</i> </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-s </tt><i>stack-size-in-words</i> </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-o </tt><i>object-file-name</i> </td></tr>
+<tr><td valign=top ></td></tr>
+<tr><td valign=top ><i>end-option:</i>       </td><td valign=top ><tt>-i </tt><i>image-file-name</i> </td></tr>
+<tr><td valign=top ></td><td valign=top ><tt>-</tt>
+</td></tr></table>
+</blockquote><p>
+The vm's meta-switch ``<code class=verbatim>\ </code><i>filename</i>'' is handled the same
+as scsh's meta-switch, and serves the same purpose.</p>
+<p>
+</p>
+<a name="node_sec_11.2.1.1"></a>
+<h4><a href="man-Z-H-1.html#node_toc_node_sec_11.2.1.1">11.2.1.1&nbsp;&nbsp;VM options</a></h4><p>The <tt>-o <i>object-file-name</i></tt> switch tells the vm where to find
+relocation information for its foreign-function calls.
+Scsh will use a pre-compiled default if it is not specified.
+Scsh <em>must</em> have this information to run,
+since scsh's syscall interfaces are done with foreign-function calls.</p>
+<p>
+The <tt>-h</tt> and <tt>-s</tt> options tell the vm how much space to allocate
+for the heap and stack.
+The heap size value is the total number of words allocated for the heap;
+this space is then split into two semi-spaces for Scheme 48's stop-and-copy
+collector.</p>
+<p>
+</p>
+<a name="node_sec_11.2.1.2"></a>
+<h4><a href="man-Z-H-1.html#node_toc_node_sec_11.2.1.2">11.2.1.2&nbsp;&nbsp;End options</a></h4><p>End options terminate argument parsing.
+The <tt>-i</tt> switch is followed by the name of a heap image for the
+vm to execute.
+The <i>image-file-name</i> string is also taken to be the name of the program
+being executed by the VM; this name becomes the head of the argument
+list passed to the heap image's top-level entry point.
+The tail of the argument list is constructed from all following arguments.</p>
+<p>
+The <tt>-</tt> switch terminates argument parsing without giving
+a specific heap image; the vm will start up using a default
+heap (whose location is compiled into the vm).
+All the following arguments comprise the tail of the list passed off to
+the heap image's top-level procedure.</p>
+<p>
+Notice that you are not allowed to pass arguments to the heap image's
+top-level procedure (<em>e.g.</em>, scsh) without delimiting them with <tt>-i</tt>
+or <tt>-</tt> flags.</p>
+<p>
+</p>
+<a name="node_sec_11.2.2"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.2.2">11.2.2&nbsp;&nbsp;Stripped image</a></h3><p>Besides the standard image <tt>scsh.image</tt> scsh also ships with the
+much smaller image <tt>stripped-scsh.image</tt>. This image contains the
+same code as the standard image but has almost all debugging
+information removed. <tt>stripped-scsh.image</tt> is intended to be used
+with standalone programs where startup time and memory consumption
+count but debugging the scheme code is not that important. To use the
+image the VM has to be called directly and the path to the image must
+be given after the <tt>-i</tt> argument.</p>
+<p>
+</p>
+<a name="node_sec_11.2.3"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.2.3">11.2.3&nbsp;&nbsp;Inserting interpreter triggers into heap images</a></h3><p>Scheme 48's heap image format allows for an informational header:
+when the vm loads in a heap image, it ignores all data occurring before
+the first control-L character (A<small>S</small><small>C</small><small>I</small><small>I</small> 12).
+This means that you can insert a ``<tt>#!</tt>'' trigger line into a
+heap image, making it a form of executable ``shell script.''
+Since the vm requires multiple arguments to be given on the command
+line, you must use the meta-switch.
+Here's an example heap-image header:
+</p>
+<blockquote><tt><br>
+#!/usr/local/lib/scsh/scshvm&nbsp;\<br>
+-o&nbsp;/usr/local/lib/scsh/scshvm&nbsp;-i<br>
+<tt>...</tt>&nbsp;<em>Your&nbsp;heap&nbsp;image&nbsp;goes&nbsp;here</em>&nbsp;<tt>...</tt></tt></blockquote><p>
+</p>
+<a name="node_sec_11.2.4"></a>
+<h3><a href="man-Z-H-1.html#node_toc_node_sec_11.2.4">11.2.4&nbsp;&nbsp;Inserting a double-level trigger into Scheme programs</a></h3><p>If you're a nerd, you may enjoy doing a double-level machine shift
+in the trigger line of your Scheme programs with the following magic:
+</p>
+<blockquote><tt><br>
+#!/usr/local/lib/scsh/scshvm&nbsp;\<br>
+-o&nbsp;/usr/local/lib/scsh/scshvm&nbsp;-i&nbsp;/usr/local/lib/scsh/scsh.image&nbsp;-s<br>
+!#<br>
+<tt>...</tt>&nbsp;<em>Your&nbsp;Scheme&nbsp;program&nbsp;goes&nbsp;here</em>&nbsp;<tt>...</tt></tt></blockquote><p>
+</p>
+<a name="node_sec_11.3"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_11.3">11.3&nbsp;&nbsp;Compiling scsh programs</a></h2><p>Scsh allows you to create a heap image with your own top-level procedure.
+Adding the pair of lines
+</p>
+<blockquote><tt><br>
+#!/usr/local/lib/scsh/scshvm&nbsp;\<br>
+-o&nbsp;/usr/local/lib/scsh/scshvm&nbsp;-i</tt></blockquote>
+to the top of the heap image will turn it into an executable Unix file.<p>
+You can create heap images with the following two procedures.</p>
+<p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1514"></a></p>
+<div align=left><tt>(dump-scsh-program <i>main fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure writes out a scsh heap image. When the
+heap image is executed by the Scheme 48 vm, it will call
+the <i>main</i> procedure, passing it the vm's argument list.
+When <tt>main</tt> returns an integer value <em>i</em>, the vm exits with
+exit status <em>i</em>.
+The Scheme vm will parse command-line switches as
+described in section&nbsp;<a href="#node_sec_11.2.1">11.2.1</a>; remaining arguments
+form the tail of the command-line list that is passed to <tt>main</tt>.
+(The head of the list is the name of the program being executed
+by the vm.)
+Further argument parsing
+(as described for scsh in section&nbsp;<a href="#node_sec_11.1.5">11.1.5</a>)
+is not performed.<p>
+The heap image created by <tt>dump-scsh-program</tt> has unused
+code and data pruned out, so small programs compile to much smaller
+heap images.
+</p>
+</blockquote><p>
+</p>
+<p></p>
+<p></p>
+<p><a name="node_idx_1516"></a></p>
+<div align=left><tt>(dump-scsh <i>fname</i>)</tt> &nbsp;&nbsp;&nbsp;&nbsp;---&gt; &nbsp;&nbsp;&nbsp;&nbsp;<i><i>undefined</i></i> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(procedure)&nbsp;</div>
+
+<blockquote>
+This procedure writes out a heap image with the standard 
+scsh top-level.
+When the image is resumed by the vm, it will parse and
+execute scsh command-line switches as described in section 
+<a href="#node_sec_11.1.5">11.1.5</a>.<p>
+You can use this procedure to write out custom scsh heap images
+that have specific packages preloaded and start up in specific
+packages.
+</p>
+</blockquote><p>
+Unfortunately, Scheme 48 does not support separate compilation of
+Scheme files or Scheme modules.
+The only way to compile is to load source and then dump out a
+heap image.
+One occasionally hears rumours that this is being addressed
+by the Scheme 48 development team.</p>
+<p>
+</p>
+<a name="node_sec_11.4"></a>
+<h2><a href="man-Z-H-1.html#node_toc_node_sec_11.4">11.4&nbsp;&nbsp;Standard file locations</a></h2><p>Because the scshvm binary is intended to be used for writing shell
+scripts, it is important that the binary be installed in a standard
+place, so that shell scripts can dependably refer to it.
+The standard directory for the scsh tree should be <tt>/usr/local/lib/scsh/</tt>.
+Whenever possible, the vm should be located in
+</p>
+<blockquote><tt>/usr/local/lib/scsh/scshvm</tt></blockquote>and a scsh heap image should be located in
+<blockquote><tt>/usr/local/lib/scsh/scsh.image</tt></blockquote>The top-level scsh program should be located in
+<blockquote><tt>/usr/local/lib/scsh/scsh</tt></blockquote>with a symbolic link to it from
+<blockquote><tt>/usr/local/bin/scsh</tt></blockquote><p>
+The Scheme 48 image format allows heap images to have <tt>#!</tt> triggers,
+so <tt>scsh.image</tt> should have a <tt>#!</tt> trigger of the following form:
+</p>
+<blockquote><tt><br>
+#!/usr/local/lib/scsh/scshvm&nbsp;\<br>
+-o&nbsp;/usr/local/lib/scsh/scshvm&nbsp;-i<br>
+<tt>...</tt>&nbsp;<em>heap&nbsp;image&nbsp;goes&nbsp;here</em>&nbsp;<tt>...</tt></tt></blockquote><p>
+</p>
+<p>
+</p>
+<div class=footnoterule><hr></div><p></p>
+<div class=footnote><p><a name="footnote_Temp_49"></a><a href="#call_footnote_Temp_49"><sup><small>15</small></sup></a> Why a block-comment instead of an end-of-line delimited comment?
+See the section on meta-args.</p>
+<p><a name="footnote_Temp_50"></a><a href="#call_footnote_Temp_50"><sup><small>16</small></sup></a> See the Section ``Command
+programs'' in the Scheme 48 manual for a description of the exec language.</p>
+</div>
+<div align=right class=navigation><i>[Go to <span><a href="man.html">first</a>, <a href="man-Z-H-11.html">previous</a></span><span>, <a href="man-Z-H-13.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="man-Z-H-1.html#node_toc_start">contents</a></span><span><span>; &nbsp;&nbsp;</span><a href="man-Z-H-13.html#node_index_start">index</a></span>]</i></div><p></p>
+</body>
+</html>

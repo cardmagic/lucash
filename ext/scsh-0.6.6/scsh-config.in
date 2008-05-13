@@ -1,0 +1,76 @@
+#!@prefix@/bin/scsh \
+-e main -s
+!#
+;;; This file is part of scsh.
+;;; Copyright (c) 2002 Martin Gasbichler. See file COPYING.
+
+(define (main prog+args)
+  (let ((args (cdr prog+args)))
+    (if (null? args)
+	(help)
+	(case (string->symbol (car args))
+	  ((--help) (help))
+	  ((--version) (version))
+	  ((--ccflags) (ccflags))
+	  ((--libs) (libs))
+	  (else (help))))))
+
+(define (help)
+  (let* ((display-newline-indent 
+	  (lambda (s) (display "   ") (display-newline s))))
+    (display-newline "Usage: scsh-config [options]")
+    (display-newline "Options:")
+    (display-newline-indent "--help")
+    (display-newline-indent "--version")
+    (display-newline-indent "--ccflags")
+    (display-newline-indent "--libs")))
+
+(define (version)
+  (display-newline scsh-version-string))
+
+(define (libs)
+  (display-w/space "-L")
+  (display-w/space (libdir))
+  (display-w/space "@LIBS@ ")
+  (display-w/space "-lscsh")
+  (newline))
+
+(define (ccflags)
+  (display-w/space "-I")
+  (display-w/space (incdir))
+  (display-w/space (defs))
+  (display-w/space (cflags))
+  (newline))
+
+(define (libdir)
+  (subst-exec-prefix "@libdir@"))
+
+(define (incdir)
+  (subst-exec-prefix "@includedir@"))
+
+(define (defs)
+  "@DEFS@")
+
+(define (cflags)
+  "@CFLAGS@")
+
+(define (subst-exec-prefix string)
+  (let ((match (regexp-search (rx "${exec_prefix}") string)))
+    (subst-prefix
+     (if match 
+	 (regexp-substitute #f match 'pre "@exec_prefix@" 'post)
+	 string))))
+
+(define (subst-prefix string)
+  (let ((match (regexp-search (rx "${prefix}") string)))
+    (if match
+	(regexp-substitute #f match 'pre "@prefix@" 'post)
+	string)))
+
+(define (display-w/space string)
+  (display #\space)
+  (display string))
+
+(define (display-newline string)
+  (display string) 
+  (newline))

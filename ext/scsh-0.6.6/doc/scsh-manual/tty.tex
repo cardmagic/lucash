@@ -1,0 +1,747 @@
+%&latex -*- latex -*-
+% Fix OXTABS footnote bug
+% Figures should be dumped out earlier? Pack two to a page?
+
+\section{Terminal device control}
+\label{sect:tty}
+
+\newcommand{\fr}[1]{\makebox[0pt][r]{#1}}
+
+Scsh provides a complete set of routines for manipulating terminal
+devices---putting them in ``raw'' mode, changing and querying their
+special characters, modifying their I/O speeds, and so forth.
+The scsh interface is designed both for generality and portability
+across different Unix platforms, so you don't have to rewrite your
+program each time you move to a new system.
+We've also made an effort to use reasonable, Scheme-like names for
+the multitudinous named constants involved, so when you are reading
+code, you'll have less likelihood of getting lost in a bewildering
+maze of obfuscatory constants named \ex{ICRNL}, \ex{INPCK}, \ex{IUCLC},
+and \ex{ONOCR}.
+
+This section can only lay out the basic functionality of the terminal
+device interface.
+For further details, see the termios(3) man page on your system,
+or consult one of the standard {\Unix} texts.
+
+\subsection{Portability across OS variants}
+Terminal-control software is inescapably complex, ugly, and low-level.
+Unix variants each provide their own way of controlling terminal
+devices, making it difficult to provide interfaces that are
+portable across different Unix systems.
+Scsh's terminal support is based primarily upon the {\Posix} termios
+interface.
+Programs that can be written using only the {\Posix} interface are likely
+to be widely portable.
+
+The bulk of the documentation that follows consists of several pages worth
+of tables defining different named constants that enable and disable different
+features of the terminal driver.
+Some of these flags are {\Posix}; others are taken from the two common
+branches of Unix development, SVR4 and 4.3+ Berkeley.
+Scsh guarantees that the non-{\Posix} constants will be bound identifiers.
+\begin{itemize}
+\item If your OS supports a particular non-{\Posix} flag, 
+      its named constant will be bound to the flag's value.
+\item If your OS doesn't support the flag, its named constant
+      will be present, but bound to \sharpf.
+\end{itemize}
+This means that if you want to use SVR4 or Berkeley features in a program,
+your program can portably test the values of the flags before using 
+them---the flags can reliably be referenced without producing OS-dependent
+``unbound variable'' errors.
+
+Finally, note that although {\Posix}, SVR4, and Berkeley cover the lion's
+share of the terminal-driver functionality, 
+each operating system inevitably has non-standard extensions.
+While a particular scsh implementation may provide these extensions,
+they are not portable, and so are not documented here.
+
+\subsection{Miscellaneous procedures}
+\defun{tty?}{fd/port}{\boolean}
+\begin{desc}
+Return true if the argument is a tty.
+\end{desc}
+
+\defun{tty-file-name}{fd/port}{\str}
+\begin{desc}
+The argument \var{fd/port} must be a file descriptor or port open on a tty.
+Return the file-name of the tty.
+\end{desc}
+
+\subsection{The tty-info record type}
+
+The primary data-structure that describes a terminal's mode is
+a \ex{tty-info} record, defined as follows:
+\index{tty-info record type}
+\indextt{tty-info:control-chars}
+\indextt{tty-info:input-flags}
+\indextt{tty-info:output-flags}
+\indextt{tty-info:control-flags}
+\indextt{tty-info:local-flags}
+\indextt{tty-info:input-speed}
+\indextt{tty-info:output-speed}
+\indextt{tty-info:min}
+\indextt{tty-info:time}
+\indextt{tty-info?}
+\begin{code}
+(define-record tty-info
+  control-chars  ; String: Magic input chars
+  input-flags    ; Int: Input processing
+  output-flags   ; Int: Output processing
+  control-flags  ; Int: Serial-line control
+  local-flags    ; Int: Line-editting UI
+  input-speed    ; Int: Code for input speed
+  output-speed   ; Int: Code for output speed
+  min            ; Int: Raw-mode input policy
+  time)          ; Int: Raw-mode input policy\end{code}
+
+\subsubsection{The control-characters string}
+The \ex{control-chars} field is a character string;
+its characters may be indexed by integer values taken from 
+table~\ref{table:ttychars}.
+
+As discussed above, 
+only the {\Posix} entries in table~\ref{table:ttychars} are guaranteed
+to be legal, integer indices.
+A program can reliably test the OS to see if the non-{\Posix} 
+characters are supported by checking the index constants.
+If the control-character function is supported by the terminal driver, 
+then the corresponding index will be bound to an integer;
+if it is not supported, the index will be bound to \sharpf.
+
+To disable a given control-character function, set its corresponding
+entry in the \ex{tty-info:control-chars} string to the
+special character \exi{disable-tty-char} 
+(and then use the \ex{(set-tty-info \var{fd/port} \var{info})} procedure
+to update the terminal's state).
+
+\subsubsection{The flag fields}
+The \ex{tty-info} record's \ex{input-flags}, \ex{output-flags},
+\ex{control-flags}, and \ex{local-flags} fields are all bit sets
+represented as two's-complement integers.
+Their values are composed by or'ing together values taken from
+the named constants listed in tables~\ref{table:ttyin} 
+through \ref{table:ttylocal}.
+
+As discussed above, 
+only the {\Posix} entries listed in these tables are guaranteed
+to be legal, integer flag values.
+A program can reliably test the OS to see if the non-{\Posix} 
+flags are supported by checking the named constants.
+If the feature is supported by the terminal driver, 
+then the corresponding flag will be bound to an integer;
+if it is not supported, the flag will be bound to \sharpf.
+
+%%%%% I managed to squeeze this into the DEFINE-RECORD's comments.
+% Here is a small table classifying the four flag fields by
+% the kind of features they determine:
+% \begin{center}
+% \begin{tabular}{|ll|}\hline
+% Field                 & Affects \\ \hline \hline
+% \ex{input-flags}      & Processing of input chars \\
+% \ex{output-flags}     & Processing of output chars \\
+% \ex{control-flags}    & Controlling of terminal's serial line \\
+% \ex{local-flags}      & Details of the line-editting user interface \\
+% \hline
+% \end{tabular}
+% \end{center}
+
+%%%
+%%% The figures used to go here.
+%%%
+
+\subsubsection{The speed fields}
+The \ex{input-speed} and \ex{output-speed} fields determine the
+I/O rate of the terminal's line.
+The value of these fields is an integer giving the speed
+in bits-per-second.
+The following speeds are supported by {\Posix}:
+\begin{center}
+\begin{tabular}{rrrr}
+0        & 134 & 600  & 4800  \\
+50       & 150 & 1200 & 9600  \\
+75       & 200 & 1800 & 19200 \\
+110      & 300 & 2400 & 38400 \\
+\end{tabular}
+\end{center}
+Your OS may accept others; it may also allow the special symbols
+\ex{'exta} and \ex{'extb}.
+
+\subsubsection{The min and time fields}
+The integer \ex{min} and \ex{time} fields determine input blocking
+behaviour during non-canonical (raw) input; otherwise, they are ignored.
+See the termios(3) man page for further details.
+
+Be warned that {\Posix} allows the base system call's representation
+of the \ex{tty-info} record to share storage for the \ex{min} field
+and the \ex{ttychar/eof} element of the control-characters string,
+and for the \ex{time} field and the \ex{ttychar/eol} element
+of the control-characters string.
+Many implementations in fact do this.
+
+To stay out of trouble, set the \ex{min} and \ex{time} fields only
+if you are putting the terminal into raw mode;
+set the eof and eol control-characters only if you are putting
+the terminal into canonical mode.
+It's ugly, but it's {\Unix}.
+
+\subsection{Using tty-info records}
+
+\defun{make-tty-info}{if of cf lf ispeed ospeed min time}
+                   {tty-info-record}
+\defunx{copy-tty-info}{tty-info-record}{tty-info-record}
+\begin{desc}
+These procedures make it possible to create new \ex{tty-info} records.
+The typical method for creating a new record is to copy one retrieved
+by a call to the \ex{tty-info} procedure, then modify the copy as desired.
+Note that the \ex{make-tty-info} procedure does not take a parameter
+to define the new record's control characters.\footnote{
+        Why? Because the length of the string varies from Unix to Unix.
+        For example, the word-erase control character (typically control-w)
+        is provided by most Unixes, but not part of the {\Posix} spec.}
+Instead, it simply returns a \ex{tty-info} record whose control-character
+string has all elements initialised to {\Ascii} nul.
+You may then install the special characters by assigning to the string.
+Similarly, the control-character string in the record produced by
+\ex{copy-tty-info} does not share structure with the string in the record
+being copied, so you may mutate it freely.
+\end{desc}
+
+
+\defun{tty-info}{[fd/port/fname]}{tty-info-record}
+\begin{desc}
+The \var{fd/port/fname} parameter is an integer file descriptor or 
+Scheme I/O port opened on a terminal device, 
+or a file-name for a terminal device; it defaults to the current input port.
+This procedure returns a \ex{tty-info} record describing the terminal's
+current mode.
+\end{desc}
+
+\defun {set-tty-info/now}  {fd/port/fname info}{no-value}
+\defunx{set-tty-info/drain}{fd/port/fname info}{no-value}
+\defunx{set-tty-info/flush}{fd/port/fname info}{no-value}
+\begin{desc}
+The \var{fd/port/fname} parameter is an integer file descriptor or 
+Scheme I/O port opened on a terminal device, 
+or a file-name for a terminal device.
+The procedure chosen determines when and how the terminal's mode is altered:
+\begin{center}
+\begin{tabular}{|ll|} \hline
+Procedure & Meaning \\ \hline \hline
+\ex{set-tty-info/now}   & Make change immediately. \\
+\ex{set-tty-info/drain} & Drain output, then change. \\
+\ex{set-tty-info/flush} & Drain output, flush input, then change. \\ \hline
+\end{tabular}
+\end{center}
+\oops{If I had defined these with the parameters in the reverse order,
+      I could have made \var{fd/port/fname} optional. Too late now.}
+\end{desc}
+
+\subsection{Other terminal-device procedures}
+\defun{send-tty-break}{[fd/port/fname duration]}{no-value}
+\begin{desc}
+The \var{fd/port/fname} parameter is an integer file descriptor or 
+Scheme I/O port opened on a terminal device, 
+or a file-name for a terminal device; it defaults to the current output port.
+Send a break signal to the designated terminal.
+A break signal is a sequence of continuous zeros on the terminal's transmission
+line.
+
+The \var{duration} argument determines the length of the break signal.
+A zero value (the default) causes a break of between 
+0.25 and 0.5 seconds to be sent;
+other values determine a period in a manner that will depend upon local
+community standards.
+\end{desc}
+
+\defun{drain-tty}{[fd/port/fname]}{no-value}
+\begin{desc}
+The \var{fd/port/fname} parameter is an integer file descriptor or 
+Scheme I/O port opened on a terminal device, 
+or a file-name for a terminal device; it defaults to the current output port.
+
+This procedure waits until all the output written to the
+terminal device has been transmitted to the device.
+If \var{fd/port/fname} is an output port with buffered I/O
+enabled, then the port's buffered characters are flushed before
+waiting for the device to drain.
+\end{desc}
+
+\defun {flush-tty/input} {[fd/port/fname]}{no-value}
+\defunx{flush-tty/output}{[fd/port/fname]}{no-value}
+\defunx{flush-tty/both}  {[fd/port/fname]}{no-value}
+\begin{desc}
+The \var{fd/port/fname} parameter is an integer file descriptor or 
+Scheme I/O port opened on a terminal device, 
+or a file-name for a terminal device; it defaults to the current input
+port (\ex{flush-tty/input} and \ex{flush-tty/both}),
+or output port (\ex{flush-tty/output}).
+
+These procedures discard the unread input chars or unwritten
+output chars in the tty's kernel buffers. 
+\end{desc}
+
+\defun {start-tty-output}{[fd/port/fname]} {no-value}
+\defunx{stop-tty-output} {[fd/port/fname]} {no-value}
+\defunx{start-tty-input} {[fd/port/fname]} {no-value}
+\defunx{stop-tty-input}  {[fd/port/fname]} {no-value}
+\begin{desc}
+These procedures can be used to control a terminal's input and output flow.
+The \var{fd/port/fname} parameter is an integer file descriptor or 
+Scheme I/O port opened on a terminal device, 
+or a file-name for a terminal device; it defaults to the current input
+or output port.
+
+The \ex{stop-tty-output} and \ex{start-tty-output} procedures suspend
+and resume output from a terminal device.
+The \ex{stop-tty-input} and \ex{start-tty-input} procedures transmit
+the special STOP and START characters to the terminal with the intention
+of stopping and starting terminal input flow.
+\end{desc}
+
+% --- Obsolete ---
+% \defun {encode-baud-rate}{speed}{code}
+% \defunx{decode-baud-rate}{code}{speed}
+% \begin{desc}
+% These procedures can be used to map between the special codes
+% that are legal values for the \ex{tty-info:input-speed} and
+% \ex{tty-info:output-speed} fields, and actual integer bits-per-second speeds.
+% The codes are the values bound to the
+% \ex{baud/4800}, \ex{baud/9600}, and other named constants defined above.
+% For example:
+% \begin{code}
+% (decode-baud-rate baud/9600) {\evalto} 9600
+% 
+% ;;; These two expressions are identical:
+% (set-tty-info:input-speed ti baud/14400)
+% (set-tty-info:input-speed ti (encode-baud-rate 14400))\end{code}
+% \end{desc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Control terminals, sessions, and terminal process groups}
+
+\defun{open-control-tty}{tty-name [flags]}{port}
+\begin{desc}
+This procedure opens terminal device \var{tty-name} as the process'
+control terminal 
+(see the \ex{termios} man page for more information on control terminals).
+The \var{tty-name} argument is a file-name such as \ex{/dev/ttya}.
+The \var{flags} argument is a value suitable as the second argument
+to the \ex{open-file} call; it defaults to \ex{open/read+write}, causing
+the terminal to be opened for both input and output.
+
+The port returned is an input port if the \var{flags} permit it, 
+otherwise an output port. 
+\RnRS/\scm/scsh do not have input/output ports,
+so it's one or the other. 
+However, you can get both read and write ports open on a terminal
+by opening it read/write, taking the result input port,
+and duping it to an output port with \ex{dup->outport}.
+
+This procedure guarantees to make the opened terminal the
+process' control terminal only if the process does not have
+an assigned control terminal at the time of the call.
+If the scsh process already has a control terminal, the results are undefined.
+
+To arrange for the process to have no control terminal prior to calling
+this procedure, use the \ex{become-session-leader} procedure.
+
+%\oops{The control terminal code was added just before release time
+%      for scsh release 0.4. Control terminals are one of the less-standardised
+%      elements of Unix. We can't guarantee that the terminal is definitely
+%      attached as a control terminal; we were only able to test this out
+%      on HP-UX. If you intend to use this feature on your OS, you should
+%      test it out first. If your OS requires the use of the \ex{TIOCSCTTY}
+%      \ex{ioctl}, uncomment the appropriate few lines of code in the
+%      file \ex{tty1.c} and send us email.}
+\end{desc}
+
+\defun{become-session-leader}{}{\integer}
+\begin{desc}
+This is the C \ex{setsid()} call.
+{\Posix} job-control has a three-level hierarchy:
+session/process-group/process. 
+Every session has an associated control terminal.
+This procedure places the current process into a brand new session,
+and disassociates the process from any previous control terminal.
+You may subsequently use \ex{open-control-tty} to open a new control
+terminal.
+
+It is an error to call this procedure if the current process is already
+a process-group leader.
+One way to guarantee this is not the case is only to call this procedure
+after forking.
+\end{desc}
+
+
+\defun {tty-process-group}{fd/port/fname}{\integer}
+\defunx{set-tty-process-group}{fd/port/fname pgrp}{\undefined}
+\begin{desc}
+This pair of procedures gets and sets the process group of a given
+terminal.
+\end{desc}
+
+\defun{control-tty-file-name}{}{\str}
+\begin{desc}
+Return the file-name of the process' control tty.
+On every version of Unix of which we are aware, this is just the string
+\ex{"/dev/tty"}.
+However, this procedure uses the official Posix interface, so it is more
+portable than simply using a constant string.
+\end{desc}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Pseudo-terminals}
+Scsh implements an interface to Berkeley-style pseudo-terminals.
+
+\defun{fork-pty-session}{thunk}{[process pty-in pty-out tty-name]}
+\begin{desc}
+This procedure gives a convenient high-level interface to pseudo-terminals.
+It first allocates a pty/tty pair of devices, and then forks a child
+to execute procedure \var{thunk}.
+In the child process
+\begin{itemize}
+\item Stdio and the current I/O ports are bound to the terminal device.
+\item The child is placed in its own, new session
+            (see \ex{become\=session\=leader}).
+\item The terminal device becomes the new session's controlling terminal
+            (see \ex{open-control-tty}).
+\item The \ex{(error-output-port)} is unbuffered.
+\end{itemize}
+
+The \ex{fork-pty-session} procedure returns four values:
+the child's process object, two ports open on the controlling pty device,
+and the name of the child's corresponding terminal device.
+\end{desc}
+
+\defun{open-pty}{}{pty-inport tty-name}
+\begin{desc}
+This procedure finds a free pty/tty pair, and opens the pty device
+with read/write access.
+It returns a port on the pty, 
+and the name of the corresponding terminal device.
+
+The port returned is an input port---Scheme doesn't allow input/output
+ports.
+However, you can easily use \ex{(dup->outport \var{pty-inport})}
+to produce a matching output port.
+You may wish to turn off I/O buffering for this output port.
+\end{desc}
+
+
+\defun {pty-name->tty-name}{pty-name}{tty-name}
+\defunx{tty-name->pty-name}{tty-name}{pty-name}
+\begin{desc}
+These two procedures map between corresponding terminal and pty controller
+names.
+For example,
+\begin{code}
+(pty-name->tty-name "/dev/ptyq3") {\evalto} "/dev/ttyq3"
+(tty-name->pty-name "/dev/ttyrc") {\evalto} "/dev/ptyrc"\end{code}
+
+\remark{This is rather Berkeley-specific. SVR4 ptys are rare enough that
+        I've no real idea if it generalises across the Unix gap. Experts
+        are invited to advise. Users feel free to not worry---the predominance
+        of current popular Unix systems use Berkeley ptys.}
+\end{desc}
+
+\defunx{make-pty-generator}{}{\proc}
+\begin{desc}
+This procedure returns a generator of candidate pty names.
+Each time the returned procedure is called, it produces a
+new candidate.
+Software that wishes to search through the set of available ptys
+can use a pty generator to iterate over them.
+After producing all the possible ptys, a generator returns {\sharpf}
+every time it is called.
+Example:
+\begin{code}
+(define pg (make-pty-generator))
+(pg) {\evalto} "/dev/ptyp0"
+(pg) {\evalto} "/dev/ptyp1"
+        \vdots
+(pg) {\evalto} "/dev/ptyqe"
+(pg) {\evalto} "/dev/ptyqf"    \textit{(Last one)}
+(pg) {\evalto} {\sharpf}
+(pg) {\evalto} {\sharpf}
+        \vdots\end{code}
+\end{desc}
+
+
+% Flag tables
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Control-chars indices
+%%%%%%%%%%%%%%%%%%%%%%%
+\begin{table}[p]
+\begin{center}
+\begin{tabular}{|lll|} \hline
+Scsh & C & Typical char \\
+\hline\hline
+{\Posix} & & \\
+\exi{ttychar/delete-char}       & \ex{ERASE}    & del \\
+\exi{ttychar/delete-line}       & \ex{KILL}     & \verb|^U| \\
+\exi{ttychar/eof}               & \ex{EOF}      & \verb|^D| \\
+\exi{ttychar/eol}               & \ex{EOL}      & \\
+\exi{ttychar/interrupt}         & \ex{INTR}     & \verb|^C| \\
+\exi{ttychar/quit}              & \ex{QUIT}     & \verb|^\| \\
+\exi{ttychar/suspend}           & \ex{SUSP}     & \verb|^Z| \\
+\exi{ttychar/start}             & \ex{START}    & \verb|^Q| \\
+\exi{ttychar/stop}              & \ex{STOP}     & \verb|^S| \\
+
+\hline\hline
+{SVR4 and 4.3+BSD} & & \\
+\exi{ttychar/delayed-suspend}   & \ex{DSUSP}    & \verb|^Y| \\
+\exi{ttychar/delete-word}       & \ex{WERASE}   & \verb|^W| \\
+\exi{ttychar/discard}           & \ex{DISCARD}  & \verb|^O| \\
+\exi{ttychar/eol2}              & \ex{EOL2}     & \\
+\exi{ttychar/literal-next}      & \ex{LNEXT}    & \verb|^V| \\
+\exi{ttychar/reprint}           & \ex{REPRINT}  & \verb|^R| \\
+
+\hline\hline
+{4.3+BSD} & & \\
+\exi{ttychar/status}            & \ex{STATUS}   & \verb|^T| \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Indices into the \protect\ex{tty-info} record's 
+         \protect\var{control-chars} string,
+         and the character traditionally found at each index.
+         Only the indices for the {\Posix} entries are guaranteed to
+         be non-\sharpf.}
+\label{table:ttychars}
+\end{table}
+
+% Input flags
+%%%%%%%%%%%%%
+\begin{table}[p]
+\begin{center}\small
+\begin{tabular}{|lll|} \hline
+Scsh & C & Meaning \\ 
+\hline\hline
+\Posix & & \\
+\exi{ttyin/check-parity}
+                        & \ex{INPCK}    & Check parity. \\
+\exi{ttyin/ignore-bad-parity-chars}
+                        & \ex{IGNPAR}   & Ignore chars with parity errors. \\
+\exi{ttyin/mark-parity-errors}
+                        & \ex{PARMRK}   & Insert chars to mark parity errors.\\
+\exi{ttyin/ignore-break}
+                        & \ex{IGNBRK}   & Ignore breaks. \\
+\exi{ttyin/interrupt-on-break}
+                        & \ex{BRKINT}   & Signal on breaks. \\
+\exi{ttyin/7bits}
+                        & \ex{ISTRIP}   & Strip char to seven bits. \\
+\exi{ttyin/cr->nl}
+                        & \ex{ICRNL}    & Map carriage-return to newline. \\
+\exi{ttyin/ignore-cr}
+                        & \ex{IGNCR}    & Ignore carriage-returns. \\
+\exi{ttyin/nl->cr}
+                        & \ex{INLCR}    & Map newline to carriage-return. \\
+\exi{ttyin/input-flow-ctl}
+                        & \ex{IXOFF}    & Enable input flow control. \\
+\exi{ttyin/output-flow-ctl}
+                        & \ex{IXON}     & Enable output flow control. \\
+
+\hline\hline
+{SVR4 and 4.3+BSD} & & \\
+\exi{ttyin/xon-any}             & \ex{IXANY} & Any char restarts after stop. \\
+\exi{ttyin/beep-on-overflow}    & \ex{IMAXBEL} & Ring bell when queue full. \\
+
+\hline\hline
+{SVR4} & & \\
+\exi{ttyin/lowercase}           & \ex{IUCLC} & Map upper case to lower case. \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Input-flags. These are the named flags for the \protect\ex{tty-info} 
+         record's \protect\var{input-flags} field.
+         These flags generally control the processing of input chars.
+         Only the {\Posix} entries are guaranteed to be non-\sharpf.
+         }
+\label{table:ttyin}
+\end{table}
+
+% Output flags
+%%%%%%%%%%%%%%
+\begin{table}[p]
+\begin{center}%\small
+\begin{tabular}{|lll|} \hline
+Scsh & C & Meaning \\ \hline\hline
+
+\multicolumn{3}{|l|}{\Posix} \\
+\exi{ttyout/enable}  & \ex{OPOST} & Enable output processing. \\
+
+\hline\hline
+\multicolumn{3}{|l|}{SVR4 and 4.3+BSD} \\
+\exi{ttyout/nl->crnl}   & \ex{ONLCR} & Map nl to cr-nl. \\
+
+\hline\hline
+\multicolumn{3}{|l|}{4.3+BSD} \\
+\exi{ttyout/discard-eot}    & \ex{ONOEOT}       & Discard EOT chars. \\
+\exi{ttyout/expand-tabs}    & \ex{OXTABS}\footnote{
+                        Note this is distinct from the SVR4-equivalent
+                        \ex{ttyout/tab-delayx} flag defined in 
+                        table~\ref{table:ttydelays}.}
+                      & Expand tabs. \\
+
+\hline\hline
+\multicolumn{3}{|l|}{SVR4} \\
+\exi{ttyout/cr->nl}             & \ex{OCRNL} & Map cr to nl. \\
+\exi{ttyout/nl-does-cr}         & \ex{ONLRET}& Nl performs cr as well. \\
+\exi{ttyout/no-col0-cr}         & \ex{ONOCR} & No cr output in column 0. \\
+\exi{ttyout/delay-w/fill-char}  & \ex{OFILL} & Send fill char to delay. \\
+\exi{ttyout/fill-w/del}         & \ex{OFDEL} & Fill char is {\Ascii} DEL. \\
+\exi{ttyout/uppercase}          & \ex{OLCUC} & Map lower to upper case. \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Output-flags. These are the named flags for the \protect\ex{tty-info}
+         record's \protect\var{output-flags} field.
+         These flags generally control the processing of output chars.
+         Only the {\Posix} entries are guaranteed to be non-\sharpf.}
+\label{table:ttyout}
+\end{table}
+
+% Delay flags
+%%%%%%%%%%%%%
+\begin{table}[p]
+\begin{tabular}{r|ll|} \cline{2-3}
+& Value & Comment \\ \cline{2-3}
+{Backspace delay}       & \exi{ttyout/bs-delay}         & Bit-field mask \\
+                        & \exi{ttyout/bs-delay0}        & \\
+                        & \exi{ttyout/bs-delay1}        & \\
+
+\cline{2-3}
+{Carriage-return delay} & \exi{ttyout/cr-delay}         & Bit-field mask \\
+                        & \exi{ttyout/cr-delay0}        & \\
+                        & \exi{ttyout/cr-delay1}        & \\
+                        & \exi{ttyout/cr-delay2}        & \\
+                        & \exi{ttyout/cr-delay3}        & \\
+
+\cline{2-3}
+{Form-feed delay}       & \exi{ttyout/ff-delay}         & Bit-field mask \\
+                        & \exi{ttyout/ff-delay0}        & \\
+                        & \exi{ttyout/ff-delay1}        & \\
+
+\cline{2-3}
+{Horizontal-tab delay}  & \exi{ttyout/tab-delay}        & Bit-field mask \\
+                        & \exi{ttyout/tab-delay0}       & \\
+                        & \exi{ttyout/tab-delay1}       & \\
+                        & \exi{ttyout/tab-delay2}       & \\
+                        & \exi{ttyout/tab-delayx}       & Expand tabs \\
+
+\cline{2-3}
+{Newline delay}         & \exi{ttyout/nl-delay}         & Bit-field mask \\
+                        & \exi{ttyout/nl-delay0}        & \\
+                        & \exi{ttyout/nl-delay1}        & \\ 
+
+\cline{2-3}
+{Vertical tab delay}    & \exi{ttyout/vtab-delay}       & Bit-field mask \\
+                        & \exi{ttyout/vtab-delay0}      & \\
+                        & \exi{ttyout/vtab-delay1}      & \\
+
+\cline{2-3}
+{All}                   & \exi{ttyout/all-delay}  & Total bit-field mask \\
+\cline{2-3}
+\end{tabular}
+
+\caption{Delay constants. These are the named flags for the
+         \protect\ex{tty-info} record's \protect\var{output-flags} field.
+         These flags control the output delays associated with printing
+         special characters.
+         They are non-{\Posix}, and have non-{\sharpf} values
+         only on SVR4 systems.}
+\label{table:ttydelays}
+\end{table}
+
+% Control flags
+%%%%%%%%%%%%%%%
+\begin{table}[p]
+\begin{center}%\small
+\begin{tabular}{|lll|} \hline
+Scsh & C & Meaning \\
+
+\hline\hline
+\multicolumn{3}{|l|}{\Posix} \\
+\exi{ttyc/char-size}    & \ex{CSIZE}    & Character size mask \\
+\exi{ttyc/char-size5}   & \ex{CS5}      & 5 bits \\
+\exi{ttyc/char-size6}   & \ex{CS6}      & 6 bits \\
+\exi{ttyc/char-size7}   & \ex{CS7}      & 7 bits \\
+\exi{ttyc/char-size8}   & \ex{CS8}      & 8 bits \\
+\exi{ttyc/enable-parity}& \ex{PARENB}   & Generate and detect parity. \\
+\exi{ttyc/odd-parity}   & \ex{PARODD}   & Odd parity. \\
+\exi{ttyc/enable-read}  & \ex{CREAD}    & Enable reception of chars. \\
+\exi{ttyc/hup-on-close} & \ex{HUPCL}    & Hang up on last close. \\
+\exi{ttyc/no-modem-sync}& \ex{LOCAL}    & Ignore modem lines. \\
+\exi{ttyc/2-stop-bits}  & \ex{CSTOPB}   & Send two stop bits. \\
+
+\hline\hline
+\multicolumn{3}{|l|}{4.3+BSD} \\
+\exi{ttyc/ignore-flags}         & \ex{CIGNORE}  & Ignore control flags. \\
+\exi{ttyc/CTS-output-flow-ctl}  & \verb|CCTS_OFLOW| & CTS flow control of output \\
+\exi{ttyc/RTS-input-flow-ctl}   & \verb|CRTS_IFLOW| & RTS flow control of input \\
+\exi{ttyc/carrier-flow-ctl}     & \ex{MDMBUF} & \\
+\hline
+\end{tabular}
+\end{center}
+
+\caption{Control-flags. These are the named flags for the \protect\ex{tty-info}
+         record's \protect\var{control-flags} field.
+         These flags generally control the details of the terminal's
+         serial line.
+         Only the {\Posix} entries are guaranteed to be non-\sharpf.}
+\label{table:ttyctl}
+\end{table}
+
+% Local flags
+%%%%%%%%%%%%%
+\begin{table}[p]
+\begin{center}\small
+\begin{tabular}{|lll|} \hline
+Scsh & C & Meaning \\
+
+\hline\hline
+\multicolumn{3}{|l|}{\Posix} \\
+\exi{ttyl/canonical}    & \ex{ICANON}    & Canonical input processing. \\
+\exi{ttyl/echo}         & \ex{ECHO}      & Enable echoing. \\
+\exi{ttyl/echo-delete-line} & \ex{ECHOK}   & Echo newline after line kill. \\
+\exi{ttyl/echo-nl}      & \ex{ECHONL}    & Echo newline even if echo is off. \\
+\exi{ttyl/visual-delete}& \ex{ECHOE}     & Visually erase chars. \\
+\exi{ttyl/enable-signals} & \ex{ISIG}    & Enable \verb|^|C, \verb|^|Z signalling. \\
+\exi{ttyl/extended}     & \ex{IEXTEN}    & Enable extensions. \\
+\exi{ttyl/no-flush-on-interrupt}
+                        & \ex{NOFLSH}    &  Don't flush after interrupt. \\
+\exi{ttyl/ttou-signal}  & \ex{ITOSTOP}   & \ex{SIGTTOU} on background output. \\
+
+\hline\hline
+\multicolumn{3}{|l|}{SVR4 and 4.3+BSD} \\
+\exi{ttyl/echo-ctl}             & \ex{ECHOCTL}  
+                                & Echo control chars as ``\verb|^X|''. \\
+\exi{ttyl/flush-output}         & \ex{FLUSHO}   & Output is being flushed. \\
+\exi{ttyl/hardcopy-delete}      & \ex{ECHOPRT}  & Visual erase for hardcopy. \\
+\exi{ttyl/reprint-unread-chars} & \ex{PENDIN}   & Retype pending input. \\
+\exi{ttyl/visual-delete-line}   & \ex{ECHOKE}   & Visually erase a line-kill. \\
+
+\hline\hline
+\multicolumn{3}{|l|}{4.3+BSD} \\
+\exi{ttyl/alt-delete-word}      & \ex{ALTWERASE}  & Alternate word erase algorithm \\
+\exi{ttyl/no-kernel-status}     & \ex{NOKERNINFO} & No kernel status on \verb|^T|. \\
+
+\hline\hline
+\multicolumn{3}{|l|}{SVR4} \\
+\exi{ttyl/case-map}     & \ex{XCASE} & Canonical case presentation \\
+\hline
+\end{tabular}
+\end{center}
+
+\caption{Local-flags. These are the named flags for the \protect\ex{tty-info}
+         record's \protect\var{local-flags} field.
+         These flags generally control the details of the line-editting
+         user interface.
+         Only the {\Posix} entries are guaranteed to be non-\sharpf.}
+\label{table:ttylocal}
+\end{table}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

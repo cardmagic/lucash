@@ -1,0 +1,498 @@
+Scsh 0.6.6 Release notes					-*- outline -*-
+
+We are pleased to release scsh version 0.6.6. The main focus of this
+release is support for the upcoming packaging proposal and the removal
+of any code which did not conform to scsh's BSD-style license. In
+addition, some bugs have been fixed.
+
+The text below gives a general description of scsh, instructions for obtaining
+it, pointers to discussion forums, and a description of the new features in
+release 0.6.6.  (Emacs should display this document is in outline mode. Say
+c-h m for instructions on how to move through it by sections (e.g., c-c c-n,
+c-c c-p).)
+
+* Contents
+==========
+What is scsh
+  Scsh as a scripting language
+  Scsh as a systems-programming language
+  Scsh is a portable programming environment
+Obtaining and installing scsh
+Getting in touch
+The World-Wide What?
+New in this release
+ Removed or replaced non-free code
+ New code for sorting
+ Separate documentation of the library directories search facility
+ New module CONFIGURE
+ Argument processing more robust
+ Ultrix is no longer supported
+ Bug fixes
+New in 0.6.5
+New in 0.6.4
+New in 0.6.3
+New in 0.6.2
+New in 0.6.1
+New in 0.6.0
+Thanks
+
+
+* What is scsh
+==============
+Scsh is a broad-spectrum systems-programming environment for Unix embedded
+in R5RS Scheme. It has an open-source copyright, and runs on most major
+Unix systems.
+
+** Scsh as a scripting language
+-------------------------------
+Scsh has a high-level process notation for doing shell-script like tasks:
+running programs, establishing pipelines and I/O redirection. For example, the
+shell pipeline
+
+    gunzip < paper.tex.gz | detex | spell | lpr -Ppulp &
+
+would be written in scsh as
+
+    (& (| (gunzip) (detex) (spell) (lpr -Ppulp))	; Background a pipeline
+       (< paper.tex.gz))				; with this redirection
+
+Scsh embeds this process notation within a full Scheme implementation.
+The process notation is realized as a set of macro definitions, and is
+carefully designed to allow full integration with standard Scheme code.
+Scsh isn't Scheme-like; it is Scheme.
+
+At the scripting level, scsh also has an Awk design, also implemented
+as a macro that can be embedded inside general Scheme code.
+
+Scripts can be written as standalone Scheme source files, with a leading
+    #!/usr/local/bin/scsh -s
+trigger line.
+
+
+** Scsh as a systems-programming language
+-----------------------------------------
+Scsh additionally provides the low-level access to the operating system
+normally associated with C. The current release provides full access to Posix,
+plus important non-Posix extensions, such as complete sockets support.
+"Complete Posix" means: fork, exec & wait, sockets, full read, write, open &
+close, seek & tell, complete file-system access, including stat,
+chmod/chgrp/chown, symlink, FIFO & directory access, tty & pty support, file
+locking, pipes, select, file-name pattern-matching, time & date, environment
+variables, signal handlers, and more.
+
+In brief, you can now write Unix systems programs in Scheme instead of C.
+For example, we have implemented an extensible HTTP server at MIT entirely
+in scsh.
+
+As important as full access to the OS is the manner in which it is provided.
+Scsh integrates the OS support into Scheme in a manner which respects the
+general structure of the language. The details of the design are discussed
+in a joint MIT Lab for Computer Science/University of Hong Kong technical
+report, "A Scheme Shell," also to appear in a revised format in the "Journal 
+syof Lisp and Symbolic Computation."  This paper is also available by ftp:
+    ftp://ftp.scsh.net/pub/scsh/papers/scsh-paper.ps
+
+
+** Scsh is a portable programming environment
+---------------------------------------------
+Scsh is designed for portability. It is implemented on top of Scheme 48,
+a byte-code-interpreter Scheme implementation. The Scheme 48 virtual machine
+can be compiled on any system with a C compiler; the rest of Scheme 48 is
+machine-independent across 32-bit processors. Scsh's OS interface is
+also quite portable, providing a consistent interface across different
+Unix platforms. We currently have scsh implementations for:
+    AIX
+    BSD/OS
+    CXUX
+    FreeBSD
+    HP-UX
+    IRIX
+    Linux
+    NetBSD
+    OpenBSD
+    Solaris
+    SunOS
+    Win32
+    Darwin/Mac OS X
+    GNU Hurd
+
+Scsh code should run without change across these systems.
+Porting to new platforms is usually not difficult.
+
+
+* Obtaining and installing scsh
+===============================
+You can get a copy of scsh via anonymous ftp, from
+    ftp://ftp.scsh.net/pub/scsh/scsh.tar.gz
+The tar file includes a detailed manual and a paper describing
+the design of the system.
+
+For the lazily curious, we also have the manual separately available as
+    ftp://ftp.scsh.net/pub/scsh/0.6/scsh-manual.ps
+Just click 'n view.
+
+You *should* be able to build scsh on the standard platforms with exactly five
+commands: gunzip, tar, cd, ./configure, and make. The configure script figures
+out the special flags and switches needed to make the build work (thanks to
+the GNU project for the autoconfig tool that makes this possible).
+
+After doing the make, you can start up a Scheme shell and try it out
+by saying
+    ./go
+See the manual for full details on the command-line switches.
+
+If it's harder than this, and your system is standard, we'd like to know
+about it.
+
+
+* Getting in touch
+==================
+
+Currently, there is a mailing-list which is mirrored to a newsgroup.
+
+To (un)subscribe to the mailing-list, send a message to
+scsh-request@@zurich.csail.mit.edu.  To submit a message to the
+mailing-list, send it to scsh@@zurich.csail.mit.edu.
+
+The mailing-list is also readable as a standard newsgroup, thanks to
+gmane, a mail-to-news gateway. More information is available at the
+following URL:
+http://gmane.org/info.php?group=gmane.lisp.scheme.scsh
+
+There used to be a newsgroup dedicated to scsh, called
+comp.lang.scheme.scsh but it is now deprecated.
+
+Bugs can be reported to
+    scsh-bugs@zurich.csail.mit.edu
+or via the Scsh project's bugs section on SourceForge:
+    http://sourceforge.net/projects/scsh/
+
+* The World-Wide What?
+======================
+We even have one of those dot-com cyberweb things: 
+    http://www.scsh.net
+We manage the project using SourceForge:
+    http://sourceforge.net/projects/scsh/
+
+* New in this release
+=====================
+
+** Removed or replaced non-free code
+   Some files in the previous versions of scsh did not conform to
+   scsh's BSD-style license. We therefore removed the directory
+   scheme/infix and asked the copyright holders of the rest of the
+   code to put their code under a compatible license. The code of the
+   sort package has been replaced by a new version (see below).
+
+** New code for sorting
+   The old package SORT from Scheme 48 has been replaced by a
+   sophisticated library written by Olin Shivers for the withdrawn
+   SRFI 32.
+
+** Separate documentation of the library directories search facility
+   The manual now contains a separate section that describes the
+   library directories search facility. The description of the
+   respective switches has been adapted accordingly.
+
+** New module CONFIGURE
+   The new module CONFIGURE permits access to some of the values
+   obtained during the run of the configure script.
+
+** Argument processing more robust
+   Any number of whitespaces may now occur between the arguments to
+   the VM.
+
+** Ultrix is no longer supported
+   The Ultrix platform is lacking support for POSIX regular
+   expressions and is therefore no longer supported.
+
+** Bug fixes
+   Fix WITH-LOCk
+   Ensure that the exit value is 1 if scsh exits due to an error
+   Load the package scheme-with-scsh before dumping images to get
+   better start-up times
+   Fix two bugs in GLOB related to quotation
+   The optmizer AUTO-INTEGRATE can now inline procedures with
+   macro-generated arguments
+   The optmizer FLAT-ENVIRONMENTS now works if invoked after AUTO-INTEGRATE
+   Fixed a bug in the parser of "-" sre forms
+   Removed accidentally committed expansion of paths in SCSH_LIB_DIR
+   Fix the various SELECT-like procedures for 0 timeouts
+   Let PATH-LIST->FILE-NAME return "/" for '("").
+   Fix bug in S48_RECORD_TYPE: third parameter to s48_stob_ref was missing.
+   Fixed check for -rdynamic   
+   FIELD-READER returns (values EOF '()) on an empty port
+   Fixed STRING-CONTAINS and STRING-CONCATENATE-REVERSE/SHARED from SRFI-13
+
+* New in 0.6.5
+==============
+
+** New platform: GNU Hurd
+   Andreas Vögele ported scsh to GNU Hurd.
+
+** ./configure option to set default scsh library directories 
+   The ./configure script now accepts the option --with-lib-dirs-list
+   to specify a list of default scsh library directories. In
+   previous versions of scsh this list was hardwired to
+   /usr/local/lib/scsh/modules.
+
+** Support for DESTDIR for easier packaging
+   The install target of the Makefile now respects the environment
+   variable DESTDIR to allow package maintainers to use a staging
+   directory.
+
+** New SRFI
+   This release adds support for SRFI 42.
+
+** Switch to load exec scripts from library path
+   The new switch -lel searches the library path for a file and loads
+   the file into the exec package.
+
+** Removed scheme/infix/
+   The directory scheme/infix/ had a non-free copyright licence and
+   has been removed.
+
+** Bug fixes
+   - SEEK currently works on unbuffered ports only. Check this in the
+     implementation and oopsify it in the manual.
+   - Adjust documentation of some low-level regexp procedures
+   - Removed message argument form errno-error
+   - After fork/pipe, make the ports returned by the pipe the
+   current-in/output-ports
+   - Get the names of MAKE-STRING-PORT-FILTER and
+   MAKE-CHAR-PORT-FILTER right in the doc
+   - Fixed memory leak in scheme_cwd
+   - Fixed memory leak in format_date
+   - Avoid calling SOCKET-OPTION twice in case of an error
+   - Fix for (rx (|)) by Peter Wang
+   - Fix for (posix-string->regexp "$") by Peter Wang
+   
+** API changes
+   None known.
+
+* New in 0.6.4
+==============
+
+** Switches to load exec scripts
+   The new switch -le loads a file into the exec package, the new
+   switch -de loads the "-s" script into the exec package.
+
+** New SRFIs
+   This release adds support for SRFI 25, 26, 27, 28 and 30.
+
+** Bug fixes
+   - Other select bug
+   - Timeout for select is in seconds, not milliseconds
+   - Load package md5 before dumping scsh.image
+   - Revised implementation of SRFI-19
+   - -sfd switch called bogus procedures
+   - Ooopsify write-string/partial   
+   - Clean up get_groups
+   - Check for "." in file-name-{sans-}extension
+   - Bug fix for let-match: variables may be #f
+   - Fix some problems with WAIT-FOR-CHANNELS
+   - Fixes in the time zone code
+   - Fix a bug in SEND-MESSAGE: There is such a thing as an empty datagram
+   - Renamed string-filter to make-string-port-filter and char-filter to
+     make-char-port-filter
+
+** API changes
+   pause-until-interrupt has been removed because it is not compatible
+   with the thread system
+
+* New in 0.6.3
+==============
+
+** Shorter startup times
+   By a couple of small fixes we could diminish the startup
+   time by 10-30%.
+
+** stripped-scsh.image
+   In addition to the standard heap image scsh.image, scsh now ships
+   with an additional image stripped-scsh.image. This image contains
+   the same code as the standard image but has almost all debugging
+   information removed. It is therefore much smaller (2.5 MB vs. 4.5
+   MB) which also allows shorter startup times. The image is intended
+   for use in scripts but not for interactive development. See the
+   manual for more information.
+
+** MD5 support
+   The package md5 contains a bunch of procedures to compute MD5
+   checksums.
+
+** New SRFIs
+   This release adds support for SRFI 25, 26, 27, 28 and 30.
+
+** API changes
+   select and select! are supported again.
+   Note however, that we recommend to use the new select-ports and
+   select-port-channels procedures instead whenever possible.
+   New interface to the uname function.
+   New direct interface to the directory stream operations
+   New structure scheme-with-scsh which combines the exports of the
+     modules scsh and scheme, avoiding duplicates
+   New procdures to work directly on file-info records
+   The repl procedure has been removed
+   New procedures connect-socket-no-wait, connect-socket-successful?
+   Add lookup-external from recent S48
+
+** Bugfixes
+   LET-MATCH, IF-MATCH, and COND-MATCH now behave according to the
+   documentation.
+   Many bug fixes for the SRE system, specifically for dynamic
+   submatches.
+   PORT->SOCKET uses dups both ports of the socket
+   Added missing process resource alignments
+   No reaping for stopped children
+   Initialize t.c_lflag before reading it.
+   Fix to allow single character here strings.
+   Add a whole bunch of S48_GC_PROTECT against s48_extract_integer.
+   Added MAP, FOR-EACH, MEMBER, ASSOC to SRFI 1 interface
+   Fixed a subtle bug in the macro for the << redirection
+   Use "compare" und "rename" to compare symbols in lots of macros
+   Fixed the close method for string-input-ports
+   ... and many others.
+
+* New in 0.6.2
+==============
+
+** SRFIs
+   In addition to SRFIs 1, 8, 13, 14 and 23 scsh now features SRFIs 2,
+   5, 6, 7, 9, 11, 16, 17 and 19. See http://srfi.schemers.org/ for a
+   detailed description. The SRFIs are available in packages srfi-N
+   where N is the number of the SRFI.
+
+** port->socket
+   New procedure port->socket to turn a port into a socket object was
+   added to the network code.
+
+** New forms in the module language
+   The module language supports the new forms modify, subset and
+   with-prefix from Scheme 48 version 0.57.
+
+** API changes
+   Fork, fork/pipe, fork/pipe+ take an optional argument
+   continue-threads? to determine whether all threads should continue
+   to run in the child.
+
+   exec-path-list is now a preseved thread fluid
+
+** PDF version of the manual
+   There is now a PDF version of the manual generated by pdflatex.
+
+** Bugfixes
+   - Added default argument to tty-info as described in the manual
+   - Conversion to s48_value in tty1.c
+   - Fixed another hygiene problem in SRE
+   - Plugged space leak in bind-listen-accept-loop
+   - Aligned CWD and umask in various file operations
+   - Better releasing of port locks
+   - Corrected exception of time
+   - Set-cloexec to #t for unrevealed ports.
+   - Included scsh paper in the distribution.
+   - Fixed accept for AF_UNIX
+   - (setenv var #f) now deletes var from environment
+   - Quoted { and } within literal strings of regexps
+
+* New in 0.6.1
+==============
+
+** API changes
+  For sre's, BOW, EOW, WORD, and WORD+ (which were already unsupported
+  in 0.6.0 on most platforms) are gone for good.
+
+** Bugfixes
+  Most of the known bugs of version 0.6.0 have been fixed, many thanks for
+  the precise reports! See the project page on SourceForge for a list
+  of the remaining known bugs. Here is a brief overview of the fixes:
+
+  - GC_PROTECT'ed the necessary variables (specifically, where >1 arg to
+    a function 'may GC') (Thanks to Steven Jenkins for dealing with this)
+  - Fixed various race conditons in the signal handling and process reaping code
+  - Fixed bug in set-process-group
+  - If $HOME is unset, consult (user-info (user-uid)) for the value of 
+    home-directory
+  - Fix external-call-from-callback problem leading to spurious
+        gc-protection-mismatch exceptions.
+  - Let s48-do-gc return 0 so the PreScheme compiler will emit the correct
+        signature of the function.
+  - scsh/linux/tty-consts.scm: num-ttychars seems to be 32 not 19.
+  - scsh/top.scm: Return 0 exit status for -c and -e.
+  - *.c: Replaced // comments.
+  - scsh/syslog1.c: Remove LOG_LPR from list of syslog levels.
+  - scsh/network1.c: Pass SYSCALL argument to ERRNO-ERROR.
+  - scsh/syscalls1.c: Disable timer interrupts before execve
+  - scsh/network.scm: Correct name extraction in bind-socket
+  - Added export for with-error-output-port
+  - Install HTML version of manual under $(libdir)
+  - ./configure is more rebost wrt $(srcdir)
+  - Fixed installation of the S48 manual
+  - Replaced several /tmp by /var/tmp 
+  - Catch EISDIR in delete-filesys-object
+  - flush-all-ports is now non-blocking
+
+* New in 0.6.0
+==============
+
+** Scsh is now based on Scheme 48 0.53  
+  With the move from Scheme 48 version 0.36 to version 0.53 in this
+  release the underlying system received a massive update. The most
+  significant changes include:
+    User level threads
+    Advanced garbage collector
+    Improved foreign function interface to C
+
+  The most significant change for Scsh users is the addition of a
+  user-level thread system. Scsh provides various features to deal
+  with this new power in a system programming environment: An event
+  based interface to interrupts, thread local process state and
+  thread-safe system calls.
+
+** A manual for Scheme 48 has been included
+  Richard Kelsey, the author of Scheme 48, has graciously allowed us
+  to retrofit the current Scheme 48 manual for inclusion in this scsh
+  release.
+
+** Interfaces to dot-locking, crypt and syslog
+  Scsh now provides advisory file locking via the dot-locking scheme
+  and a direct binding to the crypt function. Furthermore we added
+  a complete, system-independent and thread-safe interface to syslog.
+
+** API changes
+  Some features of the previous releases are currently not
+  supported as we did not have the time to implement them. Please tell
+  us, if you can't get along without them. Here is a listing of these
+  currently dereleased features:
+    select
+    select!
+    ODBC support
+    bufpol/line
+
+  The following procedures received new names in this release:
+    sleep (now process-sleep)
+    sleep-until (now process-sleep-until)
+
+  network-info, service-info and protocol-info now return #f on non-success.
+
+  The default directory for creating temporary files has changed: It's
+  now the value of $TMPDIR if set and /var/tmp otherwise.
+
+  The nth procedure is still there but is now officially obsolete.  It
+  will go away in a future release.
+
+** HTML version of the manual
+  There is now a HTML version of the scsh manual generated by tex2page
+
+* Thanks
+========
+
+We would like to thank the members of local-resistance cells for the
+Underground everywhere for bug reports, bug fixes, design review and comments
+that were incorporated into this release. We really appreciate their help,
+particularly in the task of porting scsh to new platforms.
+
+	
+Brought to you by the Scheme Underground. Go forth and write elegant systems
+programs.
+    -Olin Shivers, Brian Carlstrom, Martin Gasbichler & Mike Sperber
+

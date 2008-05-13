@@ -1,0 +1,248 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-3.html">previous</a></span><span>, <a href="scsh-paper-Z-H-5.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_2"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_2">2&nbsp;&nbsp;Unix shells</a></h1><p>
+Unix shells, such as sh or csh, provide two things at once: an interactive
+command language and a programming language. Let us focus on the latter
+function: the writing of ``shell scripts'' -- interpreted programs
+that perform small tasks or assemble a collection of Unix tools into
+a single application.</p>
+<p>
+Unix shells are real programming languages. They have variables, if/then
+conditionals, and loops. But they are terrible programming languages.  The
+data structures typically consist only of integers and vectors of strings.
+The facilities for procedural abstraction are non-existent to minimal. The
+lexical and syntactic structures are multi-phased, unprincipled, and baroque.</p>
+<p>
+If most shell languages are so awful, why does anyone use them?
+There are a few important reasons.
+</p>
+<ul>
+<li><p>A programming language is a notation for expressing computation.  Shells
+have a notation that is specifically tuned for running Unix programs and
+hooking them together. For example, suppose you want to run programs
+<tt>foo</tt> and <tt>bar</tt> with <tt>foo</tt> feeding output into <tt>bar</tt>. If you do
+this in C, you must write: two calls to <tt>fork()</tt>, two calls to
+<tt>exec()</tt>, one call to <tt>pipe()</tt>, several calls to <tt>close()</tt>, 
+two calls to <tt>dup()</tt>, and a lot of error checks (fig.&nbsp;<a href="#node_fig_Temp_4">1</a>). 
+This is a lot of picky bookkeeping: tedious to write, tedious to read, 
+and easy to get wrong on the first try. In sh, on the other hand, 
+you simply write ``<tt>foo | bar</tt>'' which is much easier to write and 
+much clearer to read.
+One can look at this expression and instantly understand it; 
+one can write it and instantly be sure that it is correct.</p>
+<p>
+</p>
+<p></p>
+<hr>
+<p></p>
+<a name="node_fig_Temp_4"></a>
+<div class=figure align=center><table width=100%><tr><td align=center><p></p>
+<p><span class=footnotesize></p>
+<pre class=verbatim>int fork_foobar(void)       /* foo | bar in C */
+{
+    int pid1 = fork();
+    int pid2, fds[2];
+
+    if( pid1 == -1 ) {
+        perror(&quot;foo|bar&quot;);
+        return -1;
+        }
+
+    if( !pid1 ) {
+        int status;
+        if( -1 == waitpid(pid1, &amp;status, 0) ) {
+            perror(&quot;foo|bar&quot;);
+            return -1;
+            }
+        return status;
+        }
+
+    if( -1 == pipe(fds) ) {
+        perror(&quot;foo|bar&quot;);
+        exit(-1);
+        }
+    
+    pid2 = fork();
+    if( pid2 == -1 ) {
+        perror(&quot;foo|bar&quot;);
+        exit(-1);
+        }
+    
+    if( !pid2 ) {
+        close(fds[1]);
+        dup2(fds[0], 1);
+        execlp(&quot;foo&quot;, &quot;foo&quot;, NULL);
+        perror(&quot;foo|bar&quot;);
+        exit(-1);
+        }
+    
+    close(fds[0]);
+    dup2(fds[1], 0);
+    execlp(&quot;bar&quot;, &quot;bar&quot;, NULL);
+    perror(&quot;foo|bar&quot;);
+    exit(-1);
+    }</pre><p>
+</p>
+</td></tr>
+<tr><td align=center><b>Figure 1:</b>&nbsp;&nbsp;Why we program with shells.</td></tr>
+<tr><td>
+
+</span>
+</td></tr></table></div><p></p>
+<hr>
+<p></p>
+<p></p>
+<p>
+</p>
+<li><p>They are interpreted. Debugging is easy and interactive; programs are small.
+On my workstation, the ``hello, world'' program is 16kb as a compiled C
+program, and 29 bytes as an interpreted sh script.</p>
+<p>
+In fact, <tt>/bin/sh</tt> is just about the only language interpreter
+that a programmer can absolutely rely upon having available
+on the system, so this is just about the only reliable way to
+get interpreted-code density and know that one's program
+will run on any Unix system.</p>
+<p>
+</p>
+<li><p>Because the shell is the programmer's command language, the programmer
+is usually very familiar with its commonly-used command-language
+subset (this familiarity tails off rapidly, however, as the demands
+of shell programming move the programmer out into the dustier recesses
+of the language's definition.)
+</p>
+</ul><p></p>
+<p>
+There is a tension between the shell's dual role as interactive command
+language and shell-script programming language.  A command language should be
+terse and convenient to type. It doesn't have to be comprehensible.  Users
+don't have to maintain or understand a command they typed into a shell a month
+ago. A command language can be ``write-only,'' because commands are thrown
+away after they are used.  However, it is important that most commands fit on
+one line, because most interaction is through tty drivers that don't let the
+user back up and edit a line after its terminating newline has been entered.
+This seems like a trivial point, but imagine how irritating it would be if
+typical shell commands required several lines of input. Terse notation is
+important for interactive tasks.</p>
+<p>
+Shell syntax is also carefully designed to allow it to be parsed
+on-line -- that is, to allow parsing and interpretation to be interleaved.
+This usually penalizes the syntax in other ways (for example, consider 
+rc's clumsy if/then/else syntax [<a href="scsh-paper-Z-H-17.html#node_bib_8">rc</a>]).</p>
+<p>
+Programming languages, on the other hand, can be a little more verbose, in
+return for generality and readability. The programmer enters programs into a
+text editor, so the language can spread out a little more.</p>
+<p>
+The constraints of the shell's role as command language are one of the
+things that make it unpleasant as a programming language. </p>
+<p>
+The really compelling advantage of shell languages over other programming
+languages is the first one mentioned above. Shells provide a powerful
+notation for connecting processes and files together. In this respect,
+shell languages are extremely well-adapted to the general paradigm of
+the Unix operating system.
+In Unix, the fundamental computational agents are programs, running
+as processes in individual address spaces.
+These agents cooperate and communicate among themselves to solve a problem
+by communicating over directed byte streams called pipes.
+Viewed at this level, Unix is a data-flow architecture.
+From this perspective, the shell serves a critical role
+as the language designed to assemble the individual computational
+agents to solve a particular task.</p>
+<p>
+As a programming language, this interprocess ``glue'' aspect of the
+shell is its key desireable feature.
+This leads us to a fairly obvious idea: instead of adding weak
+programming features to a Unix process-control language, 
+why not add process invocation features to a strong programming language?</p>
+<p>
+What programming language would make a good base?
+We would want a language that was powerful and high-level.
+It should allow for implementations based on interactive interpreters, for
+ease of debugging and to keep programs small.
+Since we want to add new notation to the language, it would help if the
+language was syntactically extensible.
+High-level features such as automatic storage allocation would help keep
+programs small and simple.
+Scheme is an obvious choice.
+It has all of the desired features, and its weak points, such as it lack of a
+module system or its poor performance relative to compiled C on certain
+classes of program, do not apply to the writing of shell scripts.</p>
+<p>
+I have designed and implemented a Unix shell called scsh that is
+embedded inside Scheme.
+I had the following design goals and non-goals:
+</p>
+<ul>
+<li><p>The general systems architecture of Unix is cooperating computational
+agents that are realised as processes running in separate, protected address
+spaces, communicating via byte streams.
+The point of a shell language is to act as the glue to connect up these
+computational agents.
+That is the goal of scsh.
+I resisted the temptation to delve into other programming models.
+Perhaps cooperating lightweight threads communicating through shared memory
+is a better way to live, but it is not Unix.
+The goal here was not to come up with a better systems architecture, but
+simply to provide a better way to drive Unix.
+{Note Agenda}</p>
+<p>
+</p>
+<li><p>I wanted a programming language, not a command language, and I was
+unwilling to compromise the quality of the programming language to
+make it a better command language. I was not trying to replace use of
+the shell as an interactive command language. I was trying to provide
+a better alternative for writing shell scripts. So I did not focus
+on issues that might be important for a command language, such as job
+control, command history, or command-line editing. There are no write-only
+notational conveniences. I made no effort to hide the
+base Scheme syntax, even though an interactive user might find all
+the necessary parentheses irritating.  
+(However, see section <a href="scsh-paper-Z-H-14.html#node_sec_12">12</a>.)</p>
+<p>
+</p>
+<li><p>I wanted the result to fit naturally within Scheme. For example, 
+this ruled out complex non-standard control-flow paradigms, 
+such as awk's or sed's.
+</p>
+</ul><p></p>
+<p>
+The result design, scsh, has two dependent components, embedded
+within a very portable Scheme system:
+</p>
+<ul>
+<li><p>A high-level process-control notation.
+</p>
+<li><p>A complete library of Unix system calls.
+</p>
+</ul><p>
+The process-control notation allows the user to control Unix programs
+with a compact notation.
+The syscall library gives the programmer full low-level access to the kernel
+for tasks that cannot be handled by the high-level notation.
+In this way, scsh's functionality spans a spectrum of detail that is
+not available to either C or sh.</p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-3.html">previous</a></span><span>, <a href="scsh-paper-Z-H-5.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

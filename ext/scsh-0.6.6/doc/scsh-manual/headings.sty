@@ -1,0 +1,16 @@
+% headings.tex -*- latex -*-
+% Quieter headings that the ones used in article.sty.
+% This is not a style option. Don't say [headings].
+% Instead, say \input{headings} after the \documentstyle.
+%	-Olin 7/91
+
+\makeatletter
+
+\def\section{\@startsection {section}{1}{\z@}{-3.5ex plus -1ex minus 
+ -.2ex}{2.3ex plus .2ex}{\large\normalfont\bfseries}}
+\def\subsection{\@startsection{subsection}{2}{\z@}{-3.25ex plus -1ex minus 
+ -.2ex}{1.5ex plus .2ex}{\normalsize\normalfont\bfseries}}
+\def\subsubsection{\@startsection{subsubsection}{3}{\z@}{-3.25ex plus 
+-1ex minus -.2ex}{1.5ex plus .2ex}{\normalsize\normalfont\bfseries}}
+
+\makeatother

@@ -1,0 +1,95 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-13.html">previous</a></span><span>, <a href="scsh-paper-Z-H-15.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_12"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_12">12&nbsp;&nbsp;Future work</a></h1><p>
+Several extensions to scsh are being considered or implemented.
+</p>
+<a name="node_sec_12.1"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_12.1">12.1&nbsp;&nbsp;Command language features</a></h2><p>The primary design effort of scsh was for programming.
+We are now designing and implementing features to make scsh
+a better interactive command language, such as job control.
+A top-level parser for an sh-like notation has been designed;
+the parser will allow the user to switch back to Scheme notation
+when desired.</p>
+<p>
+We are also considering a display-oriented interactive shell, 
+to be created by merging the edwin screen editor and scsh.
+The user will interact with the operating system using single-keystroke
+commands, defining these commands using scsh, and reverting to
+Scheme when necessary for complex tasks.
+Given a reasonable set of GUI widgets, the same trick could be played
+directly in X.</p>
+<p>
+</p>
+<a name="node_sec_12.2"></a>
+<h2><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_12.2">12.2&nbsp;&nbsp;Little languages</a></h2><p>Many Unix tools are built around the idea of ``little languages,'' that is,
+custom, limited-purpose languages that are designed to fit the area of
+application.  The problem with the little-languages approach is that these
+languages are usually ugly, idiosyncratic, and limited in expressiveness.
+The syntactic quirks of these little languages are notorious. 
+The well-known problem with <tt>make</tt>'s syntax distinguishing tab and
+space has been tripping up programmers for years.
+Because each little language is different
+from the next, the user is required to master a handful of languages,
+unnecessarily increasing the cognitive burden to use these tools.</p>
+<p>
+An alternate approach is to embed the tool's primitive operations inside
+Scheme,
+and use the rest of Scheme as the procedural glue to connect the
+primitives into complex systems.  This sort of approach doesn't require the
+re-invention of all the basic functionality needed by a language -- Scheme
+provides variables, procedures, conditionals, data structures, and so
+forth. This means there is a greater chance of the designer ``getting it
+right'' since he is really leveraging off of the enormous design effort that
+was put into designing the Scheme language. It also means the user doesn't
+have to learn five or six different little languages -- just Scheme plus the
+set of base primitives for each application. Finally, it means the base
+language is not limited because the designer didn't have the time or resources
+to implement all the features of a real programming language.</p>
+<p>
+With the scsh Unix library, these ``little language'' Unix tools could
+easily be redesigned from a Scheme perspective and have their interface and
+functionality significantly improved.
+Some examples under consideration are:
+</p>
+<ul>
+<li><p>The awk pattern-matching language can be implemented in
+scsh by adding a single record-input procedure to the existing code.</p>
+<p>
+</p>
+<li><p>Expect is a scripting language used for automating the
+use of interactive programs, such as ftp. With the exception of the tty
+control syscalls currently under construction, all the pieces needed to
+design an alternate scsh-based Unix scripting tool already exist in scsh.</p>
+<p>
+</p>
+<li><p>A dependency-directed system for controlling recompilation such
+as make could easily be implemented on top of scsh. Here, instead of
+embedding the system inside of Scheme, we embed Scheme inside
+of the system. The dependency language would use s-expression notation,
+and the embedded compilation actions would be specified as Scheme
+expressions, including scsh notation for running Unix programs.
+</p>
+</ul><p></p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-13.html">previous</a></span><span>, <a href="scsh-paper-Z-H-15.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>

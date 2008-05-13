@@ -1,0 +1,72 @@
+<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<!--
+
+Generated from TeX source by tex2page, v 4r8f
+(running on MzScheme 204, unix), 
+(c) Dorai Sitaram, 
+http://www.ccs.neu.edu/~dorai/tex2page/tex2page-doc.html
+
+-->
+<head>
+<title>
+A Scheme Shell
+</title>
+<link rel="stylesheet" type="text/css" href="scsh-paper-Z-S.css" title=default>
+<meta name=robots content="noindex,follow">
+</head>
+<body>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-2.html">previous</a></span><span>, <a href="scsh-paper-Z-H-4.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+<a name="node_sec_1"></a>
+<h1><a href="scsh-paper-Z-H-2.html#node_toc_node_sec_1">1&nbsp;&nbsp;Introduction</a></h1><p>The central artifact of this paper is a new Unix shell called scsh.
+However, I have a larger purpose beyond simply giving a description of
+the new system.
+It has become fashionable recently to claim that ``language doesn't matter.''
+After twenty years of research, operating systems and systems
+applications are still mainly written in C and its complex successor, C++.
+Perhaps advanced programming languages offer too little for the price they
+demand in efficiency and formal rigor.</p>
+<p>
+I disagree strongly with this position, and
+I would like to use scsh, in comparison to other Unix systems programming
+languages, to make the point that language <em>does</em> matter.
+After presenting scsh in the initial sections of the paper,
+I will describe its design principles, 
+and make a series of points concerning the effect language design has
+upon systems programming.
+I will use scsh, C, and the traditional shells as linguistic exemplars,
+and show how their various notational and semantic tradeoffs affect
+the programmer's task.
+In particular, I wish to show that a functional language such as Scheme is an
+excellent tool for systems programming.
+Many of the linguistic points I will make are well-known to the members of
+the systems programming community that employ modern programming
+languages, such as DEC SRC's Modula-3 [<a href="scsh-paper-Z-H-17.html#node_bib_6">Nelson</a>].
+In this respect, I will merely be serving to recast these ideas in
+a different perspective, and perhaps diffuse them more widely.</p>
+<p>
+The rest of this paper is divided into four parts:
+</p>
+<ul>
+<li><p>In part one, I will motivate the design of scsh 
+(section&nbsp;<a href="scsh-paper-Z-H-4.html#node_sec_2">2</a>), and then give a brief
+tutorial on the system 
+(<a href="scsh-paper-Z-H-5.html#node_sec_3">3</a>, <a href="scsh-paper-Z-H-6.html#node_sec_4">4</a>).
+</p>
+<li><p>In part two, I discuss the design issues behind scsh, 
+and cover some of the relevant implementation details
+(<a href="scsh-paper-Z-H-7.html#node_sec_5">5</a>-<a href="scsh-paper-Z-H-11.html#node_sec_9">9</a>).
+</p>
+<li><p>Part three concerns systems programming with advanced languages.
+I will illustrate my points by comparing scsh to other Unix
+programming systems (<a href="scsh-paper-Z-H-12.html#node_sec_10">10</a>, <a href="scsh-paper-Z-H-13.html#node_sec_11">11</a>).
+</p>
+<li><p>Finally, we conclude, with some indication of future directions
+and a few final thoughts.
+</p>
+</ul><p></p>
+<p>
+</p>
+<div align=right class=navigation><i>[Go to <span><a href="scsh-paper.html">first</a>, <a href="scsh-paper-Z-H-2.html">previous</a></span><span>, <a href="scsh-paper-Z-H-4.html">next</a></span> page<span>; &nbsp;&nbsp;</span><span><a href="scsh-paper-Z-H-2.html#node_toc_start">contents</a></span>]</i></div><p></p>
+</body>
+</html>
