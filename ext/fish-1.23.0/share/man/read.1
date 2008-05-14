@@ -1,0 +1,36 @@
+.TH "read" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+read - read line of input into variables
+.PP
+.SS "Synopsis"
+\fCread [OPTIONS] [VARIABLES...]\fP
+.SS "Description"
+The \fCread\fP builtin causes fish to read one line from standard input and store the result in one or more environment variables.
+.PP
+.IP "\(bu" 2
+\fC-c CMD\fP or \fC--command=CMD\fP specifies that the initial string in the interactive mode command buffer should be CMD.
+.IP "\(bu" 2
+\fC-e\fP or \fC--export\fP specifies that the variables will be exported to subshells.
+.IP "\(bu" 2
+\fC-g\fP or \fC--global\fP specifies that the variables will be made global.
+.IP "\(bu" 2
+\fC-m NAME\fP or \fC--mode-name=NAME\fP specifies that the name NAME should be used to save/load the history file. If NAME is fish, the regular fish history will be available.
+.IP "\(bu" 2
+\fC-p PROMPT_CMD\fP or \fC--prompt=PROMPT_CMD\fP specifies that the output of the shell command PROMPT_CMD should be used as the prompt for the interactive mode prompt. The default prompt command is \fCset_color green; echo read; set_color normal; echo '> '\fP.
+.IP "\(bu" 2
+\fC-s\fP or \fC--shell\fP Use syntax highlighting, tab completions and command termination suitable for entering shellscript code
+.IP "\(bu" 2
+\fC-u\fP or \fC--unexport\fP causes the specified environment not to be exported to child processes
+.IP "\(bu" 2
+\fC-U\fP or \fC--universal\fP causes the specified environment variable to be made universal. If this option is supplied, the variable will be shared between all the current users fish instances on the current computer, and will be preserved across restarts of the shell.
+.IP "\(bu" 2
+\fC-x\fP or \fC--export\fP causes the specified environment variable to be exported to child processes
+.PP
+.PP
+Read starts by reading a single line of input from stdin, the line is then tokenized using the \fCIFS\fP environment variable. Each variable specified in \fCVARIABLES\fP is then assigned one tokenized string element. If there are more tokens than variables, the complete remainder is assigned to the last variable.
+.SS "Example"
+\fCecho hello|read foo\fP
+.PP
+Will cause the variable $foo to be assigned the value hello. 

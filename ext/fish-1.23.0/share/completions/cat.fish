@@ -1,0 +1,12 @@
+complete -c cat -s A -l show-all --description "Escape all non-printing characters"
+complete -c cat -s b -l number-nonblank --description "Number nonblank lines"
+complete -c cat -s e --description "Escape non-printing characters except tab"
+complete -c cat -s E -l show-ends --description "Display \$ at end of line"
+complete -c cat -s n -l number --description "Number all lines"
+complete -c cat -s s -l squeeze-blank --description "Never more than single blank line"
+complete -c cat -s t --description "Escape non-printing characters except newline"
+complete -c cat -s T -l show-tabs --description "Escape tab"
+complete -c cat -s v --description "Escape non-printing except newline and tab"
+complete -c cat -l help --description "Display help and exit"
+complete -c cat -l version --description "Display version and exit"
+

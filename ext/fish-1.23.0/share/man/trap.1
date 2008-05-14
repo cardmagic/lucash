@@ -1,0 +1,32 @@
+.TH "trap" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+trap - perform an action when the shell receives a signal
+.PP
+.SS "Synopsis"
+\fCtrap [OPTIONS] [[ARG] SIGSPEC ... ]\fP
+.SS "Description"
+Trap is a shellscript wrapper around the fish event delivery framework. It exists for backwards compatibility with Posix shells. For other uses, it is recommended to define a event handler.
+.PP
+.IP "\(bu" 2
+ARG is the command to be executed on signal delivery
+.IP "\(bu" 2
+SIGSPEC is the name of the signal to trap
+.IP "\(bu" 2
+\fC-h\fP or \fC--help\fP Display help and exit
+.IP "\(bu" 2
+\fC-l\fP or \fC--list-signals\fP print a list of signal names
+.IP "\(bu" 2
+\fC-p\fP or \fC--print\fP print all defined signal handlers
+.PP
+.PP
+If ARG and SIGSPEC are both specified, ARG is the command to be executed when the signal specified by SIGSPEC is delivered.
+.PP
+If ARG is absent (and there is a single SIGSPEC) or -, each specified signal is reset to its original disposition (the value it had upon entrance to the shell). If ARG is the null string the signal specified by each SIGSPEC is ignored by the shell and by the commands it invokes.
+.PP
+If ARG is not present and -p has been supplied, then the trap commands associated with each SIGSPEC are displayed. If no arguments are supplied or if only -p is given, trap prints the list of commands associated with each signal.
+.PP
+Signal names are case insensitive and the SIG prefix is optional.
+.PP
+The return status is 1 if any SIGSPEC is invalid; otherwise trap returns 0. 

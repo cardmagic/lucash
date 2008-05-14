@@ -1,0 +1,38 @@
+.TH "case" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+case - conditionally execute a block of commands
+.PP
+.SS "Synopsis"
+\fCswitch VALUE; [case [WILDCARD...]; [COMMANDS...]; ...] end\fP
+.SS "Description"
+The \fCswitch\fP statement is used to perform one of several blocks of commands depending on whether a specified value equals one of several wildcarded values. The \fCcase\fP statement is used together with the \fCswitch\fP statement in order to determine which block should be performed.
+.PP
+Each \fCcase\fP command is given one or more parameter. The first \fCcase\fP command with a parameter that matches the string specified in the switch command will be evaluated. \fCcase\fP parameters may contain wildcards. These need to be escaped or quoted in order to avoid regular wildcard expansion using filenames.
+.PP
+Note that fish does not fall through on case statements. Though the syntax may look a bit like C switch statements, it behaves more like the case statementes of traditional shells.
+.PP
+Also note that command substitutions in a case statement will be evaluated even if it's body is not taken. This may seem counterintuitive at first, but it is unavoidable, since it would be impossible to know if a case command will evaluate to true before all forms of parameter expansion have been performed for the case command.
+.SS "Example"
+If the variable $animal contains the name of an animal, the following code would attempt to classify it:
+.PP
+.PP
+.nf
+
+switch $animal
+    case cat
+        echo evil
+    case wolf dog human moose dolphin whale
+        echo mammal
+    case duck goose albatross
+        echo bird
+    case shark trout stingray
+        echo fish
+    case '*'
+        echo I have no idea what a $animal is
+end
+.fi
+.PP
+.PP
+If the above code was run with \fC$animal\fP set to \fCwhale\fP, the output would be \fCmammal\fP. 

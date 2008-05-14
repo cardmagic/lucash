@@ -1,0 +1,24 @@
+.TH "or" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+or - conditionally execute a command
+.PP
+.SS "Synopsis"
+\fCCOMMAND1; or COMMAND2\fP
+.SS "Description"
+The \fCor\fP builtin is used to execute a command if the current exit status (as set by the last previous command) is not 0.
+.PP
+The or command does not change the current exit status.
+.PP
+The exit status of the last foreground command to exit can always be accessed using the \fC$status\fP variable.
+.SS "Example"
+The following code runs the \fCmake\fP command to build a program, if the build succceeds, the program is installed. If either step fails, \fCmake clean\fP is run, which removes the files created by the build process
+.PP
+.PP
+.nf
+
+make; and make install; or make clean
+.fi
+.PP
+ 

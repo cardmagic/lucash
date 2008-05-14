@@ -1,0 +1,70 @@
+.TH "complete" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+complete - edit command specific tab-completions.
+.PP
+.SS "Synopsis"
+\fCcomplete (-c|--command|-p|--path) COMMAND [(-s|--short-option) SHORT_OPTION] [(-l|--long-option|-o|--old-option) LONG_OPTION [(-a||--arguments) OPTION_ARGUMENTS] [(-d|--description) DESCRIPTION] \fP
+.SS "Description"
+For an introduction to how to specify completions, see the section Writing your own completions of the fish manual.
+.PP
+.IP "\(bu" 2
+\fCCOMMAND\fP is the name of the command for which to add a completion
+.IP "\(bu" 2
+\fCSHORT_OPTION\fP is a one character option for the command
+.IP "\(bu" 2
+\fCLONG_OPTION\fP is a multi character option for the command
+.IP "\(bu" 2
+\fCOPTION_ARGUMENTS\fP is parameter containing a space-separated list of possible option-arguments, which may contain subshells
+.IP "\(bu" 2
+\fCDESCRIPTION\fP is a description of what the option and/or option arguments do
+.IP "\(bu" 2
+\fC-C STRING\fP or \fC--do-complete=STRING\fP makes complete try to find all possible completions for the specified string
+.IP "\(bu" 2
+\fC-e\fP or \fC--erase\fP implies that the specified completion should be deleted
+.IP "\(bu" 2
+\fC-f\fP or \fC--no-files\fP specifies that the option specified by this completion may not be followed by a filename
+.IP "\(bu" 2
+\fC-n\fP or \fC--condition\fP specifies a shell command that must return 0 if the completion is to be used. This makes it possible to specify completions that should only be used in some cases.
+.IP "\(bu" 2
+\fC-o\fP or \fC--old-option\fP implies that the command uses old long style options with only one dash
+.IP "\(bu" 2
+\fC-p\fP or \fC--path\fP implies that the string COMMAND is the full path of the command
+.IP "\(bu" 2
+\fC-r\fP or \fC--require-parameter\fP specifies that the option specified by this completion always must have an option argument, i.e. may not be followed by another option
+.IP "\(bu" 2
+\fC-u\fP or \fC--unauthoritative\fP implies that there may be more options than the ones specified, and that fish should not assume that options not listed are spelling errors
+.IP "\(bu" 2
+\fC-A\fP or \fC--authoritative\fP implies that there may be no more options than the ones specified, and that fish should assume that options not listed are spelling errors
+.IP "\(bu" 2
+\fC-x\fP or \fC--exclusive\fP implies both \fC-r\fP and \fC-f\fP
+.PP
+.PP
+Command specific tab-completions in \fCfish\fP are based on the notion of options and arguments. An option is a parameter which begins with a hyphen, such as '-h', '-help' or '--help'. Arguments are parameters that do not begin with a hyphen. Fish recognizes three styles of options, the same styles as the GNU version of the getopt library. These styles are:
+.PP
+.IP "\(bu" 2
+Short options, like '-a'. Short options are a single character long, are preceded by a single hyphen and may be grouped together (like '-la', which is equivalent to '-l -a'). Option arguments may be specified in the following parameter ('-w 32') or by appending the option with the value ('-w32').
+.IP "\(bu" 2
+Old style long options, like '-Wall'. Old style long options can be more than one character long, are preceded by a single hyphen and may not be grouped together. Option arguments are specified in the following parameter ('-ao null').
+.IP "\(bu" 2
+GNU style long options, like '--colors'. GNU style long options can be more than one character long, are preceded by two hyphens, and may not be grouped together. Option arguments may be specified in the following parameter ('--quoting-style shell') or by appending the option with a '=' and the value ('--quoting-style=shell'). GNU style long options may be abbreviated so long as the abbreviation is unique ('--h' is equivalent to '--help' if help is the only long option beginning with an 'h').
+.PP
+.PP
+The options for specifying command name, command path, or command switches may all be used multiple times to specify multiple commands which have the same completion or multiple switches accepted by a command.
+.PP
+When erasing completions, it is possible to either erase all completions for a specific command by specifying \fCcomplete -e -c COMMAND\fP, or by specifying a specific completion option to delete by specifying either a long, short or old style option.
+.SS "Example"
+The short style option \fC-o\fP for the \fCgcc\fP command requires that a file follows it. This can be done using writing \fCcomplete -c gcc -s o -r\fP.
+.PP
+The short style option \fC-d\fP for the \fCgrep\fP command requires that one of the strings 'read', 'skip' or 'recurse' is used. This can be specified writing \fCcomplete -c grep -s d -x -a 'read skip recurse'\fP.
+.PP
+The \fCsu\fP command takes any username as an argument. Usernames are given as the first colon-separated field in the file /etc/passwd. This can be specified as: \fCcomplete -x -c su -d 'Username' -a '(cat /etc/passwd|cut -d : -f 1)' \fP.
+.PP
+The \fCrpm\fP command has several different modes. If the \fC-e\fP or \fC--erase\fP flag has been specified, \fCrpm\fP should delete one or more packages, in which case several switches related to deleting packages are valid, like the \fCnodeps\fP switch.
+.PP
+This can be written as:
+.PP
+\fCcomplete -c rpm -n '__fish_contains_opt -s e erase' -l nodeps -d 'Don't check dependencies'\fP
+.PP
+where \fC__fish_contains_opt\fP is a function that checks the commandline buffer for the presence of a specified set of options. 

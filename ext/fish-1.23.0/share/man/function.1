@@ -1,0 +1,70 @@
+.TH "function" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+function - create a function
+.PP
+.SS "Synopsis"
+\fCfunction [OPTIONS] NAME; BODY; end \fP
+.SS "Description"
+.IP "\(bu" 2
+\fC-d DESCRIPTION\fP or \fC--description=DESCRIPTION\fP is a description of what the function does, suitable as a completion description
+.IP "\(bu" 2
+\fC-j PID\fP or \fC --on-job-exit PID\fP tells fish to run this function when the job with group id PID exits. Instead of PID, the string 'caller' can be specified. This is only legal when in a command substitution, and will result in the handler being triggered by the exit of the job which created this command substitution.
+.IP "\(bu" 2
+\fC-p PID\fP or \fC --on-process-exit PID\fP tells fish to run this function when the fish child process with process id PID exits
+.IP "\(bu" 2
+\fC-s\fP or \fC--on-signal SIGSPEC\fP tells fish to run this function when the signal SIGSPEC is delivered. SIGSPEC can be a signal number, or the signal name, such as SIGHUP (or just HUP)
+.IP "\(bu" 2
+\fC-v\fP or \fC--on-variable VARIABLE_NAME\fP tells fish to run this function when the variable VARIABLE_NAME changes value
+.PP
+.PP
+This builtin command is used to create a new function. A function is a list of commands that will be executed when the name of the function is entered. The function
+.PP
+.PP
+.nf
+
+function hi
+	echo hello
+end
+.fi
+.PP
+.PP
+will write \fChello\fP whenever the user enters \fChi\fP.
+.PP
+If the user enters any additional arguments after the function, they are inserted into the environment \fCvariable array\fP argv.
+.SS "Example"
+.PP
+.nf
+
+function ll
+	ls -l $argv
+end
+.fi
+.PP
+.PP
+will run the \fCls\fP command, using the \fC-l\fP option, while passing on any additional files and switches to \fCls\fP.
+.PP
+.PP
+.nf
+
+function mkdir -d 'Create a directory and set CWD'
+	mkdir $argv
+	if test $status = 0
+		switch $argv[(count $argv)]
+			case '-*'
+.fi
+.PP
+.PP
+.PP
+.nf
+			case '*'
+				cd $argv[(count $argv)]
+				return
+		end
+	end
+end
+.fi
+.PP
+.PP
+will run the mkdir command, and if it is successful, change the current working directory to the one just created. 

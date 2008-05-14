@@ -1,0 +1,32 @@
+.TH "count" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+count - count the number of elements of an array
+.PP
+.SS "Synopsis"
+\fCcount $VARIABLE\fP
+.SS "Description"
+The \fCcount\fP builtin prints the number of arguments that were passed to it. This is usually used to find out how many elements an environment variable array contains, but this is not the only potential usage for the count command.
+.PP
+The count command does not accept any options, not even '-h'. This way the user does not have to worry about an array containing elements such as dashes. \fCfish\fP performs a special check when invoking the count command, and if the user uses a help option, this help page is displayed, but if a help option is contained inside of a variable or is the result of expansion, it will simply be counted like any other argument.
+.PP
+Count exits with a non-zero exit status if no arguments where passed to it, with zero otherwise.
+.SS "Example"
+.PP
+.nf
+
+count $PATH
+.fi
+.PP
+.PP
+returns the number of directories in the users PATH variable.
+.PP
+.PP
+.nf
+
+count *.txt
+.fi
+.PP
+.PP
+returns the number of files in the current working directory ending with the suffix '.txt'. 

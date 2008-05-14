@@ -1,0 +1,49 @@
+.TH "begin" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+begin - start a new block of code
+.PP
+.SS "Synopsis"
+\fCbegin; [COMMANDS...;] end\fP
+.SS "Description"
+The \fCbegin\fP builtin is used to create a new block of code. The block is unconditionally executed. \fCbegin; ...; end\fP is equivalent to \fCif true; ...; end\fP. The begin command is used to group any number of commands into a block. The reason for doing so is usually either to introduce a new variable scope, to redirect the input or output of a set of commands as a group, or to specify precedence when using the conditional commands like \fCand\fP.
+.PP
+The \fCbegin\fP command does not change the current exit status.
+.SS "Example"
+The following code sets a number of variables inside of a block scope. Since the variables are set inside the block and have local scope, they will be automatically deleted when the block ends.
+.PP
+.PP
+.nf
+
+begin
+	set -l PIRATE Yarrr
+	...
+end
+# This will not output anything, since the PIRATE variable went out
+# of scope at the end of the block
+echo $PIRATE
+.fi
+.PP
+.PP
+In the following code, all output is redirected to the file out.html.
+.PP
+.PP
+.nf
+
+begin
+	echo $xml_header
+	echo $html_header
+	if test -e $file 
+		...
+	end
+	...
+.fi
+.PP
+.PP
+.PP
+.nf
+end > out.html
+.fi
+.PP
+ 

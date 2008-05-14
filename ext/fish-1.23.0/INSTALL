@@ -1,0 +1,73 @@
+
+Known issues
+============
+
+Fish is developed using GCC, with the goal of using only C89 language
+features. Fish does, however use the *wprintf family of functions,
+which are new to the C99 standrard. It is not unlikely that any given
+release contains a few GCC:isms, but ICC 9.0.030 has been found to
+produce working binaries. GCC 2.95.* won't compile fish, but GCC 3.2.3
+is known to work. Patches to fix any remaining GNU:isms are welcome.
+
+Older versions of Doxygen has bugs in the man-page generation which
+cause the builtin help to render incorrectly. Doxygen 1.2.14 is known
+to have this problem.
+
+
+Prerequisites
+=============
+
+Fish requires the following programs and libraries to build:
+
+ - Doxygen
+ - Curses or Ncurses
+ - GNU make
+ - GCC
+
+fish also relies on standard unix tools such as cat, cut, grep, sed,
+whoami, bc and echo. Fish does not yet support cross-compilation,
+separate build directories or any other fancy configure options.
+
+
+Simple install procedure
+========================
+
+Always begin by uninstalling any previous fish versions. This is done
+by running the command 'make uninstall' in the source directory of
+your previous fish installation.
+
+Next, if you have downloaded a fresh copy of the darcs repository of
+fish, you need to run the 'autoconf' command.
+
+Then, use following commands to compile fish:
+
+   ./configure
+   make                                   # Compile fish
+   make install                           # Install fish
+   echo /usr/local/bin/fish >>/etc/shells # Add fish to list of shells
+
+Finally, if you wish to use fish as your default shell, use the
+following command:
+
+ % chsh -s /usr/local/bin/fish			 
+
+chsh will prompt you for your password, and change your default shell.
+
+
+Local install procedure
+=======================
+
+If you have downloaded the darcs repository of fish, you need to run
+autoconf to generate the configure script.
+
+To install fish in your own home directory (typically as non-root),
+type:
+
+ % ./configure --prefix=$HOME
+ % make					# Compile fish
+ % make install			# Install fish
+
+You will not be able to use fish as the default shell unless you also
+add the corresponding line to /etc/shells, which mostly defeats the
+point of a local install. As a workaround, you can add fish as the
+last command of the init files for your regular shell.

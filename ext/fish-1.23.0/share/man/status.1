@@ -1,0 +1,35 @@
+.TH "status" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+status - query fish runtime information
+.PP
+.SS "Synopsis"
+\fCstatus [OPTION]\fP
+.SS "Description"
+.IP "\(bu" 2
+\fC-c\fP or \fC--is-command-substitution\fP returns 0 if fish is currently executing a command substitution
+.IP "\(bu" 2
+\fC-b\fP or \fC--is-block\fP returns 0 if fish is currently executing a block of code
+.IP "\(bu" 2
+\fC-i\fP or \fC--is-interactive\fP returns 0 if fish is interactive, i.e.connected to a keyboard
+.IP "\(bu" 2
+\fC-l\fP or \fC--is-login\fP returns 0 if fish is a login shell, i.e. if fish should perform login tasks such as setting up the PATH.
+.IP "\(bu" 2
+\fC--is-full-job-control\fP returns 0 if full job control is enabled
+.IP "\(bu" 2
+\fC--is-interactive-job-control\fP returns 0 if interactive job control is enabled
+.IP "\(bu" 2
+\fC--is-no-job-control\fP returns 0 if no job control is enabled
+.IP "\(bu" 2
+\fC-f\fP or \fC--current-filename\fP prints the filename of the currently running script
+.IP "\(bu" 2
+\fC-n\fP or \fC--current-line-number\fP prints the line number of the currently running script
+.IP "\(bu" 2
+\fC-j CONTROLTYPE\fP or \fC--job-control=CONTROLTYPE\fP set the job control type. Can be one of: none, full, interactive
+.IP "\(bu" 2
+\fC-t\fP or \fC--print-stack-trace\fP
+.IP "\(bu" 2
+\fC-h\fP or \fC--help\fP display a help message and exit 
+.PP
+

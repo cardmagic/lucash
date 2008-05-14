@@ -1,0 +1,211 @@
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* Define to 1 if you have the `backtrace' function. */
+#undef HAVE_BACKTRACE
+
+/* Define to 1 if you have the `backtrace_symbols' function. */
+#undef HAVE_BACKTRACE_SYMBOLS
+
+/* del_curterm is broken, redefine it to a no-op to avoid a double-free bug */
+#undef HAVE_BROKEN_DEL_CURTERM
+
+/* Define to 1 one if the implemented fwprintf is broken */
+#undef HAVE_BROKEN_FWPRINTF
+
+/* Define to 1 if you have the <curses.h> header file. */
+#undef HAVE_CURSES_H
+
+/* Define to 1 if you have the `dcgettext' function. */
+#undef HAVE_DCGETTEXT
+
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
+
+/* Define to 1 if you have the `fgetwc' function. */
+#undef HAVE_FGETWC
+
+/* Define to 1 if you have the `fputwc' function. */
+#undef HAVE_FPUTWC
+
+/* Define to 1 if you have the `futimes' function. */
+#undef HAVE_FUTIMES
+
+/* Define to 1 if you have the `fwprintf' function. */
+#undef HAVE_FWPRINTF
+
+/* Define to 1 if you have the <getopt.h> header file. */
+#undef HAVE_GETOPT_H
+
+/* Define to 1 if you have the `gettext' function. */
+#undef HAVE_GETTEXT
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `killpg' function. */
+#undef HAVE_KILLPG
+
+/* Define to 1 if you have the <libintl.h> header file. */
+#undef HAVE_LIBINTL_H
+
+/* Define to 1 if you have the `lrand48_r' function. */
+#undef HAVE_LRAND48_R
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <ncurses.h> header file. */
+#undef HAVE_NCURSES_H
+
+/* Define to 1 if you have the <ncurses/term.h> header file. */
+#undef HAVE_NCURSES_TERM_H
+
+/* Define to 1 if realpath accepts null for its second argument. */
+#undef HAVE_REALPATH_NULL
+
+/* Define to 1 if you have the <regex.h> header file. */
+#undef HAVE_REGEX_H
+
+/* Define to 1 if you have the <siginfo.h> header file. */
+#undef HAVE_SIGINFO_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <stropts.h> header file. */
+#undef HAVE_STROPTS_H
+
+/* Define to 1 if you have the `sysconf' function. */
+#undef HAVE_SYSCONF
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/resource.h> header file. */
+#undef HAVE_SYS_RESOURCE_H
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/termios.h> header file. */
+#undef HAVE_SYS_TERMIOS_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <termio.h> header file. */
+#undef HAVE_TERMIO_H
+
+/* Define to 1 if you have the <term.h> header file. */
+#undef HAVE_TERM_H
+
+/* Define to 1 if the wgettext function should be used for translating
+   strings. */
+#undef HAVE_TRANSLATE_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `wcscasecmp' function. */
+#undef HAVE_WCSCASECMP
+
+/* Define to 1 if you have the `wcsdup' function. */
+#undef HAVE_WCSDUP
+
+/* Define to 1 if you have the `wcslcat' function. */
+#undef HAVE_WCSLCAT
+
+/* Define to 1 if you have the `wcslcpy' function. */
+#undef HAVE_WCSLCPY
+
+/* Define to 1 if you have the `wcslen' function. */
+#undef HAVE_WCSLEN
+
+/* Define to 1 if you have the `wcsncasecmp' function. */
+#undef HAVE_WCSNCASECMP
+
+/* Define to 1 if you have the `wcsndup' function. */
+#undef HAVE_WCSNDUP
+
+/* Define to 1 if you have the `wcstok' function. */
+#undef HAVE_WCSTOK
+
+/* Define to 1 if you have the `wcstol' function. */
+#undef HAVE_WCSTOL
+
+/* Define to 1 if you have the `wcswidth' function. */
+#undef HAVE_WCSWIDTH
+
+/* Define to 1 if you have the `wcwidth' function. */
+#undef HAVE_WCWIDTH
+
+/* Define to 1 if the winsize struct and TIOCGWINSZ macro exist */
+#undef HAVE_WINSIZE
+
+/* Define to 1 if getopt_long exists and works. */
+#undef HAVE_WORKING_GETOPT_LONG
+
+/* Define to 1 if the _nl_msg_cat_cntr symbol is exported. */
+#undef HAVE__NL_MSG_CAT_CNTR
+
+/* Define to 1 if you have the file `AC_File'. */
+#undef HAVE__PROC_SELF_STAT
+
+/* Define to 1 if the __environ symbol is exported. */
+#undef HAVE___ENVIRON
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Define to 1 if tparm accepts a fixed amount of paramters. */
+#undef TPARM_SOLARIS_KLUDGE
+
+/* Evil kludge to get Power based machines to work */
+#undef TPUTS_KLUDGE
+
+/* Perform string translations with gettext */
+#undef USE_GETTEXT
+
+/* Macro to enable additional prototypes under BSD */
+#undef _NETBSD_SOURCE
+
+/* Macro to enable additional prototypes under BSD */
+#undef __BSD_VISIBLE
+
+/* Macro to enable additional prototypes under Solaris */
+#undef __EXTENSIONS__
+
+#if __GNUC__ >= 3
+#define __warn_unused __attribute__ ((warn_unused_result))
+#define __sentinel __attribute__ ((sentinel))
+#else
+#define __warn_unused 
+#define __sentinel 
+#endif

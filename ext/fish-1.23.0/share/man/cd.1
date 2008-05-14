@@ -1,0 +1,10 @@
+.TH "cd" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+cd - change directory
+.PP
+.SS "Synopsis"
+\fCcd [DIRECTORY]\fP
+.SS "Description Changes the current"
+directory. If \fCDIRECTORY\fP is supplied it will become the new directory. If \fCDIRECTORY\fP is a relative path, the paths found in the CDPATH environment variable array will be tried as prefixes for the specified path. If CDPATH is not set, it is assumed to be '.'. If \fCDIRECTORY\fP is not specified, $HOME will be the new directory. 

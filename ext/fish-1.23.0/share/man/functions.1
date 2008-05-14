@@ -1,0 +1,30 @@
+.TH "functions" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+functions - print or erase functions
+.PP
+.SS "Synopsis"
+\fCfunctions [-e] FUNCTIONS...\fP
+.SS "Description"
+This builtin command is used to print or erase functions.
+.PP
+.IP "\(bu" 2
+\fC-a\fP or \fC--all\fP list all functions, even those whose name start with an underscore.
+.IP "\(bu" 2
+\fC-d DESCRIPTION\fP or \fC--description=DESCRIPTION\fP change the description of this function
+.IP "\(bu" 2
+\fC-e\fP or \fC--erase\fP causes the specified functions to be erased.
+.IP "\(bu" 2
+\fC-h\fP or \fC--help\fP display a help message and exit
+.IP "\(bu" 2
+\fC-n\fP or \fC--names\fP list only the names of all defined functions, not their definition
+.IP "\(bu" 2
+\fC-q\fP or \fC--query\fP test if the specified functions exist. Does not output anything, but the builtins exit status is the number of functions specified that were not defined.
+.PP
+.PP
+The default behavior of \fCfunctions\fP when called with no arguments, is to print the names and definitions of all defined functions. If any non-switch parameters are given, only the definition of the specified functions are printed.
+.PP
+Automatically loaded functions can not be removed using functions -e. Either remove the definition file or change the $fish_function_path variable to remove autoloaded functions.
+.PP
+The exit status of the functions builtin is the number functions specified in the argument list that do not exist. 

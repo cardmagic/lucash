@@ -1,0 +1,32 @@
+.TH "mimedb" 1 "13 Jan 2008" "Version 1.23.0" "fish" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+mimedb - lookup file information via the mime database
+.PP
+.SS "Synopsis"
+\fCmimedb [OPTIONS] FILES...\fP
+.SS "Description"
+.IP "\(bu" 2
+\fCFILES\fP is a list of files to analyse
+.IP "\(bu" 2
+\fC-t\fP, \fC--input-file-data\fP the specified files type should be determined both by their filename and by their contents (Default)
+.IP "\(bu" 2
+\fC-f\fP, \fC--input-filename\fP the specified files type should be determined by their filename
+.IP "\(bu" 2
+\fC-i\fP, \fC--input-mime\fP the arguments are not files but mimetypes
+.IP "\(bu" 2
+\fC-m\fP, \fC--output-mime\fP the output will be the mimetype of each file (Default)
+.IP "\(bu" 2
+\fC-f\fP, \fC--output-description\fP the output will be the description of each mimetype
+.IP "\(bu" 2
+\fC-a\fP, \fC--output-action\fP the output will be the default action of each mimetype
+.IP "\(bu" 2
+\fC-l\fP, \fC--launch\fP launch the default action for the specified file(s)
+.IP "\(bu" 2
+\fC-h\fP, \fC--help\fP display a help message and exit
+.IP "\(bu" 2
+\fC-v\fP, \fC--version\fP display version number and exit
+.PP
+.PP
+The mimedb command is used to query the mimetype database and the .desktop files installed on the system in order to find information on a file. The information that mimedb can retrieve includes the mimetype for a file, a description of the type and what its default action is. mimedb can also be used to launch the default action for this file. 
