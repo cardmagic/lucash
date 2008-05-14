@@ -1,6 +1,6 @@
-# $Id: calc.y 2112 2005-11-20 13:29:32Z aamine $
+# $Id: simplesh.y 2112 2008-05-14 13:29:32Z cardmagic $
 #
-# Very simple calculater.
+# Very simple shell.
 
 class Simplesh
   options no_result_var
