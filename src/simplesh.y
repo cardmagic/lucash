@@ -76,6 +76,7 @@ end
 require 'rubygems'
 gem 'open4'
 require 'open4'
+require 'curses'
 
 parser = Simplesh.new
 puts
