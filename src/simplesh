@@ -7,7 +7,7 @@
 require 'racc/parser.rb'
 class Simplesh < Racc::Parser
 
-module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 18)
+module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 48)
   
   def parse(str)
     @str = str
@@ -22,7 +22,7 @@ module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 18)
       case str
       when /\A\s+/
         str = $'
-      when /\A[\w\.]+/
+      when /\A[\w\.\-]+/
         yield :IDENT, $&
         str = $'
       else
@@ -130,19 +130,48 @@ module_eval(<<'.,.,', 'simplesh.y', 8)
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 9)
+module_eval(<<'.,.,', 'simplesh.y', 10)
   def _reduce_3(val, _values)
-     `#{val[0]}` 
+    										er_t = nil
+										in_t = nil
+										o_t = nil
+	 									p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
+											er_t = Thread.new do
+												loop do
+													$stderr.print stderr.read(stderr.stat.size)
+													$stderr.flush
+												end
+											end
+
+											in_t = Thread.new do
+												loop do
+													data = gets
+													stdin.write(data)
+												end
+											end
+											
+											o_t = Thread.new do
+												loop do
+													$stdout.print stdout.read(stdout.stat.size)
+													$stdout.flush
+												end
+											end
+										end
+										er_t.kill
+										in_t.kill
+										o_t.kill
+										p
+									
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 12)
+module_eval(<<'.,.,', 'simplesh.y', 42)
   def _reduce_4(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 13)
+module_eval(<<'.,.,', 'simplesh.y', 43)
   def _reduce_5(val, _values)
      "#{val[0]} #{val[1]}" 
   end
@@ -154,6 +183,10 @@ end
 
 end   # class Simplesh
 
+
+require 'rubygems'
+gem 'open4'
+require 'open4'
 
 parser = Simplesh.new
 puts

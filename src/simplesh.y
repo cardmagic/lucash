@@ -7,7 +7,37 @@ class Simplesh
 rule
 	result    : '(' result ')'   { val[1] }
 	          | '(' ')'            { nil }
-	          | contents           { `#{val[0]}` }
+	          | contents           { 
+										er_t = nil
+										in_t = nil
+										o_t = nil
+	 									p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
+											er_t = Thread.new do
+												loop do
+													$stderr.print stderr.read(stderr.stat.size)
+													$stderr.flush
+												end
+											end
+
+											in_t = Thread.new do
+												loop do
+													data = gets
+													stdin.write(data)
+												end
+											end
+											
+											o_t = Thread.new do
+												loop do
+													$stdout.print stdout.read(stdout.stat.size)
+													$stdout.flush
+												end
+											end
+										end
+										er_t.kill
+										in_t.kill
+										o_t.kill
+										p
+									}
          
 	                # Racc can handle string over 2 bytes.
 	contents: IDENT              { val[0] }
@@ -29,7 +59,7 @@ end
       case str
       when /\A\s+/
         str = $'
-      when /\A[\w\.]+/
+      when /\A[\w\.\-]+/
         yield :IDENT, $&
         str = $'
       else
@@ -42,6 +72,10 @@ end
   end
 
 ---- footer
+
+require 'rubygems'
+gem 'open4'
+require 'open4'
 
 parser = Simplesh.new
 puts
