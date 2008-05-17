@@ -7,7 +7,7 @@
 require 'racc/parser.rb'
 class Simplesh < Racc::Parser
 
-module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 48)
+module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 59)
   
   def parse(str)
     @str = str
@@ -25,6 +25,9 @@ module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 48)
       when /\A[\w\.\-]+/
         yield :IDENT, $&
         str = $'
+      when /\A&&/
+        yield '&&', '&&'
+        str = $'
       else
         c = str[0,1]
         yield c, c
@@ -38,51 +41,70 @@ module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 48)
 ##### State transition tables begin ###
 
 racc_action_table = [
-     1,     8,     2,     1,     5,     2,     2,     9,    10 ]
+     3,     3,     6,     5,     5,     8,     6,     6,     3,    10,
+     3,     5,    20,     5,     6,    15,     6,     5,    13,   nil,
+     6,    17,    18,    19,     8 ]
 
 racc_action_check = [
-     0,     3,     0,     1,     1,     1,     2,     6,     8 ]
+     0,     8,     6,     0,     8,     2,     0,     8,     3,     3,
+    18,     3,    15,    18,     3,     7,    18,     5,     5,   nil,
+     5,     9,     9,    12,    12 ]
 
 racc_action_pointer = [
-    -2,     1,     2,     1,   nil,   nil,     4,   nil,     8,   nil,
-   nil ]
+    -2,   nil,    -2,     6,   nil,    12,    -6,    15,    -1,    18,
+   nil,   nil,    17,   nil,   nil,    12,   nil,   nil,     8,   nil,
+   nil,   nil ]
 
 racc_action_default = [
-    -6,    -6,    -4,    -6,    -3,    -2,    -6,    -5,    -6,    -1,
-    11 ]
+   -13,    -1,    -4,   -13,   -10,   -13,   -11,   -13,   -13,   -13,
+    -3,    -5,   -13,    -8,   -12,   -13,    -9,    -2,   -13,    -7,
+    22,    -6 ]
 
 racc_goto_table = [
-     3,     6,     7 ]
+     7,    12,     9,    11,    14,   nil,   nil,   nil,    16,   nil,
+   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,    21 ]
 
 racc_goto_check = [
-     1,     1,     2 ]
+     1,     4,     3,     1,     5,   nil,   nil,   nil,     1,   nil,
+   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,     1 ]
 
 racc_goto_pointer = [
-   nil,     0,     0 ]
+   nil,     0,   nil,    -1,    -4,    -2 ]
 
 racc_goto_default = [
-   nil,   nil,     4 ]
+   nil,   nil,     1,   nil,     2,     4 ]
 
 racc_reduce_table = [
   0, 0, :racc_error,
-  3, 6, :_reduce_1,
-  2, 6, :_reduce_2,
-  1, 6, :_reduce_3,
-  1, 7, :_reduce_4,
-  2, 7, :_reduce_5 ]
+  1, 10, :_reduce_1,
+  3, 11, :_reduce_2,
+  2, 11, :_reduce_3,
+  1, 11, :_reduce_4,
+  1, 12, :_reduce_5,
+  3, 12, :_reduce_6,
+  3, 13, :_reduce_7,
+  2, 13, :_reduce_8,
+  3, 13, :_reduce_9,
+  1, 13, :_reduce_10,
+  1, 14, :_reduce_11,
+  2, 14, :_reduce_12 ]
 
-racc_reduce_n = 6
+racc_reduce_n = 13
 
-racc_shift_n = 11
+racc_shift_n = 22
 
 racc_token_table = {
   false => 0,
   :error => 1,
-  "(" => 2,
-  ")" => 3,
-  :IDENT => 4 }
+  "[" => 2,
+  "]" => 3,
+  "," => 4,
+  "(" => 5,
+  ")" => 6,
+  "&&" => 7,
+  :IDENT => 8 }
 
-racc_nt_base = 5
+racc_nt_base = 9
 
 racc_use_result_var = false
 
@@ -105,10 +127,17 @@ Racc_arg = [
 Racc_token_to_s_table = [
   "$end",
   "error",
+  "\"[\"",
+  "\"]\"",
+  "\",\"",
   "\"(\"",
   "\")\"",
+  "\"&&\"",
   "IDENT",
   "$start",
+  "atom",
+  "array",
+  "basic_result",
   "result",
   "contents" ]
 
@@ -120,59 +149,102 @@ Racc_debug_parser = false
 
 module_eval(<<'.,.,', 'simplesh.y', 7)
   def _reduce_1(val, _values)
-     val[1] 
+     val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 8)
+module_eval(<<'.,.,', 'simplesh.y', 9)
   def _reduce_2(val, _values)
-     nil 
+     val[1] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'simplesh.y', 10)
   def _reduce_3(val, _values)
-    										er_t = nil
-										in_t = nil
-										o_t = nil
-	 									p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
-											er_t = Thread.new do
-												loop do
-													$stderr.print stderr.read(stderr.stat.size)
-													$stderr.flush
-												end
-											end
-
-											in_t = Thread.new do
-												loop do
-													data = gets
-													stdin.write(data)
-												end
-											end
-											
-											o_t = Thread.new do
-												loop do
-													$stdout.print stdout.read(stdout.stat.size)
-													$stdout.flush
-												end
-											end
-										end
-										er_t.kill
-										in_t.kill
-										o_t.kill
-										p
-									
+     [] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 42)
+module_eval(<<'.,.,', 'simplesh.y', 11)
   def _reduce_4(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 43)
+module_eval(<<'.,.,', 'simplesh.y', 13)
   def _reduce_5(val, _values)
+     [val[0]] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 15)
+  def _reduce_6(val, _values)
+    				 	val[0] + [val[2]]
+				 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 18)
+  def _reduce_7(val, _values)
+     val[1] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 19)
+  def _reduce_8(val, _values)
+     nil 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 20)
+  def _reduce_9(val, _values)
+     val[2] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 22)
+  def _reduce_10(val, _values)
+    					r = []
+					er_t = nil
+					in_t = nil
+					o_t = nil
+					p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
+						er_t = Thread.new do
+							loop do
+								$stderr.print stderr.read(stderr.stat.size)
+								$stderr.flush
+							end
+						end
+
+						in_t = Thread.new do
+							loop do
+								data = gets
+								stdin.write(data)
+							end
+						end
+						
+						o_t = Thread.new do
+							loop do
+								r << stdout.read(stdout.stat.size)
+							end
+						end
+					end
+					er_t.kill
+					in_t.kill
+					o_t.kill
+					r.join("")
+				
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 53)
+  def _reduce_11(val, _values)
+     val[0] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 54)
+  def _reduce_12(val, _values)
      "#{val[0]} #{val[1]}" 
   end
 .,.,
@@ -187,7 +259,7 @@ end   # class Simplesh
 require 'rubygems'
 gem 'open4'
 require 'open4'
-require 'curses'
+require 'termios'
 
 parser = Simplesh.new
 puts
