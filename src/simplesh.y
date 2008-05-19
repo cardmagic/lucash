@@ -4,93 +4,127 @@
 
 class Simplesh
 	options no_result_var
+	prechigh
+	    nonassoc UMINUS ';'
+	    left '*' '/'
+	    left '+' '-'
+	preclow
 rule
-	atom  : array { val[0] }
-	
-	array   : '[' basic_result ']'	{ val[1] }
-	        | '[' ']'		 		{ [] }
-			| result				{ val[0] }
-	
-	basic_result : atom { [val[0]] }
-				 | basic_result ',' atom { 
-				 	val[0] + [val[2]]
-				 }
-	
-	result    : '(' result ')'   { val[1] }
-	          | '(' ')'            { nil }
-			  | result '&&' atom { val[2] }
-	          | contents           { 
-					r = []
-					er_t = nil
-					in_t = nil
-					o_t = nil
-					p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
-						er_t = Thread.new do
-							loop do
-								$stderr.print stderr.read(stderr.stat.size)
-								$stderr.flush
-							end
-						end
-
-						in_t = Thread.new do
-							loop do
-								data = gets
-								stdin.write(data)
-							end
-						end
-						
-						o_t = Thread.new do
-							loop do
-								r << stdout.read(stdout.stat.size)
-							end
-						end
-					end
-					er_t.kill
-					in_t.kill
-					o_t.kill
-					r.join("")
-				}
-    
-	contents: IDENT              { val[0] }
-			  | IDENT contents	 { "#{val[0]} #{val[1]}" }
+	program: 
+		line program 
+		| line 
+	line: 
+		expr ';' { val[0] } 
+		| expr '\n' { val[0] } 
+		| expr { val[0] }
+		| IDENT '=' expr { $vals[val[0]] = val[2] }
+	expr: 
+		expr '+' mulex { val[0] + val[2] }
+		| expr '-' mulex { val[0] - val[2] }
+		| mulex { val[0] } 
+	mulex:
+		mulex '*' term { val[0] * val[2] }
+		| mulex '/' term { val[0] / val[2] }
+		| basic_line { val[0] }
+	basic_line:
+		array '.' IDENT { val[0].send(val[2]) }
+		| array '.' IDENT '(' basic_result ')' { val[0].send(val[2], *val[4]) }
+		| array { val[0] }
+	array:
+		'[' basic_result ']'	{ val[1] }
+        | '[' ']'		 		{ [] }
+		| term					{ val[0] }
+	basic_result:
+		line { [val[0]] }
+		| basic_result ',' line { val[0] + [val[2]] }
+	term:
+		'(' term ')' { val[1] }
+        | '(' ')' { nil }
+	    | term '&&' line { val[2] }
+	    | NUMBER { val[0] }
+        | command {
+			if $vals[val[0]]
+				return $vals[val[0]]
+			else
+				begin
+			    	r = []
+			    	er_t = nil
+			    	in_t = nil
+			    	o_t = nil
+			    	p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
+			    		er_t = Thread.new do
+			    			loop do
+			    				$stderr.print stderr.read(stderr.stat.size)
+			    				$stderr.flush
+			    			end
+			    		end
+            	
+			    		in_t = Thread.new do
+			    			loop do
+			    				data = gets
+			    				stdin.write(data)
+			    			end
+			    		end
+		    		
+			    		o_t = Thread.new do
+			    			loop do
+			    				r << stdout.read(stdout.stat.size)
+			    			end
+			    		end
+			    	end
+			    	er_t.kill
+			    	in_t.kill
+			    	o_t.kill
+			    	r.join("")
+				rescue Errno::ENOENT, TypeError
+					val[0]
+				end
+			end
+		}
+	command:
+		IDENT { val[0] }
+		| IDENT command { "#{val[0]} #{val[1]}" }
 end
 
 ---- inner
   
-  def parse(str)
-    @str = str
-    yyparse self, :scan
-  end
+	def parse(str)
+	  @q = []
+	  until str.empty?
+	    case str
+	    when /\A\s+/
+	    when /\A&&/
+		  @q.push [$&, $&]
+	    when /\A\-?\d+\.\d+/
+	      @q.push [:NUMBER, $&.to_f]
+	    when /\A\-?[\d]+/
+	      @q.push [:NUMBER, $&.to_i]
+		when /\A\:([\w\-]+)/
+		  @q.push [:IDENT, $1.intern]
+		when /\A[\w\-][\w\-\=]*/
+          @q.push [:IDENT, $&]
+	    when /\A.|\n/o
+	      s = $&
+	      @q.push [s, s]
+	    end
+	    str = $'
+	  end
+	  @q.push [false, '$end']
+	  puts @q.inspect if ENV['DEBUG']
+	  do_parse
+	end
 
-  private
-
-  def scan
-    str = @str
-    until str.empty?
-      case str
-      when /\A\s+/
-        str = $'
-      when /\A[\w\.\-]+/
-        yield :IDENT, $&
-        str = $'
-      when /\A&&/
-        yield '&&', '&&'
-        str = $'
-      else
-        c = str[0,1]
-        yield c, c
-        str = str[1..-1]
-      end
-    end
-    yield false, '$'   # is optional from Racc 1.3.7
-  end
-
+	def next_token
+	  @q.shift
+	end
+	
 ---- footer
 
 require 'rubygems'
 gem 'open4'
 require 'open4'
-require 'termios'
+
+$vals = {}
 
 parser = Simplesh.new
 puts
