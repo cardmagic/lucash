@@ -7,7 +7,7 @@
 require 'racc/parser.rb'
 class Simplesh < Racc::Parser
 
-module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 94)
+module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 99)
   
 	def parse(str)
 	  @q = []
@@ -23,6 +23,8 @@ module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 94)
 		when /\A\:([\w\-]+)/
 		  @q.push [:IDENT, $1.intern]
 		when /\A[\w\-][\w\-\=]*/
+          @q.push [:IDENT, $&]
+		when /\A\.\.*/
           @q.push [:IDENT, $&]
 	    when /\A.|\n/o
 	      s = $&
@@ -383,6 +385,11 @@ module_eval(<<'.,.,', 'simplesh.y', 49)
 				return $vals[val[0]]
 			else
 				begin
+					case val[0]
+					when /^cd (.*)$/
+						return Dir.chdir($1)
+					end
+					
 			    	r = []
 			    	er_t = nil
 			    	in_t = nil
@@ -420,13 +427,13 @@ module_eval(<<'.,.,', 'simplesh.y', 49)
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 88)
+module_eval(<<'.,.,', 'simplesh.y', 93)
   def _reduce_29(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 89)
+module_eval(<<'.,.,', 'simplesh.y', 94)
   def _reduce_30(val, _values)
      "#{val[0]} #{val[1]}" 
   end

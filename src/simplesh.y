@@ -51,6 +51,11 @@ rule
 				return $vals[val[0]]
 			else
 				begin
+					case val[0]
+					when /^cd (.*)$/
+						return Dir.chdir($1)
+					end
+					
 			    	r = []
 			    	er_t = nil
 			    	in_t = nil
@@ -106,6 +111,8 @@ end
 		when /\A\:([\w\-]+)/
 		  @q.push [:IDENT, $1.intern]
 		when /\A[\w\-][\w\-\=]*/
+          @q.push [:IDENT, $&]
+		when /\A\.\.*/
           @q.push [:IDENT, $&]
 	    when /\A.|\n/o
 	      s = $&
