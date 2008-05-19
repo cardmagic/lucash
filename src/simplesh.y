@@ -112,6 +112,8 @@ end
 		  @q.push [:IDENT, $1.intern]
 		when /\A[\w\-][\w\-\=]*/
           @q.push [:IDENT, $&]
+                when /\A\/([^\/]+)\//
+          @q.push [:IDENT, Regexp.new($1)]
 		when /\A\.\.*/
           @q.push [:IDENT, $&]
 	    when /\A.|\n/o
