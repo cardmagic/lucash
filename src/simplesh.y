@@ -7,6 +7,7 @@ class Simplesh
 	prechigh
 	    nonassoc UMINUS ';'
 	    left '*' '/'
+		left '%' '&' '|'
 	    left '+' '-'
 	preclow
 rule
@@ -25,6 +26,9 @@ rule
 	mulex:
 		mulex '*' term { val[0] * val[2] }
 		| mulex '/' term { val[0] / val[2] }
+		| mulex '%' term { val[0] % val[2] }
+		| mulex '&' term { val[0] & val[2] }
+		| mulex '|' term { val[0] | val[2] }
 		| basic_line { val[0] }
 	basic_line:
 		array '.' IDENT { val[0].send(val[2]) }
@@ -133,12 +137,16 @@ puts
 while true
   puts
   print '? '
-  str = gets.chop!
-  break if /q/i =~ str
-  begin
-    puts parser.parse(str)
-  rescue ParseError
-    puts $!
+  if str = gets
+    str.chop!
+    break if /q/i =~ str
+    begin
+      puts parser.parse(str)
+    rescue ParseError
+      puts $!
+    end
+  else
+    exit
   end
 end
 
