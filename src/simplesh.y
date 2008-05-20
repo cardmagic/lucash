@@ -6,8 +6,7 @@ class Simplesh
 	options no_result_var
 	prechigh
 	    nonassoc UMINUS ';'
-	    left '*' '/'
-		left '%' '&' '|'
+	    left '*' '/' '%' '|'
 	    left '+' '-'
 	preclow
 rule
@@ -18,6 +17,15 @@ rule
 		expr ';' { val[0] } 
 		| expr '\n' { val[0] } 
 		| expr { val[0] }
+		| '(' line ')' { val[1] }
+        | '(' ')' { nil }
+	    | expr '&&' line { val[2] }
+		| command '|' line { do_command("#{val[0]} #{val[2]}") }
+		| line '.' line { val[0].send(val[2]) }
+		| line '.' line { val[0].send(val[2]) }
+		| line '.' IDENT { val[0].send(val[2]) }
+		| line '.' IDENT expr { val[0].send(val[2], *val[4]) }
+		| line '.' IDENT '(' expr ')' { val[0].send(val[2], *val[4]) }
 		| IDENT '=' expr { $vals[val[0]] = val[2] }
 	expr: 
 		expr '+' mulex { val[0] + val[2] }
@@ -28,11 +36,6 @@ rule
 		| mulex '/' term { val[0] / val[2] }
 		| mulex '%' term { val[0] % val[2] }
 		| mulex '&' term { val[0] & val[2] }
-		| mulex '|' term { val[0] | val[2] }
-		| basic_line { val[0] }
-	basic_line:
-		array '.' IDENT { val[0].send(val[2]) }
-		| array '.' IDENT '(' basic_result ')' { val[0].send(val[2], *val[4]) }
 		| array { val[0] }
 	array:
 		'[' basic_result ']'	{ val[1] }
@@ -42,52 +45,12 @@ rule
 		line { [val[0]] }
 		| basic_result ',' line { val[0] + [val[2]] }
 	term:
-		'(' term ')' { val[1] }
-        | '(' ')' { nil }
-	    | term '&&' line { val[2] }
 	    | NUMBER { val[0] }
         | command {
 			if $vals[val[0]]
 				return $vals[val[0]]
 			else
-				begin
-					case val[0]
-					when /^cd (.*)$/
-						return Dir.chdir($1)
-					end
-					
-			    	r = []
-			    	er_t = nil
-			    	in_t = nil
-			    	o_t = nil
-			    	p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
-			    		er_t = Thread.new do
-			    			loop do
-			    				$stderr.print stderr.read(stderr.stat.size)
-			    				$stderr.flush
-			    			end
-			    		end
-            	
-			    		in_t = Thread.new do
-			    			loop do
-			    				data = gets
-			    				stdin.write(data)
-			    			end
-			    		end
-		    		
-			    		o_t = Thread.new do
-			    			loop do
-			    				r << stdout.read(stdout.stat.size)
-			    			end
-			    		end
-			    	end
-			    	er_t.kill
-			    	in_t.kill
-			    	o_t.kill
-			    	r.join("")
-				rescue Errno::ENOENT, TypeError
-					val[0]
-				end
+				do_command(val[0])
 			end
 		}
 	command:
@@ -101,6 +64,8 @@ end
 	  @q = []
 	  until str.empty?
 	    case str
+	    when /\A\s(\.\.*)/
+              @q.push [:IDENT, $1]
 	    when /\A\s+/
 	    when /\A&&/
 		  @q.push [$&, $&]
@@ -108,14 +73,12 @@ end
 	      @q.push [:NUMBER, $&.to_f]
 	    when /\A\-?[\d]+/
 	      @q.push [:NUMBER, $&.to_i]
-		when /\A\:([\w\-]+)/
-		  @q.push [:IDENT, $1.intern]
-		when /\A[\w\-][\w\-\=]*/
-          @q.push [:IDENT, $&]
-                when /\A\/([^\/]+)\//
-          @q.push [:IDENT, Regexp.new($1)]
-		when /\A\.\.*/
-          @q.push [:IDENT, $&]
+	    when /\A\:([\w\-]+)/
+	      @q.push [:IDENT, $1.intern]
+	    when /\A[\w\-][\w\-\=]*/
+              @q.push [:IDENT, $&]
+            when /\A\/([^\/]+)\//
+              @q.push [:IDENT, Regexp.new($1)]
 	    when /\A.|\n/o
 	      s = $&
 	      @q.push [s, s]
@@ -138,6 +101,45 @@ gem 'open4'
 require 'open4'
 
 $vals = {}
+
+def do_command(command)
+	case command
+	when /^cd (.*)$/
+		return Dir.chdir($1)
+	end
+
+	r = []
+	er_t = nil
+	in_t = nil
+	o_t = nil
+	p = Open4::popen4(command) do |pid, stdin, stdout, stderr|
+		er_t = Thread.new do
+			loop do
+				$stderr.print stderr.read(stderr.stat.size)
+				$stderr.flush
+			end
+		end
+
+		in_t = Thread.new do
+			loop do
+				data = gets
+				stdin.write(data)
+			end
+		end
+	
+		o_t = Thread.new do
+			loop do
+				r << stdout.read(stdout.stat.size)
+			end
+		end
+	end
+	er_t.kill
+	in_t.kill
+	o_t.kill
+	r.join("")
+rescue Errno::ENOENT, TypeError
+	command
+end
 
 parser = Simplesh.new
 puts

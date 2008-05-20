@@ -7,12 +7,14 @@
 require 'racc/parser.rb'
 class Simplesh < Racc::Parser
 
-module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 99)
+module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 62)
   
 	def parse(str)
 	  @q = []
 	  until str.empty?
 	    case str
+	    when /\A\s(\.\.*)/
+              @q.push [:IDENT, $1]
 	    when /\A\s+/
 	    when /\A&&/
 		  @q.push [$&, $&]
@@ -20,14 +22,12 @@ module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 99)
 	      @q.push [:NUMBER, $&.to_f]
 	    when /\A\-?[\d]+/
 	      @q.push [:NUMBER, $&.to_i]
-		when /\A\:([\w\-]+)/
-		  @q.push [:IDENT, $1.intern]
-		when /\A[\w\-][\w\-\=]*/
-          @q.push [:IDENT, $&]
-                when /\A\/([^\/]+)\//
-          @q.push [:IDENT, Regexp.new($1)]
-		when /\A\.\.*/
-          @q.push [:IDENT, $&]
+	    when /\A\:([\w\-]+)/
+	      @q.push [:IDENT, $1.intern]
+	    when /\A[\w\-][\w\-\=]*/
+              @q.push [:IDENT, $&]
+            when /\A\/([^\/]+)\//
+              @q.push [:IDENT, Regexp.new($1)]
 	    when /\A.|\n/o
 	      s = $&
 	      @q.push [s, s]
@@ -47,64 +47,66 @@ module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 99)
 ##### State transition tables begin ###
 
 racc_action_table = [
-     1,     1,    29,     5,     5,     8,     8,    13,     1,    12,
-    12,     5,    35,     8,    29,     1,     1,    12,     5,     5,
-     8,     8,    47,    13,    12,    12,     5,    22,    13,    29,
-    13,     5,    12,     5,    29,     1,    29,    12,     5,    12,
-     8,    31,    13,    13,    12,     5,     5,     8,    45,    46,
-    13,    12,    12,     5,    13,     8,    38,     5,    16,    12,
-    29,    13,    13,    12,     5,     5,     8,    19,    49,    51,
-    12,    12,    46,    20,    21,    18,    24,    25,    26,    27,
-    28,    24,    25,    26,    27,    28,    24,    25,    26,    27,
-    28,    13,    14,    20,    21,    33,    29 ]
+    -2,    19,    20,     1,    33,    54,    16,     5,   -32,    16,
+     9,     1,    49,    11,    16,     5,    23,    24,     9,     9,
+    25,    11,    11,    26,    27,    29,    26,    27,    29,    26,
+    27,    29,    19,    20,    23,    23,    28,     9,    18,    28,
+    11,    11,    28,    19,    20,    21,     1,     1,    17,    34,
+     5,     5,    16,     9,     9,    31,    11,    11,     1,    12,
+     1,    16,     5,    14,     5,     9,    23,     9,    11,     1,
+    11,     1,    11,    36,    23,     5,     9,     9,     9,    11,
+    11,    11,    23,    23,    23,     9,     9,    23,    11,    11,
+    11,    23,    24,    11,    47,    48,    19,    20,    16,   -33,
+    16,    23 ]
 
 racc_action_check = [
-     0,    49,    40,     0,    49,     0,    49,    13,    46,     0,
-    49,    46,    16,    46,    39,     3,    29,    46,     3,    29,
-     3,    29,    33,     5,     3,    29,     5,     5,    28,    41,
-    27,    28,     5,    27,    42,     8,    43,    28,     8,    27,
-     8,     8,    21,    25,     8,    21,    25,    21,    32,    32,
-    14,    21,    25,    14,    24,    14,    23,    24,     2,    14,
-    23,    20,    26,    24,    20,    26,    20,     4,    47,    50,
-    20,    26,    50,     4,     4,     4,     6,     6,     6,     6,
-     6,    37,    37,    37,    37,    37,    36,    36,    36,    36,
-    36,     1,     1,    34,    34,    10,     7 ]
+     3,    53,    53,     0,    13,    53,    13,     0,    36,    37,
+     0,     3,    36,     0,     3,     3,    36,    36,     3,    36,
+     6,     3,    36,     7,     7,     7,    39,    39,    39,    40,
+    40,    40,    50,    50,    19,    29,     7,    19,     4,    39,
+    19,    29,    40,     4,     4,     4,    25,     9,     4,    14,
+    25,     9,    42,    25,     9,     9,    25,     9,     1,     1,
+    48,    35,     1,     2,    48,     1,    28,    48,     1,    16,
+    48,    17,    28,    16,    20,    17,    16,    20,    17,    16,
+    20,    17,    24,    49,    27,    24,    49,    26,    24,    49,
+    27,     5,     5,    26,    32,    32,    41,    41,    30,    51,
+    52,    23 ]
 
 racc_action_pointer = [
-   -12,    79,    58,     3,    64,    11,    72,    76,    23,   nil,
-    81,   nil,   nil,    -5,    38,   nil,    12,   nil,   nil,   nil,
-    49,    30,   nil,    40,    42,    31,    50,    18,    16,     4,
-   nil,   nil,    30,    10,    84,   nil,    82,    77,   nil,    -6,
-   -18,     9,    14,    16,   nil,   nil,    -4,    53,   nil,   -11,
-    53,   nil ]
+    -8,    47,    63,     0,    35,    76,    13,    19,   nil,    36,
+   nil,   nil,   nil,    -8,    49,   nil,    58,    60,   nil,    19,
+    59,   nil,   nil,    86,    67,    35,    72,    69,    51,    20,
+    84,   nil,    75,   nil,   nil,    47,     1,    -5,   nil,    22,
+    25,    88,    38,   nil,   nil,   nil,   nil,   nil,    49,    68,
+    24,    92,    86,    -7,   nil ]
 
 racc_action_default = [
-   -31,   -29,   -31,    -2,    -5,   -31,    -9,   -21,   -31,   -15,
-   -18,   -28,   -27,   -29,   -31,   -30,   -31,    -1,    -4,    -3,
-   -31,   -31,   -25,   -31,   -31,   -31,   -31,   -31,   -31,   -31,
-   -22,   -20,   -31,   -31,    -6,    52,    -7,    -8,   -24,   -10,
-   -11,   -12,   -13,   -14,   -26,   -19,   -31,   -16,   -23,   -31,
-   -31,   -17 ]
+   -29,   -29,   -34,   -29,    -5,   -32,   -31,   -18,   -26,   -29,
+   -23,   -30,    -7,   -34,   -34,    -1,   -29,   -29,    -3,   -29,
+   -29,    -4,   -33,   -32,   -29,   -29,   -29,   -29,   -29,   -29,
+   -27,   -25,   -34,    -6,    55,   -10,   -12,    -8,   -31,   -16,
+   -17,   -15,    -9,   -19,   -20,   -22,   -21,   -24,   -29,   -29,
+   -13,   -31,   -28,   -34,   -14 ]
 
 racc_goto_table = [
-    32,    30,    15,     2,    23,    34,    17,    36,    37,   nil,
-   nil,   nil,   nil,   nil,    15,   nil,   nil,   nil,   nil,   nil,
-   nil,   nil,    44,    39,    40,    41,    42,    43,   nil,   nil,
-   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,    48,
-   nil,    50,    30 ]
+    13,    39,    40,     2,    22,    41,    15,    32,    30,    43,
+    44,    45,    46,   nil,   nil,    35,    37,    50,    38,    38,
+   nil,   nil,    22,    38,    42,    38,    38,    38,    38,   nil,
+    53,   nil,   nil,   nil,   nil,    51,   nil,   nil,   nil,   nil,
+   nil,   nil,   nil,   nil,   nil,   nil,   nil,    52,    38 ]
 
 racc_goto_check = [
-     8,     2,     9,     1,     5,     3,     1,     4,     4,   nil,
-   nil,   nil,   nil,   nil,     9,   nil,   nil,   nil,   nil,   nil,
-   nil,   nil,     2,     5,     5,     5,     5,     5,   nil,   nil,
-   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,     2,
-   nil,     8,     2 ]
+     2,     5,     5,     1,     4,     3,     1,     8,     2,     6,
+     6,     6,     6,   nil,   nil,     2,     2,     3,     4,     4,
+   nil,   nil,     4,     4,     2,     4,     4,     4,     4,   nil,
+     3,   nil,   nil,   nil,   nil,     4,   nil,   nil,   nil,   nil,
+   nil,   nil,   nil,   nil,   nil,   nil,   nil,     2,     4 ]
 
 racc_goto_pointer = [
-   nil,     3,    -7,    -9,   -13,    -1,   nil,   nil,    -8,     1 ]
+   nil,     3,    -1,   -19,    -1,   -18,   -17,   nil,    -2 ]
 
 racc_goto_default = [
-   nil,   nil,     3,     4,     6,     7,     9,    10,   nil,    11 ]
+   nil,   nil,     3,     4,     6,     7,     8,    10,   nil ]
 
 racc_reduce_table = [
   0, 0, :racc_error,
@@ -114,34 +116,37 @@ racc_reduce_table = [
   2, 24, :_reduce_4,
   1, 24, :_reduce_5,
   3, 24, :_reduce_6,
-  3, 25, :_reduce_7,
-  3, 25, :_reduce_8,
-  1, 25, :_reduce_9,
-  3, 26, :_reduce_10,
-  3, 26, :_reduce_11,
-  3, 26, :_reduce_12,
-  3, 26, :_reduce_13,
-  3, 26, :_reduce_14,
-  1, 26, :_reduce_15,
-  3, 28, :_reduce_16,
-  6, 28, :_reduce_17,
-  1, 28, :_reduce_18,
-  3, 29, :_reduce_19,
-  2, 29, :_reduce_20,
-  1, 29, :_reduce_21,
-  1, 30, :_reduce_22,
-  3, 30, :_reduce_23,
-  3, 27, :_reduce_24,
-  2, 27, :_reduce_25,
-  3, 27, :_reduce_26,
-  1, 27, :_reduce_27,
-  1, 27, :_reduce_28,
-  1, 31, :_reduce_29,
-  2, 31, :_reduce_30 ]
+  2, 24, :_reduce_7,
+  3, 24, :_reduce_8,
+  3, 24, :_reduce_9,
+  3, 24, :_reduce_10,
+  3, 24, :_reduce_11,
+  3, 24, :_reduce_12,
+  4, 24, :_reduce_13,
+  6, 24, :_reduce_14,
+  3, 24, :_reduce_15,
+  3, 25, :_reduce_16,
+  3, 25, :_reduce_17,
+  1, 25, :_reduce_18,
+  3, 27, :_reduce_19,
+  3, 27, :_reduce_20,
+  3, 27, :_reduce_21,
+  3, 27, :_reduce_22,
+  1, 27, :_reduce_23,
+  3, 29, :_reduce_24,
+  2, 29, :_reduce_25,
+  1, 29, :_reduce_26,
+  1, 30, :_reduce_27,
+  3, 30, :_reduce_28,
+  0, 28, :_reduce_none,
+  1, 28, :_reduce_30,
+  1, 28, :_reduce_31,
+  1, 26, :_reduce_32,
+  2, 26, :_reduce_33 ]
 
-racc_reduce_n = 31
+racc_reduce_n = 34
 
-racc_shift_n = 52
+racc_shift_n = 55
 
 racc_token_table = {
   false => 0,
@@ -151,20 +156,20 @@ racc_token_table = {
   "*" => 4,
   "/" => 5,
   "%" => 6,
-  "&" => 7,
-  "|" => 8,
-  "+" => 9,
-  "-" => 10,
-  "\\n" => 11,
-  :IDENT => 12,
-  "=" => 13,
+  "|" => 7,
+  "+" => 8,
+  "-" => 9,
+  "\\n" => 10,
+  "(" => 11,
+  ")" => 12,
+  "&&" => 13,
   "." => 14,
-  "(" => 15,
-  ")" => 16,
-  "[" => 17,
-  "]" => 18,
-  "," => 19,
-  "&&" => 20,
+  :IDENT => 15,
+  "=" => 16,
+  "&" => 17,
+  "[" => 18,
+  "]" => 19,
+  "," => 20,
   :NUMBER => 21 }
 
 racc_nt_base = 22
@@ -195,31 +200,30 @@ Racc_token_to_s_table = [
   "\"*\"",
   "\"/\"",
   "\"%\"",
-  "\"&\"",
   "\"|\"",
   "\"+\"",
   "\"-\"",
   "\"\\\\n\"",
-  "IDENT",
-  "\"=\"",
-  "\".\"",
   "\"(\"",
   "\")\"",
+  "\"&&\"",
+  "\".\"",
+  "IDENT",
+  "\"=\"",
+  "\"&\"",
   "\"[\"",
   "\"]\"",
   "\",\"",
-  "\"&&\"",
   "NUMBER",
   "$start",
   "program",
   "line",
   "expr",
+  "command",
   "mulex",
   "term",
-  "basic_line",
   "array",
-  "basic_result",
-  "command" ]
+  "basic_result" ]
 
 Racc_debug_parser = false
 
@@ -231,212 +235,189 @@ Racc_debug_parser = false
 
 # reduce 2 omitted
 
-module_eval(<<'.,.,', 'simplesh.y', 17)
+module_eval(<<'.,.,', 'simplesh.y', 16)
   def _reduce_3(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 18)
+module_eval(<<'.,.,', 'simplesh.y', 17)
   def _reduce_4(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 19)
+module_eval(<<'.,.,', 'simplesh.y', 18)
   def _reduce_5(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 20)
+module_eval(<<'.,.,', 'simplesh.y', 19)
   def _reduce_6(val, _values)
-     $vals[val[0]] = val[2] 
+     val[1] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 20)
+  def _reduce_7(val, _values)
+     nil 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 21)
+  def _reduce_8(val, _values)
+     val[2] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'simplesh.y', 22)
-  def _reduce_7(val, _values)
-     val[0] + val[2] 
+  def _reduce_9(val, _values)
+     do_command("#{val[0]} #{val[2]}") 
   end
 .,.,
 
 module_eval(<<'.,.,', 'simplesh.y', 23)
-  def _reduce_8(val, _values)
-     val[0] - val[2] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 24)
-  def _reduce_9(val, _values)
-     val[0] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 26)
   def _reduce_10(val, _values)
-     val[0] * val[2] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 27)
-  def _reduce_11(val, _values)
-     val[0] / val[2] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 28)
-  def _reduce_12(val, _values)
-     val[0] % val[2] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 29)
-  def _reduce_13(val, _values)
-     val[0] & val[2] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 30)
-  def _reduce_14(val, _values)
-     val[0] | val[2] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 31)
-  def _reduce_15(val, _values)
-     val[0] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 33)
-  def _reduce_16(val, _values)
      val[0].send(val[2]) 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 34)
-  def _reduce_17(val, _values)
+module_eval(<<'.,.,', 'simplesh.y', 24)
+  def _reduce_11(val, _values)
+     val[0].send(val[2]) 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 25)
+  def _reduce_12(val, _values)
+     val[0].send(val[2]) 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 26)
+  def _reduce_13(val, _values)
      val[0].send(val[2], *val[4]) 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 35)
+module_eval(<<'.,.,', 'simplesh.y', 27)
+  def _reduce_14(val, _values)
+     val[0].send(val[2], *val[4]) 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 28)
+  def _reduce_15(val, _values)
+     $vals[val[0]] = val[2] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 30)
+  def _reduce_16(val, _values)
+     val[0] + val[2] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 31)
+  def _reduce_17(val, _values)
+     val[0] - val[2] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 32)
   def _reduce_18(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 37)
+module_eval(<<'.,.,', 'simplesh.y', 34)
   def _reduce_19(val, _values)
-     val[1] 
+     val[0] * val[2] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 35)
+  def _reduce_20(val, _values)
+     val[0] / val[2] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 36)
+  def _reduce_21(val, _values)
+     val[0] % val[2] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 37)
+  def _reduce_22(val, _values)
+     val[0] & val[2] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'simplesh.y', 38)
-  def _reduce_20(val, _values)
-     [] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 39)
-  def _reduce_21(val, _values)
+  def _reduce_23(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 41)
-  def _reduce_22(val, _values)
-     [val[0]] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 42)
-  def _reduce_23(val, _values)
-     val[0] + [val[2]] 
-  end
-.,.,
-
-module_eval(<<'.,.,', 'simplesh.y', 44)
+module_eval(<<'.,.,', 'simplesh.y', 40)
   def _reduce_24(val, _values)
      val[1] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 45)
+module_eval(<<'.,.,', 'simplesh.y', 41)
   def _reduce_25(val, _values)
-     nil 
+     [] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 46)
+module_eval(<<'.,.,', 'simplesh.y', 42)
   def _reduce_26(val, _values)
-     val[2] 
+     val[0] 
   end
 .,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 44)
+  def _reduce_27(val, _values)
+     [val[0]] 
+  end
+.,.,
+
+module_eval(<<'.,.,', 'simplesh.y', 45)
+  def _reduce_28(val, _values)
+     val[0] + [val[2]] 
+  end
+.,.,
+
+# reduce 29 omitted
 
 module_eval(<<'.,.,', 'simplesh.y', 47)
-  def _reduce_27(val, _values)
+  def _reduce_30(val, _values)
      val[0] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'simplesh.y', 49)
-  def _reduce_28(val, _values)
+  def _reduce_31(val, _values)
     			if $vals[val[0]]
 				return $vals[val[0]]
 			else
-				begin
-					case val[0]
-					when /^cd (.*)$/
-						return Dir.chdir($1)
-					end
-					
-			    	r = []
-			    	er_t = nil
-			    	in_t = nil
-			    	o_t = nil
-			    	p = Open4::popen4(val[0]) do |pid, stdin, stdout, stderr|
-			    		er_t = Thread.new do
-			    			loop do
-			    				$stderr.print stderr.read(stderr.stat.size)
-			    				$stderr.flush
-			    			end
-			    		end
-            	
-			    		in_t = Thread.new do
-			    			loop do
-			    				data = gets
-			    				stdin.write(data)
-			    			end
-			    		end
-		    		
-			    		o_t = Thread.new do
-			    			loop do
-			    				r << stdout.read(stdout.stat.size)
-			    			end
-			    		end
-			    	end
-			    	er_t.kill
-			    	in_t.kill
-			    	o_t.kill
-			    	r.join("")
-				rescue Errno::ENOENT, TypeError
-					val[0]
-				end
+				do_command(val[0])
 			end
 		
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 93)
-  def _reduce_29(val, _values)
+module_eval(<<'.,.,', 'simplesh.y', 56)
+  def _reduce_32(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 94)
-  def _reduce_30(val, _values)
+module_eval(<<'.,.,', 'simplesh.y', 57)
+  def _reduce_33(val, _values)
      "#{val[0]} #{val[1]}" 
   end
 .,.,
@@ -453,6 +434,45 @@ gem 'open4'
 require 'open4'
 
 $vals = {}
+
+def do_command(command)
+	case command
+	when /^cd (.*)$/
+		return Dir.chdir($1)
+	end
+
+	r = []
+	er_t = nil
+	in_t = nil
+	o_t = nil
+	p = Open4::popen4(command) do |pid, stdin, stdout, stderr|
+		er_t = Thread.new do
+			loop do
+				$stderr.print stderr.read(stderr.stat.size)
+				$stderr.flush
+			end
+		end
+
+		in_t = Thread.new do
+			loop do
+				data = gets
+				stdin.write(data)
+			end
+		end
+	
+		o_t = Thread.new do
+			loop do
+				r << stdout.read(stdout.stat.size)
+			end
+		end
+	end
+	er_t.kill
+	in_t.kill
+	o_t.kill
+	r.join("")
+rescue Errno::ENOENT, TypeError
+	command
+end
 
 parser = Simplesh.new
 puts
