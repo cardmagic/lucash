@@ -24,7 +24,7 @@ rule
 		| line '.' line { val[0].send(val[2]) }
 		| line '.' line { val[0].send(val[2]) }
 		| line '.' IDENT { val[0].send(val[2]) }
-		| line '.' IDENT expr { val[0].send(val[2], *val[4]) }
+		| line '.' IDENT expr { val[0].send(val[2], *val[3]) }
 		| line '.' IDENT '(' expr ')' { val[0].send(val[2], *val[4]) }
 		| IDENT '=' expr { $vals[val[0]] = val[2] }
 	expr: 

@@ -297,7 +297,7 @@ module_eval(<<'.,.,', 'simplesh.y', 25)
 
 module_eval(<<'.,.,', 'simplesh.y', 26)
   def _reduce_13(val, _values)
-     val[0].send(val[2], *val[4]) 
+     val[0].send(val[2], *val[3]) 
   end
 .,.,
 
