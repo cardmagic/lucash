@@ -16,9 +16,10 @@ rule
 	line: 
 		expr ';' { val[0] } 
 		| expr '\n' { val[0] } 
-		| expr { val[0] }
 		| '(' line ')' { val[1] }
         | '(' ')' { nil }
+		| 'if' line program 'end' { if val[1]; val[2]; end }
+		| 'if' line program 'else' program 'end' { if val[1]; val[2]; else; val[4]; end }
 	    | expr '&&' line { val[2] }
 		| command '|' line { do_command("#{val[0]} #{val[2]}") }
 		| line '.' line { val[0].send(val[2]) }
@@ -65,8 +66,12 @@ end
 	  until str.empty?
 	    case str
 	    when /\A\s(\.\.*)/
-              @q.push [:IDENT, $1]
-	    when /\A\s+/
+          @q.push [:IDENT, $1]
+	    when /\A[ \t\r]+/
+		when /\A(if|else|end)/i
+		  @q.push [$&, $&]
+		when /\A\n/
+		  @q.push ['\n', '\n']
 	    when /\A&&/
 		  @q.push [$&, $&]
 	    when /\A\-?\d+\.\d+/
@@ -76,9 +81,9 @@ end
 	    when /\A\:([\w\-]+)/
 	      @q.push [:IDENT, $1.intern]
 	    when /\A[\w\-][\w\-\=]*/
-              @q.push [:IDENT, $&]
-            when /\A\/([^\/]+)\//
-              @q.push [:IDENT, Regexp.new($1)]
+          @q.push [:IDENT, $&]
+        when /\A\/([^\/]+)\//
+          @q.push [:IDENT, Regexp.new($1)]
 	    when /\A.|\n/o
 	      s = $&
 	      @q.push [s, s]
@@ -104,6 +109,8 @@ $vals = {}
 
 def do_command(command)
 	case command
+	when "true", "false"
+		return command == "true"
 	when /^cd (.*)$/
 		return Dir.chdir($1)
 	end
@@ -149,7 +156,6 @@ while true
   puts
   print '? '
   if str = gets
-    str.chop!
     break if /q/i =~ str
     begin
       puts parser.parse(str)
