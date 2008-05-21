@@ -1,0 +1,9 @@
+* CHANGES
+* MANIFEST
+* README
+* Rakefile
+* memoize.gemspec
+* examples/fibonacci.rb
+* examples/test_memoize.rb
+* lib/memoize.rb
+* test/tc_memoize.rb

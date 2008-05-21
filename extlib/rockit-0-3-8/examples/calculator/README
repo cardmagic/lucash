@@ -1,0 +1,6 @@
+calculator.rb - base (fully paranthesized expressions) infix calculator. 
+  		The other ones uses stuff from this one so you'd better 
+		check it out. ;-)
+rpcalc.rb     - reverse polish notation calculator as in Bison docs.
+mfcalc.rb     - Multi-function calculator with variables, multiple assignment
+                and functions.

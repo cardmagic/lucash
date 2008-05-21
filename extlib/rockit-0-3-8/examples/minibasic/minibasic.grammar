@@ -1,0 +1,62 @@
+#############################################################################
+# This grammar is based on the minibasic example in SableCC. Here's
+# the copyright notice from the original file:
+#
+# Copyright (C) 1997, 1998, 1999 J-Meg inc.  All rights reserved.
+#
+# This file is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation; either version 2.1 of the License, or
+# (at your option) any later version.
+#
+# This file is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+# License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this file (in the file "COPYING-LESSER"); if not,
+# write to the Free Software Foundation, Inc., 59 Temple Place,
+# Suite 330, Boston, MA  02111-1307  USA
+#
+# If you have any question, send an electronic message to
+# Etienne M. Gagnon, M.Sc. (egagnon@j-meg.com), or write to:
+#
+# J-Meg inc.
+# 11348 Brunet
+# Montreal-Nord (Quebec)
+# H1G 5G1  Canada
+#############################################################################
+Grammar MiniBasic
+Tokens
+  Blank      = /(( )|(\t)|(\v))+/                     [:Skip]
+  Identifier = /[A-Z]([A-Z]|\d)*/
+  Number     = /\d+/
+  String     = /"[^\r\n]*"/
+  Newline    = /(\r\n)|(\r)|(\n)/
+
+Productions
+  Statements -> Statement+          [Statements: statements]
+  Statement  -> 'IF' Condition 'THEN' Newline
+                  Statements
+                  ('ELSE' Newline Statements)?
+                'ENDIF' Newline     [If: _,condition,_,_,statements,optelse,
+                                           _,_]
+             |  'FOR' Identifier ':=' Expr 'TO' Expr Newline
+                  Statements
+                'NEXT' Newline      [For: _,ident,_,from,_,to,_,statements,_,_]
+             |  'READ' Identifier Newline
+                                    [Read: _,ident,_]
+             |  'PRINT' (Expr | String) Newline
+                                    [Print: _,message,_]
+             |  'PRINTLN' Newline   [PrintLn]
+             |  Identifier ':=' Expr Newline
+                                    [Assignment: ident,_,expression,_]
+  Condition -> Expr ('<' | '>' | '=') Expr     
+                                    [Condition: left, op, right]
+  Expr       -> Number              [^]
+	     |  Identifier          [^]
+	     |  '(' Expr ')'        [^: _,expr,_]
+             |  Expr ('+'|'-'|'*'|'/'|'MOD') Expr       
+                                    [BinExpr: left,op,right]
+

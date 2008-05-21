@@ -1,0 +1,6 @@
+1. Create parser (assuming you have installed rockit)
+    $ rockit minibasic.grammar minibasic_parser.rb MiniBasic
+
+2. Test some programs
+    $ ruby interpreter.rb sumeven.basic
+    ...
