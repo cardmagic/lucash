@@ -1,0 +1,12 @@
+Examples similar to the examples from the ANTLR tutorial in the PCCTS reference guide:
+
+* Evaluating polynomials - poly.rb
+  Similar to the polynomials example on page 41. Differences:
+    Only takes one assignment/polynomial at a time
+    No need to specify 
+  
+* Symbolic differentiation - differentiate.rb
+  Similar to the example on page 68. Differences:
+    Multiple variables ok in expression
+    The variable to differentiate wrt can be specified
+

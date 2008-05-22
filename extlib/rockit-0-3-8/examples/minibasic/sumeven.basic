@@ -1,0 +1,18 @@
+PRINT "I can sum even numbers."
+PRINTLN
+PRINT "At what number should I start summing"
+READ START
+PRINT "At what number should I stop"
+READ STOP
+SUM := 0
+FOR I := START TO STOP
+  IF (I MOD 2) = 0 THEN
+    SUM := (SUM + I)
+  ENDIF
+NEXT
+PRINT "The sum of all even numbers between (inclusive) "
+PRINT START
+PRINT " and "
+PRINT STOP
+PRINT " is = "
+PRINT SUM

@@ -1,0 +1,296 @@
+------------------------------------------------------------------------------
+ToDo
+------------------------------------------------------------------------------
+PHASE I
+*******
+
+* Generate "better" lexers
+  * Introduce states à la SableCC? Or should it be possible to return a token
+    with multiple labels (for example the token for Identifier may match
+    the same thing as a string token for a keyword; instead of returning two
+    tokens we can return one token with multiple names/labels)? The latter
+    would be better if it suffices; it wouldn't complicate matters when
+    writing grammars.
+
+* Parser generation todo
+  * # as child name expanded to :lexeme
+  * Specifying tokens using in production-style with lexical elements:
+
+      QString         -> /'((\\')|[^'])*'/
+                      |  '%' delimited_string        [: _,#]
+
+    Elements can be (1) strings, (2) regexps, (3) name of tokenizer. The
+    latter is a ruby method defined in the Tokenizers section. It will be
+    inserted into the lexer and called to tokenize. It can access the
+    attributes string (full string being tokenized), cursor (position of
+    the next char to be considered) and string_length (length of the string
+    being tokenized). It return the name of the token found (as a symbol),
+    the start and end positions of the lexeme and the position of the next
+    char to be considered.
+
+    Tokens can have AstSpecs specifying which parts of the matched string
+    should be the lexeme. Following symbols can be used:
+
+       # means "the string matched by the lexical element at this position
+                should be the lexeme" (only one per AstSpec)
+       + means "add string matched by the lexical element at this position
+                to the lexeme" (one or several per AstSpec)
+       _ means "do NOT include in lexeme"
+
+    Examples:
+
+       A -> '1' /\w+/  [: _, #] 
+         matched against "1saffds" will return A:[saffds]
+
+       B -> '1' 'arm' /\w+/  [: +,_,+] 
+         matched against "1armsaffds" will return B:[1saffds]
+  
+  * new_name = m[index].child_name can be used in AstSpec to specify that
+    the value of the child named 'child_name' on the element at position
+    'index' should be given the name 'new_name'. The "new_name =" part is 
+    optional. If not given it must be the only child reference in the AstSpec
+    since it will be returned when the production match.
+
+  * Take away the difference between Tokens and Productions for the user.
+    The funcs used to write grammars should be smart enough to see if they
+    can be implemented as Tokens. If not they must be Productions. It can
+    only be a token if all elements are either strings or regexps or can
+    be derived from a lhs that is a Token. The operator elements can be used
+    both on NonTerminal elements and on Token/Terminal elements. If they are
+    used on the rhs of a token def they are expanded to regexp form. If not
+    they are expanded as productions. If we do this we cant use [] for 
+    specifying options to Tokens (since its confusing cause Productions use 
+    them for AST spec). Instead we can use ':' as in
+
+	WhiteSpace -> /\s+/                          :skip:
+        Exp -> Exp '+' Exp     [Plus: left, _, left] :left:
+
+    This would give interesting flexibility in that the parser gen can choose
+    somewhat what should be tokens and what should be Productions. (My guess
+    is of course that its always better to do something as a token if it
+    can be done as a token but it would be nice to be proven wrong ;-))
+
+  * Creating stand-alone parsers. Generated file should include all source 
+    code needed.
+
+  Grammar:
+   * Clean up Element/GrammarSymbol hierarchy and move Token into it.
+	Element > [OperatorElement > [PlusE, MultE, ListE, MaybeE, OrE], 
+	           GrammarSymbol > [Token, NonTerminal]]
+   * GrammarSymbols should be Indexable and created by IndexableFactories
+   * prod should make use of an IndexableFactory when creating grammar symbols
+   * inspect should include priorities and tree_builders
+   * inspect of Production and Grammar are sometimes ugly
+   * Grammars should be mergeable/importable. Be able to spec what is imported
+     and under what name?
+
+  RockitGrammarSemanticsChecker
+  * class for checking that a syntactically correct rockit grammar is 
+    semantically correct, for example:
+     * All nonterminals and tokens used must be defined somewhere
+
+  GraphDrawing
+   * Not longer needed since we have graphviz_dot.rb. Move GlrParser-specific
+     stuff to GlrParser and delete this file. 
+
+  LaLrGen
+   * Shouldn't include skip tokens when building tables.
+
+  Token:
+   * Unify the func of StringToken and RegexpToken into Token. 
+     No need to treat them specially. 
+     Make sure everyone uses Token when creating implicitly defined tokens. 
+
+  Tests/Checks:
+   * More tests of nested operator elements. Its buggy!
+
+  All:
+   * Enclose in module Parse
+
+  GlrParser:
+   * Add substring extraction to AmbigousParseException so that only the 
+     substring where the ambiguity arises is shown.
+   * Simplify by using DirectedGraph for the ParseStack?
+
+Phase II. Better error detection, recovery and reporting.
+
+Phase III. Performance. See ideas below.
+
+Phase IV. More example grammars
+  * Example grammars in subdir examples
+    * Prio medium: examples/yacc-translator
+      Translates yacc grammar files to rockit ditto. Build on the ruby parse.y
+      to rockit translator.
+
+    * Prio low: examples/ansic-parser
+      CLanguage::AnsiCParser - A parser for ANSI C.
+
+------------------------------------------------------------------------------
+Size of the generated parse tables
+------------------------------------------------------------------------------
+* Compact table by defining commonly used large integers (representing
+  Terminal sets) as variables and using the vars in the action table.
+
+------------------------------------------------------------------------------
+Performance (in order of decreasing perceived potential effect on performance)
+------------------------------------------------------------------------------
+Parser + Lexer
+* Parser-directed token filtering. Assign one bit to each token in the grammar. Represent the valid follow set at each parse stack and send it to the lexer. The lexer will only try out the skip tokens (which can always appear) and the tokens that might follow. This makes for faster lexing and parsing. Drawback is that the follow sets must be saved in the parse table but since they are simply Integers it might not be that big a problem. Maybe add this as an option? Add it by subclassing the existing Lexer, Parser and Generator classes?
+
+GlrParser:
+* Implement Alonsos O(n^3) generalized LR parsing algorithm which uses
+  dynamic programming instead of a graph-structured stack. It acheives
+  linear complexity for LR grammars.
+	@inproceedings{ alonso97construction,
+    author = "Alonso and Cabrero and Vilares",
+    title = "Construction of Efficient Generalized {LR} Parsers",
+    booktitle = "{WIA}: International Workshop on Implementing Automata, {LNCS}",
+    publisher = "Springer-Verlag",
+    year = "1997",
+    url = "citeseer.nj.nec.com/44290.html"
+	}
+    http://www.dc.fi.udc.es/~alonso/papers.html
+
+* Lazy tree creation. Lessen the overhead from the GLR parsing algorithm by
+  not creating the trees until the parse is finished. Insert tree creation 
+  nodes at the links and collect them into tree structures. The call
+  create or build to actually build the tree. But first see if tree creation
+  is a major speed problem.
+
+* Check out: J. Aycock and N. Horspool. Faster Generalized LR Parsing. In S. Jahnichen, editor, Proceedings of the eight International Conference on Compiler Construction, volume 1575 of LNCS, pages 32--46. Springer-Verlag, 1999. 
+
+GlrParser:
+* Might be a good idea not to check for conflicts all the time but only when
+  a real conflict (ambiguity) is found. But it might not be good since we 
+  delay the pruning of unneeded paths. Needs to be evaluated in practice.
+* Compact unused nodes directly?
+* Check out why we find multiple ways to reduce to the
+  same trees but that there is no ambiguity since they are the same. This is
+  a potential cause of bad performance? Find out how often this happens...
+
+Lexer:
+* No need to count newlines and columns in the Lexer with LexerPosition. At least not from an error reporting perspective since we can easily extract this info if we have the char position.
+
+Grammar:
+* Memoize normalize on OperatorElement's since they will be the same each time
+  once they've been calculated. Probably not important though...
+
+LaLr1ParserGenerator:
+* Speed up @grammar.productions.index and @grammar.tokens.index idioms
+  by using hash (Memoize).
+
+------------------------------------------------------------------------------
+Error recovery and reporting
+------------------------------------------------------------------------------
+* General problem is that there is no recovery at all! Rockit will fail
+  when there is a syntax error. There are many ways to introduce error
+  recovery but I'm not yet sure what is "the right way". Any ideas welcome!
+
+* SableCC idea: Syntax error recovery by inserting (error) tokens until the invalid token becomes invalid. This is done on the assumption that it is more common for a user to forget a token than adding erroneous ones.
+  Example: 
+    "a = 3 + 5 b + 3;"
+    where it is assumed the user has forgot an operator so parsed as
+    "a = 3 + 5 [OP] b + 3;"
+
+* Check tokens at PTGen time to make sure none of them matches the empty 
+  string. If some does it will match at every time...
+
+* Might be good to check out Rekers thesis on subtring recognition and parsing. These techniques can be used for noncorrecting syntax error recovery (answering: Is the rest of the string a legal substring of the language?) and for generating trees for the possible contextual completions of a substring of the language. If we couple this with some fuzzy/pattern-matching technique that adapts to the errors each person frequently do we should get a very powerful error analysis system. General design is that substring recognition/parsing generates the possible correct sentences and the adaptive algorithm chooses the most likely ones based on your previous errors.
+
+------------------------------------------------------------------------------
+Ideas / Maybe some day...
+------------------------------------------------------------------------------
+Node and child naming when nested operators:
+* Embed a full AstSpec after the child name in the ElemSpecs.
+  Example:
+   Currently:
+
+     Grammar -> 
+       'Grammar' LanguageName Tokens? Productions Priorities?
+       [Grammar: _, language, tokens, productions, priorities]
+     Tokens      -> 'Tokens' TokenSpec+                [^: _,tokens]
+     Priorities -> 'Priorities' Priority+              [^: _, priorities]
+
+   would become:
+
+     Grammar -> 
+       'Grammar' LanguageName 
+         ('Tokens' TokenSpec+)? Productions ('Priorities' Priority+)?
+       [Grammar: _, language, 
+                 tokens[^: _,tokens], productions, 
+                 priorities[^: _, priorities]]
+
+Operators:
+* Add SequenceOperator that groups elements.
+
+Grammar:
+* Change name from Grammar/GrammarModule to LanguageModule or Language? May
+  be better description since it not only includes a (context-free) grammar
+  but also lexical spec, ast spec and priorities etc.
+
+Lexer:
+* The ultimate in lexing is that when you spec
+
+    Blank   = /\s+/
+    Newline = /\n/
+    Id      = /\w+/
+
+  and have the string " \t\na" you should get the lexer streams
+     [[Id:[a]], [Newline, Id:[a]]]
+
+  Right now you'll only get 
+      
+     [Id:[a]]
+
+  since Blank will eat as much as possible and Newline does not match 
+  the beginning of the string.
+
+  One simple way to get the ultimate behavior above is to make some analysis
+  beforehand on what tokens may overlap in this way and then handles it.
+  One way would be by matching Newline to the match of Blank and then rematch
+  Blank to the stuff preceding the previous match up to but not including
+  the newline. But the cleanest way is probably to make some kind of DFA out 
+  of this mess.
+
+Misc:
+* Subclass SyntaxTree for each AST node specified by the user. This would make the separation clearer when writing evaluators. The programmer simply writes an eval method on the corresponding node. Also see MAtju's MetaTypes approach in RubyAST.
+
+* Being able to restrict a parser to a subgrammar R' of the grammar R it was generated for. Jan Rekers introduces a technique for this in his thesis and we can probably adapt his techniques to our context. 
+
+* Lifting and evaluating terminals in the AST spec. Right now one can only
+  lift productions. It would also be nice to be able to lift terminals. This
+  will lift the lexeme value out of the Terminal. One could also specify that
+  the lexeme should be eval'ed when lifted. Proposed syntax
+        MyProduction -> num '-' num    [Sub: ^e, nil, ^e]
+                     |  num            [Num: ^]
+
+  where '^' is used to mark simple lifting of the lexeme and '^e' for lifting
+  and evaluating.
+
+* epsilon productions!? Are they needed?
+
+* Define a tree walking grammar à la Sorcerer in ANTLR.
+
+* Specify that a child2 should always be accessed as an ArrayNode with
+
+    nt -> alpha ',' gamma      [Node: child1, _, child2[]]
+    gamma -> numeric           [^]
+          |  $seq(string, ',') [^]
+
+  The numeric is converted into ArrayNode when Node is created. Easy to 
+  implement.
+
+* Token priorities. Use the existing priority section and syntax to specify
+  priorities between tokens. The priorities can be used to handle ambiguities
+  arising because two tokens overlap, ie. match the same substring, when
+  an ambiguity is found during parsing.
+
+* Look into the possibility of adapting techniques for hard-coding LR parsers for speed to generalized parsing à la Rockit. There is the paper "Very Fast YACC-Compatible Parsers (For Very Little Effort)" by Achyutram Bhamidipaty and Todd A. Proebsting in http://citeseer.nj.nec.com/53129.html.
+
+* Check out what can be learned from fast scanner generators like GLA and RE2C which are said to produce faster lexers than handcoded ones. Can we adapt them to the Forking Scanner technique we use? There's a paper on RE2C in CiteSeer. There are lots of links on the page http://www.compilers.net/ScannerGens.htm. re2c is available from ftp://csg.uwaterloo.ca/pub/peter/re2c.0.5.tar.gz.
+
+* Other interesting papers/sites to check out:
+	* One-Pass, Optimal Tree Parsing - With Or Without Trees,
+          Todd A. Proebsting and Benjamin R. Whaley, CC'96 April 1996. 
+	* T. Rus and T. Halverson. A language independent scanner generator. Available at ftp://ftp.cs.uiowa.edu/pub/rus/scan3.ps, 1998. 
+	* Elegant is Philips advanced compiler construction tools that have grown into a full programming language. However, the scanner generator seems to be based on Dragon book so not much new there. They have automatic error recovery though.

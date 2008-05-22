@@ -1,0 +1,20 @@
+A very rudimentary Ruby parser
+------------------------------
+
+Right now it only parser literals!
+
+1. Translate parse.y from Ruby sources (I've only tried with 1.6.3 parse.y
+   and there is reported to be a problem with later ones) to a rockit grammar
+ 
+  $ ruby parse_y_to_rockit.rb parse.y ruby.grammar
+
+2. Create parser
+
+  $ rockit ruby.grammar ruby_parser.rb Ruby
+
+3. test it
+
+  $ ruby test.rb
+
+BUT NOTE THAT IT IS VERY RUDIMENTARY AND PROBABLY CANNOT BE USED IN PRACTICE!
+NEEDS MORE WORK!!
