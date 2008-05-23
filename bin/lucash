@@ -12,10 +12,10 @@ while true
   if str = gets
     break if /q/i =~ str
     begin
-      p = parser.parse(str)
-      r = lucash_eval(p)
-      puts p.inspect if ENV['DEBUG']
-      puts r.inspect
+      ast = parser.parse(str)
+      ast_parser = Lucash::Ast.new(ast)
+      puts ast.inspect if ENV['DEBUG']
+      puts ast_parser.eval.inspect
     rescue ParseError
       puts $!
     end
