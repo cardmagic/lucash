@@ -11,52 +11,47 @@ class Simplesh
 	preclow
 rule
 	program: 
-		line program 
-		| line 
+		  line program { [:program, [val[0], *val[1][1]]] }
+    | '{' program '}' { [:block, val[1]] }
+		| line { [:program, [val[0]]] }
+		| program '\n' { [:program, [val[0]]] }
+		| program ';' { [:program, [val[0]]] }
 	line: 
-		expr ';' { val[0] } 
-		| expr '\n' { val[0] } 
-		| '(' line ')' { val[1] }
-        | '(' ')' { nil }
-		| 'if' line program 'end' { if val[1]; val[2]; end }
-		| 'if' line program 'else' program 'end' { if val[1]; val[2]; else; val[4]; end }
-	    | expr '&&' line { val[2] }
-		| command '|' line { do_command("#{val[0]} #{val[2]}") }
-		| line '.' line { val[0].send(val[2]) }
-		| line '.' line { val[0].send(val[2]) }
-		| line '.' IDENT { val[0].send(val[2]) }
-		| line '.' IDENT expr { val[0].send(val[2], *val[3]) }
-		| line '.' IDENT '(' expr ')' { val[0].send(val[2], *val[4]) }
-		| IDENT '=' expr { $vals[val[0]] = val[2] }
+	    expr { [:line, val[0]] } 
+		| expr ';' { [:line, val[0]] } 
+		| expr '\n' { [:line, val[0]] } 
+		| '(' line ')' { [:line, val[1]] }
+    | '(' ')' { [:empty_parens] }
+		| 'if' line program 'end' { [:if, val[1], val[2]] }
+		| 'if' line program 'else' program 'end' { [:if_else, val[1], val[2], val[4]] }
+	  | expr '&&' line { [:and, val[0], val[2]] }
+		| command '|' line { [:pipe, [:line, val[0]], val[2]] }
+		| line '.' line { [:method, val[0], val[2]] }
+		| line '.' IDENT { [:method, val[0], val[2]] }
+		| line '.' IDENT expr { [:method_with_args, val[0], val[2], val[3]] }
+		| line '.' IDENT '(' expr ')' { [:method_with_args, val[0], val[2], val[4]] }
+		| IDENT '=' line { [:assignment, val[0], val[2]] }
+		| IDENT '<-' line { [:functional_assignment, val[0], val[2]] }
 	expr: 
-		expr '+' mulex { val[0] + val[2] }
-		| expr '-' mulex { val[0] - val[2] }
-		| mulex { val[0] } 
-	mulex:
-		mulex '*' term { val[0] * val[2] }
-		| mulex '/' term { val[0] / val[2] }
-		| mulex '%' term { val[0] % val[2] }
-		| mulex '&' term { val[0] & val[2] }
+		  expr '+' atom { [:add, val[0], val[2]] }
+		| expr '-' atom { [:subtract, val[0], val[2]] }
+		| expr '*' atom { [:multiply, val[0], val[2]] }
+		| expr '/' atom { [:divide, val[0], val[2]] }
+		| expr '%' atom { [:mod, val[0], val[2]] }
 		| array { val[0] }
 	array:
-		'[' basic_result ']'	{ val[1] }
-        | '[' ']'		 		{ [] }
-		| term					{ val[0] }
+		  '[' basic_result ']'	{ [:array, val[1]] }
+    | '[' ']'		 		        { [:empty_array] }
+		| atom					        { val[0] }
 	basic_result:
-		line { [val[0]] }
-		| basic_result ',' line { val[0] + [val[2]] }
-	term:
-	    | NUMBER { val[0] }
-        | command {
-			if $vals[val[0]]
-				return $vals[val[0]]
-			else
-				do_command(val[0])
-			end
-		}
+		  program { [:splat, [val[0]]] }
+		| program ',' basic_result { [:splat, [val[0], *val[2][1]]] }
+	atom:
+	    NUMBER { [:number, val[0]] }
+    | command { val[0] }
 	command:
-		IDENT { val[0] }
-		| IDENT command { "#{val[0]} #{val[1]}" }
+		  IDENT { [:value, [val[0]]] }
+  	| IDENT command { [:value, [val[0], *val[1][1]]] }
 end
 
 ---- inner
@@ -68,12 +63,14 @@ end
 	    when /\A\s(\.\.*)/
           @q.push [:IDENT, $1]
 	    when /\A[ \t\r]+/
-		when /\A(if|else|end)/i
-		  @q.push [$&, $&]
-		when /\A\n/
-		  @q.push ['\n', '\n']
+		  when /\A(if|else|end)/i
+		    @q.push [$&, $&]
+		  when /\A\n/
+		    @q.push ['\n', '\n']
 	    when /\A&&/
-		  @q.push [$&, $&]
+		    @q.push [$&, $&]
+	    when /\A<-/
+		    @q.push [$&, $&]
 	    when /\A\-?\d+\.\d+/
 	      @q.push [:NUMBER, $&.to_f]
 	    when /\A\-?[\d]+/
@@ -81,9 +78,9 @@ end
 	    when /\A\:([\w\-]+)/
 	      @q.push [:IDENT, $1.intern]
 	    when /\A[\w\-][\w\-\=]*/
-          @q.push [:IDENT, $&]
-        when /\A\/([^\/]+)\//
-          @q.push [:IDENT, Regexp.new($1)]
+        @q.push [:IDENT, $&]
+      when /\A\/([^\/]+)\//
+        @q.push [:IDENT, Regexp.new($1)]
 	    when /\A.|\n/o
 	      s = $&
 	      @q.push [s, s]
@@ -101,11 +98,6 @@ end
 	
 ---- footer
 
-require 'rubygems'
-gem 'open4'
-require 'open4'
-
-$vals = {}
 
 def do_command(command)
 	case command
@@ -158,7 +150,10 @@ while true
   if str = gets
     break if /q/i =~ str
     begin
-      puts parser.parse(str)
+      p = parser.parse(str)
+      r = simplesh_eval(p)
+      puts p.inspect if ENV['DEBUG']
+      puts r.inspect
     rescue ParseError
       puts $!
     end

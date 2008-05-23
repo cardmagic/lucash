@@ -5,51 +5,19 @@
 #
 
 require 'racc/parser.rb'
-class Simplesh < Racc::Parser
+class Lucash < Racc::Parser
 
-module_eval(<<'...end simplesh.y/module_eval...', 'simplesh.y', 58)
-  
-	def parse(str)
-	  @q = []
-	  until str.empty?
-	    case str
-	    when /\A\s(\.\.*)/
-          @q.push [:IDENT, $1]
-	    when /\A[ \t\r]+/
-		  when /\A(if|else|end)/i
-		    @q.push [$&, $&]
-		  when /\A\n/
-		    @q.push ['\n', '\n']
-	    when /\A&&/
-		    @q.push [$&, $&]
-	    when /\A<-/
-		    @q.push [$&, $&]
-	    when /\A\-?\d+\.\d+/
-	      @q.push [:NUMBER, $&.to_f]
-	    when /\A\-?[\d]+/
-	      @q.push [:NUMBER, $&.to_i]
-	    when /\A\:([\w\-]+)/
-	      @q.push [:IDENT, $1.intern]
-	    when /\A[\w\-][\w\-\=]*/
-        @q.push [:IDENT, $&]
-      when /\A\/([^\/]+)\//
-        @q.push [:IDENT, Regexp.new($1)]
-	    when /\A.|\n/o
-	      s = $&
-	      @q.push [s, s]
-	    end
-	    str = $'
-	  end
-	  @q.push [false, '$end']
-	  puts @q.inspect if ENV['DEBUG']
-	  do_parse
-	end
+module_eval(<<'...end grammar.y/module_eval...', 'grammar.y', 54)
 
-	def next_token
-	  @q.shift
-	end
-	
-...end simplesh.y/module_eval...
+require 'lucash/parser'
+
+include Lucash::Parser
+
+def next_token
+  @q.shift
+end
+
+...end grammar.y/module_eval...
 ##### State transition tables begin ###
 
 racc_action_table = [
@@ -268,211 +236,211 @@ Racc_debug_parser = false
 
 # reduce 0 omitted
 
-module_eval(<<'.,.,', 'simplesh.y', 13)
+module_eval(<<'.,.,', 'grammar.y', 9)
   def _reduce_1(val, _values)
      [:program, [val[0], *val[1][1]]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 14)
+module_eval(<<'.,.,', 'grammar.y', 10)
   def _reduce_2(val, _values)
      [:block, val[1]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 15)
+module_eval(<<'.,.,', 'grammar.y', 11)
   def _reduce_3(val, _values)
      [:program, [val[0]]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 16)
+module_eval(<<'.,.,', 'grammar.y', 12)
   def _reduce_4(val, _values)
      [:program, [val[0]]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 17)
+module_eval(<<'.,.,', 'grammar.y', 13)
   def _reduce_5(val, _values)
      [:program, [val[0]]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 19)
+module_eval(<<'.,.,', 'grammar.y', 15)
   def _reduce_6(val, _values)
      [:line, val[0]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 20)
+module_eval(<<'.,.,', 'grammar.y', 16)
   def _reduce_7(val, _values)
      [:line, val[0]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 21)
+module_eval(<<'.,.,', 'grammar.y', 17)
   def _reduce_8(val, _values)
      [:line, val[0]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 22)
+module_eval(<<'.,.,', 'grammar.y', 18)
   def _reduce_9(val, _values)
      [:line, val[1]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 23)
+module_eval(<<'.,.,', 'grammar.y', 19)
   def _reduce_10(val, _values)
      [:empty_parens] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 24)
+module_eval(<<'.,.,', 'grammar.y', 20)
   def _reduce_11(val, _values)
      [:if, val[1], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 25)
+module_eval(<<'.,.,', 'grammar.y', 21)
   def _reduce_12(val, _values)
      [:if_else, val[1], val[2], val[4]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 26)
+module_eval(<<'.,.,', 'grammar.y', 22)
   def _reduce_13(val, _values)
      [:and, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 27)
+module_eval(<<'.,.,', 'grammar.y', 23)
   def _reduce_14(val, _values)
      [:pipe, [:line, val[0]], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 28)
+module_eval(<<'.,.,', 'grammar.y', 24)
   def _reduce_15(val, _values)
      [:method, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 29)
+module_eval(<<'.,.,', 'grammar.y', 25)
   def _reduce_16(val, _values)
      [:method, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 30)
+module_eval(<<'.,.,', 'grammar.y', 26)
   def _reduce_17(val, _values)
      [:method_with_args, val[0], val[2], val[3]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 31)
+module_eval(<<'.,.,', 'grammar.y', 27)
   def _reduce_18(val, _values)
      [:method_with_args, val[0], val[2], val[4]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 32)
+module_eval(<<'.,.,', 'grammar.y', 28)
   def _reduce_19(val, _values)
      [:assignment, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 33)
+module_eval(<<'.,.,', 'grammar.y', 29)
   def _reduce_20(val, _values)
      [:functional_assignment, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 35)
+module_eval(<<'.,.,', 'grammar.y', 31)
   def _reduce_21(val, _values)
      [:add, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 36)
+module_eval(<<'.,.,', 'grammar.y', 32)
   def _reduce_22(val, _values)
      [:subtract, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 37)
+module_eval(<<'.,.,', 'grammar.y', 33)
   def _reduce_23(val, _values)
      [:multiply, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 38)
+module_eval(<<'.,.,', 'grammar.y', 34)
   def _reduce_24(val, _values)
      [:divide, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 39)
+module_eval(<<'.,.,', 'grammar.y', 35)
   def _reduce_25(val, _values)
      [:mod, val[0], val[2]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 40)
+module_eval(<<'.,.,', 'grammar.y', 36)
   def _reduce_26(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 42)
+module_eval(<<'.,.,', 'grammar.y', 38)
   def _reduce_27(val, _values)
      [:array, val[1]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 43)
+module_eval(<<'.,.,', 'grammar.y', 39)
   def _reduce_28(val, _values)
      [:empty_array] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 44)
+module_eval(<<'.,.,', 'grammar.y', 40)
   def _reduce_29(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 46)
+module_eval(<<'.,.,', 'grammar.y', 42)
   def _reduce_30(val, _values)
      [:splat, [val[0]]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 47)
+module_eval(<<'.,.,', 'grammar.y', 43)
   def _reduce_31(val, _values)
      [:splat, [val[0], *val[2][1]]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 49)
+module_eval(<<'.,.,', 'grammar.y', 45)
   def _reduce_32(val, _values)
      [:number, val[0]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 50)
+module_eval(<<'.,.,', 'grammar.y', 46)
   def _reduce_33(val, _values)
      val[0] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 52)
+module_eval(<<'.,.,', 'grammar.y', 48)
   def _reduce_34(val, _values)
      [:value, [val[0]]] 
   end
 .,.,
 
-module_eval(<<'.,.,', 'simplesh.y', 53)
+module_eval(<<'.,.,', 'grammar.y', 49)
   def _reduce_35(val, _values)
      [:value, [val[0], *val[1][1]]] 
   end
@@ -482,137 +450,6 @@ def _reduce_none(val, _values)
   val[0]
 end
 
-end   # class Simplesh
+end   # class Lucash
 
 
-require 'rubygems'
-gem 'open4'
-require 'open4'
-require 'pp'
-
-$vals = {}
-
-def simplesh_eval(ast)
-  case ast[0]
-  when :program
-    ast[1].map {|stmt| simplesh_eval(stmt)}.last
-  when :line
-    simplesh_eval(ast[1])
-  when :and
-    if simplesh_eval(ast[1])
-      simplesh_eval(ast[2])
-    end
-  when :if
-    if simplesh_eval(ast[1])
-      simplesh_eval(ast[2])
-    end
-  when :if_else
-    if simplesh_eval(ast[1])
-      simplesh_eval(ast[2])
-    else
-      simplesh_eval(ast[3])
-    end
-  when :for
-    for i in (simplesh_eval(ast.from)..simplesh_eval(ast.to))
-      $vals[ast.ident.lexeme] = i
-      simplesh_eval(ast.statements)
-    end
-  when :assignment
-    $vals[ast[1]] = simplesh_eval(ast[2])
-  when :functional_assignment
-    $vals[ast[1]] = ast[2]
-  when :add
-    simplesh_eval(ast[1]) + simplesh_eval(ast[2])
-  when :block
-    simplesh_eval(ast[1])
-  when :subtract
-    simplesh_eval(ast[1]) - simplesh_eval(ast[2])
-  when :multiply
-    simplesh_eval(ast[1]) * simplesh_eval(ast[2])
-  when :divide
-    simplesh_eval(ast[1]) / simplesh_eval(ast[2])
-  when :mod
-    simplesh_eval(ast[1]) % simplesh_eval(ast[2])
-  when :array
-    simplesh_eval(ast[1])
-  when :splat
-    ast[1].map{|a| simplesh_eval(a)}
-  when :string
-    ast[1]
-  when :value
-    case ast[1][0]
-    when "false"
-      false
-    when "true"
-      true
-    else
-      ast[1]
-    end
-  when :number
-    puts "*********"
-    ast[1]
-  end
-end
-
-def do_command(command)
-	case command
-	when "true", "false"
-		return command == "true"
-	when /^cd (.*)$/
-		return Dir.chdir($1)
-	end
-
-	r = []
-	er_t = nil
-	in_t = nil
-	o_t = nil
-	p = Open4::popen4(command) do |pid, stdin, stdout, stderr|
-		er_t = Thread.new do
-			loop do
-				$stderr.print stderr.read(stderr.stat.size)
-				$stderr.flush
-			end
-		end
-
-		in_t = Thread.new do
-			loop do
-				data = gets
-				stdin.write(data)
-			end
-		end
-	
-		o_t = Thread.new do
-			loop do
-				r << stdout.read(stdout.stat.size)
-			end
-		end
-	end
-	er_t.kill
-	in_t.kill
-	o_t.kill
-	r.join("")
-rescue Errno::ENOENT, TypeError
-	command
-end
-
-parser = Simplesh.new
-puts
-puts 'type "Q" to quit.'
-puts
-while true
-  puts
-  print '? '
-  if str = gets
-    break if /q/i =~ str
-    begin
-      p = parser.parse(str)
-      r = simplesh_eval(p)
-      puts p.inspect if ENV['DEBUG']
-      puts r.inspect
-    rescue ParseError
-      puts $!
-    end
-  else
-    exit
-  end
-end
