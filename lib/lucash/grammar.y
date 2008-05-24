@@ -44,10 +44,8 @@ rule
 		| program ',' basic_result { [:splat, [val[0], *val[2][1]]] }
 	atom:
 	    NUMBER { [:number, val[0]] }
-    | command { val[0] }
-	command:
-		  IDENT { [:value, [val[0]]] }
-  	| IDENT command { [:value, [val[0], *val[1][1]]] }
+		| IDENT { [:value, [val[0]]] }
+  	| IDENT atom { [:value, [val[0], *val[1][1]]] }
 end
 
 ---- inner

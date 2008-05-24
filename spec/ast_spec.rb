@@ -16,11 +16,11 @@ describe Lucash::AST do
   end
   
   it "should work with valid ast" do
-    @l.ast = [:program, [[:line, [:value, ["echo"]]], [:line, [:number, 1]]]]
+    @l.ast = [:program, [[:line, [:value, ["echo", 1]]]]]
     @l.eval.should eql(["echo", 1])
 
-    @l.ast = [:program, [[:line, [:value, ["ls"]]], [:line, [:value, "-la"]]]]
-    @l.eval.should eql(["echo", "-la"])
+    @l.ast = [:program, [[:line, [:value, ["ls", "-la"]]]]]
+    @l.eval.should eql(["ls", "-la"])
     
     @l.ast = [:program, [[:line, [:add, [:number, 1], [:number, 2.0]]]]]
     @l.eval.should eql(3.0)
