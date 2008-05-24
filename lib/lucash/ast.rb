@@ -1,11 +1,13 @@
 class Lucash
   class AST
-    def initialize(ast)
+    class InvalidAST < StandardError; end
+    def initialize(ast=nil)
       @vars = {}
       @ast = ast
     end
     
     def eval
+      raise InvalidAST unless @ast.is_a?(Array)
       lucash_eval(@ast)
     end
     
