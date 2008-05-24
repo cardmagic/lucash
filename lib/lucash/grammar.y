@@ -10,8 +10,8 @@ rule
 		  line program { [:program, [val[0], *val[1][1]]] }
     | '{' program '}' { [:block, val[1]] }
 		| line { [:program, [val[0]]] }
-		| program '\n' { [:program, [val[0]]] }
-		| program ';' { [:program, [val[0]]] }
+		| '\n' { [:program, []] }
+		| ';' { [:program, []] }
 	line: 
 	    expr { [:line, val[0]] } 
 		| expr ';' { [:line, val[0]] } 
