@@ -1,6 +1,9 @@
 class Lucash
   class AST
     class InvalidAST < StandardError; end
+    
+    attr_accessor :ast
+    
     def initialize(ast=nil)
       @vars = {}
       @ast = ast
@@ -69,6 +72,8 @@ class Lucash
         end
       when :number
         ast[1]
+      else
+        raise InvalidAST
       end
     end
   end
