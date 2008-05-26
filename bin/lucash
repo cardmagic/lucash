@@ -2,25 +2,9 @@
 
 require File.dirname(__FILE__) + "/../lib/lucash"
 
-parser = Lucash.new
 puts
 puts 'type "Q" to quit.'
 puts
-while true
-  puts
-  print '? '
-  if str = gets
-    break if /q/i =~ str
-    begin
-      ast = parser.parse(str)
-      ast_eval = Lucash::AST.new(ast)
-      puts ast.inspect if ENV['DEBUG']
-      puts ast_eval.eval.inspect
-    rescue ParseError
-      puts $!
-    end
-  else
-    exit
-  end
-end
 
+lucash = Lucash.new
+lucash.start

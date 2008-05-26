@@ -5,7 +5,7 @@
 #
 
 require 'racc/parser.rb'
-class Lucash < Racc::Parser
+class LucashGrammar < Racc::Parser
 
 module_eval(<<'...end grammar.y/module_eval...', 'grammar.y', 52)
 
@@ -452,6 +452,6 @@ def _reduce_none(val, _values)
   val[0]
 end
 
-end   # class Lucash
+end   # class LucashGrammar
 
 

@@ -1,4 +1,4 @@
-class Lucash
+class LucashGrammar
 	options no_result_var
 	prechigh
 	    nonassoc UMINUS ';'

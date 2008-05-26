@@ -3,7 +3,7 @@
 
 LUCASH_BASE = File.expand_path(File.dirname(__FILE__))
 
-task :default => :build
+task :default => :spec
 
 # BUILD TASKS
 
