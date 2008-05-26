@@ -190,7 +190,7 @@ describe LucashGrammar do
       ]
     ]])
 
-    "foo <- (x) 3 + x".parse.should eql([:program, [
+    "foo <- (x) (3 + x)".parse.should eql([:program, [
       [:functional_assignment,
         [:value, "foo"],
         [:splat, [
@@ -198,12 +198,89 @@ describe LucashGrammar do
             [:value, "x"]
           ]]
         ]],
-        [:add,
-          [:number, 3],
-          [:value, "x"]
-        ]
+        [:program, [
+          [:add,
+            [:number, 3],
+            [:value, "x"]
+          ]
+        ]]
       ]
     ]])
+
+
+    "factorial <- (n) {
+      fac-times <- (n, acc) (
+        if n == 0
+          acc
+        else
+          fac-times(n - 1, acc * n)
+        end
+      )
+      fac-times(n, 1)
+    }".parse.should eql([:program, [
+      [:functional_assignment, 
+        [:value, "factorial"],
+        [:splat, [
+          [:program, [
+            [:value, "n"]
+          ]]
+        ]],
+        [:program, [
+          [:functional_assignment, 
+            [:value, "fac-times"], 
+            [:splat, [
+              [:program, [
+                [:value, "n"]
+              ]], 
+              [:program, [
+                [:value, "acc"]
+              ]]
+            ]], 
+            [:program, [
+              [:if, 
+                [:equality, 
+                  [:value, "n"], 
+                  [:number, 0]
+                ], 
+                [:program, [
+                  [:value, "acc"]
+                ]], 
+                [:program, [
+                  [:args, 
+                    [:value, "fac-times"], 
+                    [:splat, [
+                      [:program, [
+                        [:subtract, 
+                          [:value, "n"],
+                          [:number, 1]
+                        ]
+                      ]], 
+                      [:program, [
+                        [:multiply, 
+                          [:value, "acc"], 
+                          [:value, "n"]
+                        ]
+                      ]]
+                    ]]
+                  ]
+                ]]
+              ]
+            ]]
+          ], 
+          [:args, 
+            [:value, "fac-times"], 
+            [:splat, [
+              [:program, [
+                [:value, "n"]
+              ]], 
+              [:program, [
+                [:number, 1]
+              ]]
+            ]]
+          ]
+        ]]
+      ]]
+    ])
   end
   
   it "should return an AST for or's and and's" do

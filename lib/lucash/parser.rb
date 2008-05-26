@@ -25,7 +25,7 @@ class Lucash
     	    @q.push [$&, $&]
         when /\A<-\s*\(/
     	    @q.push ['<-(', '<-(']
-        when /\A<-/
+        when /\A(<-|==)/
     	    @q.push [$&, $&]
         when /\A\-?\d+\.\d+/
           @q.push [:NUMBER, $&.to_f]
