@@ -104,6 +104,15 @@ describe LucashGrammar do
       ]
     ]])
 
+    "if true\n cd foobar\n end".parse.should eql([:program, [
+      [:if, 
+        [:value, ["true"]],
+        [:program, [
+          [:value, ["cd", "foobar"]]
+        ]]
+      ]
+    ]])
+
     "if (cd; true); cd foobar; end".parse.should eql([:program, [
       [:if, 
         [:program, [
