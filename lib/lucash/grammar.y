@@ -21,7 +21,8 @@ rule
 		| 'if' line program 'end' { [:if, val[1], val[2]] }
 		| 'if' line program 'else' program 'end' { [:if_else, val[1], val[2], val[4]] }
 	  | expr '&&' line { [:and, val[0], val[2]] }
-		| command '|' line { [:pipe, [:line, val[0]], val[2]] }
+		| expr '|' line { [:pipe, [:line, val[0]], val[2]] }
+	  | expr '||' line { [:or, val[0], val[2]] }
 		| line '.' line { [:method, val[0], val[2]] }
 		| line '.' IDENT { [:method, val[0], val[2]] }
 		| line '.' IDENT expr { [:method_with_args, val[0], val[2], val[3]] }

@@ -1,4 +1,6 @@
 class Lucash
+  class InvalidAST < StandardError; end
+
   def initialize
     @grammar = LucashGrammar.new
   end
@@ -21,6 +23,8 @@ class Lucash
           puts parse(str).inspect
         rescue ParseError
           puts $!
+        rescue InvalidAST
+          puts "Invalid AST"
         end
       else
         exit

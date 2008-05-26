@@ -11,7 +11,7 @@ class Lucash
     	    @q.push [$&, $&]
     	  when /\A\n/
     	    @q.push ['\n', '\n']
-        when /\A&&/
+        when /\A(&&|\|\||\|)/
     	    @q.push [$&, $&]
         when /\A<-/
     	    @q.push [$&, $&]

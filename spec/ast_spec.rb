@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + "/../lib/lucash"
+require File.dirname(__FILE__) + "/spec_helper"
 
 describe Lucash::AST do
   before(:all) do
@@ -6,13 +6,13 @@ describe Lucash::AST do
   end
 
   it "should not work without a valid ast" do
-    lambda { @l.eval }.should raise_error(Lucash::AST::InvalidAST)
+    lambda { @l.eval }.should raise_error(Lucash::InvalidAST)
     
     @l.ast = []
-    lambda { @l.eval }.should raise_error(Lucash::AST::InvalidAST)
+    lambda { @l.eval }.should raise_error(Lucash::InvalidAST)
     
     @l.ast = [:program, "foobar"]
-    lambda { @l.eval }.should raise_error(Lucash::AST::InvalidAST)
+    lambda { @l.eval }.should raise_error(Lucash::InvalidAST)
   end
   
   it "should work with valid ast" do

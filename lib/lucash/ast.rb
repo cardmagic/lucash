@@ -1,7 +1,5 @@
 class Lucash
-  class AST
-    class InvalidAST < StandardError; end
-    
+  class AST    
     attr_accessor :ast
     
     def initialize(ast=nil)
