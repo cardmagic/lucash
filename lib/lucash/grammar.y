@@ -7,7 +7,7 @@ class LucashGrammar
 	preclow
 rule
 	program: 
-		  line program { [:program, [val[0], *val[1][1]]] }
+		  program program { [:program, val[0][1] + val[1][1]] }
     | '{' program '}' { [:block, val[1]] }
 		| line { [:program, [val[0]]] }
 		| '\n' { [:program, []] }

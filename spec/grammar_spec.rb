@@ -12,6 +12,7 @@ describe LucashGrammar do
     lambda { "(((".parse }.should raise_error(ParseError)
     lambda { "end".parse }.should raise_error(ParseError)
     lambda { "if".parse }.should raise_error(ParseError)
+    lambda { "if foo else".parse }.should raise_error(ParseError)
     lambda { "}".parse }.should raise_error(ParseError)
   end
 
@@ -22,12 +23,21 @@ describe LucashGrammar do
       ]
     ]])
     
-    "1 + 3.0".parse.should eql([:program, [
+    "1 + 3.0\n      \n \n".parse.should eql([:program, [
       [:line, 
         [:add, 
           [:line, [:number, 1]], [:line, [:number, 3.0]]
         ]
       ]
+    ]])
+    
+    "1 + 3.0\n      \n 1\n".parse.should eql([:program, [
+      [:line, 
+        [:add, 
+          [:line, [:number, 1]], [:line, [:number, 3.0]]
+        ]
+      ],
+      [:line, [:number, 1]]
     ]])
     
     "if true; cd foobar; end".parse.should eql([:program, [
@@ -38,6 +48,42 @@ describe LucashGrammar do
         [:program, [
           [:line, 
             [:value, ["cd", "foobar"]]
+          ]
+        ]]
+      ]
+    ]])
+
+    "if true; cd foobar; else; 123; end".parse.should eql([:program, [
+      [:if_else, 
+        [:line, 
+          [:value, ["true"]]
+        ],
+        [:program, [
+          [:line, 
+            [:value, ["cd", "foobar"]]
+          ]
+        ]],
+        [:program, [
+          [:line, 
+            [:number, 123]
+          ]
+        ]]
+      ]
+    ]])
+    
+    "if true; cd foobar; else 123; end".parse.should eql([:program, [
+      [:if_else, 
+        [:line, 
+          [:value, ["true"]]
+        ],
+        [:program, [
+          [:line, 
+            [:value, ["cd", "foobar"]]
+          ]
+        ]],
+        [:program, [
+          [:line, 
+            [:number, 123]
           ]
         ]]
       ]
