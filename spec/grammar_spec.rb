@@ -28,6 +28,10 @@ describe LucashGrammar do
     "ls -la".parse.should eql([:program, [
       [:value, ["ls", "-la"]]
     ]])
+
+    "ls -la &".parse.should eql([:program, [
+      [:background, [:value, ["ls", "-la"]]]
+    ]])
   end
     
   it "should return an AST for math" do
