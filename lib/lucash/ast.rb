@@ -16,8 +16,6 @@ class Lucash
       case ast[0]
       when :program
         ast[1].map {|stmt| lucash_eval(stmt)}.last
-      when :line
-        lucash_eval(ast[1])
       when :and
         if lucash_eval(ast[1])
           lucash_eval(ast[2])

@@ -12,16 +12,16 @@ rule
 		| line { [:program, [val[0]]] }
 		| '\n' { [:program, []] }
 		| ';' { [:program, []] }
-	  | '(' line ')' { [:line, val[1]] }
+	  | '(' line ')' { val[1] }
     | '(' ')' { [:empty_parens] }
 	line: 
-	    expr { [:line, val[0]] } 
-		| expr ';' { [:line, val[0]] } 
-		| expr '\n' { [:line, val[0]] } 
+	    expr { val[0] } 
+		| expr ';' { val[0] } 
+		| expr '\n' { val[0] } 
 		| 'if' line program 'end' { [:if, val[1], val[2]] }
 		| 'if' line program 'else' program 'end' { [:if, val[1], val[2], val[4]] }
 	  | expr '&&' line { [:and, val[0], val[2]] }
-		| expr '|' line { [:pipe, [:line, val[0]], val[2]] }
+		| expr '|' line { [:pipe, val[0], val[2]] }
 	  | expr '||' line { [:or, val[0], val[2]] }
 		| line '.' method_call { [:method, val[0], val[2]] }
 		| expr '=' line { [:assignment, val[0], val[2]] }

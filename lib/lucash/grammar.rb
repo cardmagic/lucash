@@ -309,7 +309,7 @@ module_eval(<<'.,.,', 'grammar.y', 13)
 
 module_eval(<<'.,.,', 'grammar.y', 14)
   def _reduce_6(val, _values)
-     [:line, val[1]] 
+     val[1] 
   end
 .,.,
 
@@ -321,19 +321,19 @@ module_eval(<<'.,.,', 'grammar.y', 15)
 
 module_eval(<<'.,.,', 'grammar.y', 17)
   def _reduce_8(val, _values)
-     [:line, val[0]] 
+     val[0] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'grammar.y', 18)
   def _reduce_9(val, _values)
-     [:line, val[0]] 
+     val[0] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'grammar.y', 19)
   def _reduce_10(val, _values)
-     [:line, val[0]] 
+     val[0] 
   end
 .,.,
 
@@ -357,7 +357,7 @@ module_eval(<<'.,.,', 'grammar.y', 22)
 
 module_eval(<<'.,.,', 'grammar.y', 23)
   def _reduce_14(val, _values)
-     [:pipe, [:line, val[0]], val[2]] 
+     [:pipe, val[0], val[2]] 
   end
 .,.,
 
