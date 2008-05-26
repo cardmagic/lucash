@@ -25,7 +25,7 @@ describe LucashGrammar do
     "1 + 3.0".parse.should eql([:program, [
       [:line, 
         [:add, 
-          [:number, 1], [:number, 3.0]
+          [:line, [:number, 1]], [:line, [:number, 3.0]]
         ]
       ]
     ]])
@@ -82,28 +82,22 @@ describe LucashGrammar do
     "foo + bar".parse.should eql([:program, [
       [:line, 
         [:add, 
-          [:value, ["foo"]], 
-          [:value, ["bar"]]
+          [:line, [:value, ["foo"]]], 
+          [:line, [:value, ["bar"]]]
         ]
       ]
     ]])
     
     "foo | bar".parse.should eql([:program, [
       [:pipe, 
-        [:line, 
-          [:value, ["foo"]]
-        ], 
-        [:line, 
-          [:value, ["bar"]]
-        ]
+        [:line, [:value, ["foo"]]], 
+        [:line, [:value, ["bar"]]]
       ]
     ]])
 
     "foo.bar".parse.should eql([:program, [
       [:method,
-        [:line, 
-          [:value, ["foo"]]
-        ], 
+        [:line, [:value, ["foo"]]], 
         [:method_call,
           [:value, ["bar"]]
         ]
@@ -163,19 +157,64 @@ describe LucashGrammar do
         ]
       ]
     ]])
-    
-    "foo.bar + 1".parse.should eql([:program, [
-      [:add,
-        [:method,
-          [:line, 
-            [:value, ["foo"]]
-          ], 
-          [:method_call,
-            [:value, ["bar"]]
-          ]
-        ],
-        [:number, 1]
+
+    "foo.bar(baz, aba) + 1".parse.should eql([:program, [
+      [:line,
+        [:add,
+          [:method, 
+            [:line, 
+              [:value, ["foo"]]
+            ], 
+            [:method_call,
+              [:value, ["bar"]], 
+              [:splat, 
+                [
+                  [:program, [
+                    [:line, 
+                      [:value, ["baz"]]
+                    ]
+                  ]],
+                  [:program, [
+                    [:line, 
+                      [:value, ["aba"]]
+                    ]
+                  ]]
+                ]
+              ]
+            ]
+          ],
+          [:line, [:number, 1]]
+        ]
       ]
     ]])
+
+    "foo.bar + 1".parse.should eql([:program, [
+      [:line,
+        [:add,
+          [:method,
+            [:line, [:value, ["foo"]]], 
+            [:method_call,
+              [:value, ["bar"]]
+            ]
+          ],
+          [:line, [:number, 1]]
+        ]
+      ]
+    ]])
+
+    "foo.(bar + 1)".parse.should eql([:program, [
+      [:method,
+        [:line, 
+          [:value, ["foo"]]
+        ], 
+        [:method_call,
+          [:add,
+            [:line, [:value, ["bar"]]],
+            [:line, [:number, 1]]
+          ]
+        ]
+      ]
+    ]])
+    
   end
 end

@@ -27,15 +27,18 @@ rule
 		| expr '=' line { [:assignment, val[0], val[2]] }
 		| expr '<-' line { [:functional_assignment, val[0], val[2]] }
 	method_call:
-	    expr { [:method_call, val[0]] }
-	  | expr '(' ')' { [:method_call, val[0]] }
-	  | expr '(' basic_result ')' { [:method_call, val[0], val[2]] }
+	    atom { [:method_call, val[0]] }
+	  | atom '(' ')' { [:method_call, val[0]] }
+	  | atom '(' basic_result ')' { [:method_call, val[0], val[2]] }
+	  | '(' expr ')' { [:method_call, val[1]] }
+	  | '(' expr ')' '(' ')' { [:method_call, val[1]] }
+	  | '(' expr ')' '(' basic_result ')' { [:method_call, val[1], val[4]] }
 	expr: 
-		  expr '+' atom { [:add, val[0], val[2]] }
-		| expr '-' atom { [:subtract, val[0], val[2]] }
-		| expr '*' atom { [:multiply, val[0], val[2]] }
-		| expr '/' atom { [:divide, val[0], val[2]] }
-		| expr '%' atom { [:mod, val[0], val[2]] }
+		  line '+' line { [:add, val[0], val[2]] }
+		| line '-' line { [:subtract, val[0], val[2]] }
+		| line '*' line { [:multiply, val[0], val[2]] }
+		| line '/' line { [:divide, val[0], val[2]] }
+		| line '%' line { [:mod, val[0], val[2]] }
 		| '[' basic_result ']'	{ [:array, val[1]] }
     | '[' ']'		 		        { [:empty_array] }
 		| atom	{ val[0] }
