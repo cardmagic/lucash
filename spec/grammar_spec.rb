@@ -51,6 +51,15 @@ describe LucashGrammar do
       ]
     ]])
     
+    "foo <- 3".parse.should eql([:program, [
+      [:functional_assignment,
+        "foo",
+        [:line,
+          [:number, 3]
+        ]
+      ]
+    ]])
+    
     "foo || bar".parse.should eql([:program, [
       [:or, 
         [:value, ["foo"]], 
@@ -85,6 +94,71 @@ describe LucashGrammar do
         ], 
         [:line, 
           [:value, ["bar"]]
+        ]
+      ]
+    ]])
+
+    "foo.bar".parse.should eql([:program, [
+      [:method,
+        [:line, 
+          [:value, ["foo"]]
+        ], 
+        [:method_call,
+          [:value, ["bar"]]
+        ]
+      ]
+    ]])
+    
+    "foo.bar()".parse.should eql([:program, [
+      [:method,
+        [:line, 
+          [:value, ["foo"]]
+        ], 
+        [:method_call,
+          [:value, ["bar"]]
+        ]
+      ]
+    ]])
+
+    "foo.bar(baz)".parse.should eql([:program, [
+      [:method, 
+        [:line, 
+          [:value, ["foo"]]
+        ], 
+        [:method_call_with_args,
+          [:value, ["bar"]], 
+          [:splat, [
+            [:program, [
+              [:line, 
+                [:value, ["baz"]]
+              ]
+            ]]
+          ]]
+        ]
+      ]
+    ]])
+
+    "foo.bar(baz, aba)".parse.should eql([:program, [
+      [:method, 
+        [:line, 
+          [:value, ["foo"]]
+        ], 
+        [:method_call_with_args,
+          [:value, ["bar"]], 
+          [:splat, 
+            [
+              [:program, [
+                [:line, 
+                  [:value, ["baz"]]
+                ]
+              ]],
+              [:program, [
+                [:line, 
+                  [:value, ["aba"]]
+                ]
+              ]]
+            ]
+          ],
         ]
       ]
     ]])

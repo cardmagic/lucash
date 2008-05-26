@@ -16,19 +16,21 @@ rule
 	    expr { [:line, val[0]] } 
 		| expr ';' { [:line, val[0]] } 
 		| expr '\n' { [:line, val[0]] } 
-		| '(' line ')' { [:line, val[1]] }
+		| '(' basic_result ')' { [:line, val[1]] }
     | '(' ')' { [:empty_parens] }
 		| 'if' line program 'end' { [:if, val[1], val[2]] }
 		| 'if' line program 'else' program 'end' { [:if_else, val[1], val[2], val[4]] }
 	  | expr '&&' line { [:and, val[0], val[2]] }
 		| expr '|' line { [:pipe, [:line, val[0]], val[2]] }
 	  | expr '||' line { [:or, val[0], val[2]] }
-		| line '.' line { [:method, val[0], val[2]] }
-		| line '.' IDENT { [:method, val[0], val[2]] }
-		| line '.' IDENT expr { [:method_with_args, val[0], val[2], val[3]] }
-		| line '.' IDENT '(' expr ')' { [:method_with_args, val[0], val[2], val[4]] }
+		| line '.' method_call { [:method, val[0], val[2]] }
 		| IDENT '=' line { [:assignment, val[0], val[2]] }
 		| IDENT '<-' line { [:functional_assignment, val[0], val[2]] }
+	method_call:
+	    expr { [:method_call, val[0]] }
+	  | expr '(' ')' { [:method_call, val[0]] }
+	  | expr expr { [:method_call_with_args, val[0], val[2], val[3]] }
+	  | expr '(' basic_result ')' { [:method_call_with_args, val[0], val[2]] }
 	expr: 
 		  expr '+' atom { [:add, val[0], val[2]] }
 		| expr '-' atom { [:subtract, val[0], val[2]] }
