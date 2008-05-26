@@ -29,12 +29,12 @@ describe LucashGrammar do
       [:value, ["ls", "-la"]]
     ]])
 
-    "\"ls -la(}\"".parse.should eql([:program, [
-      [:eval_string, "ls -la(}"]
+    "\"ls -l'a(}\"".parse.should eql([:program, [
+      [:eval_string, "ls -l'a(}"]
     ]])
 
-    "'ls -la(}'".parse.should eql([:program, [
-      [:string, "ls -la(}"]
+    "'ls -l\"\"a(}'".parse.should eql([:program, [
+      [:string, "ls -l\"\"a(}"]
     ]])
 
     "ls -la &".parse.should eql([:program, [
