@@ -21,9 +21,9 @@ rule
 		| "'" IDENT "'" { [:string, val[1]] } 
 		| 'if' line program 'end' { [:if, val[1], val[2]] }
 		| 'if' line program 'else' program 'end' { [:if, val[1], val[2], val[4]] }
-	  | expr '&&' line { [:and, val[0], val[2]] }
-		| expr '|' line { [:pipe, val[0], val[2]] }
-	  | expr '||' line { [:or, val[0], val[2]] }
+	  | line '&&' line { [:and, val[0], val[2]] }
+		| line '|' line { [:pipe, val[0], val[2]] }
+	  | line '||' line { [:or, val[0], val[2]] }
 		| line '.' method_call { [:method, val[0], val[2]] }
 		| expr '=' line { [:assignment, val[0], val[2]] }
 		| expr '<-' line { [:functional_assignment, val[0], val[2]] }
