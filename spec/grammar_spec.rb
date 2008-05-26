@@ -207,11 +207,9 @@ describe LucashGrammar do
         [:value, ["foo"]], 
         [:yield,
           [:value, ["bar"]],
-          [:block,
-            [:program, [
-              [:value, ["baz"]]
-            ]]
-          ]
+          [:program, [
+            [:value, ["baz"]]
+          ]]
         ]
       ]
     ]])
@@ -271,11 +269,9 @@ describe LucashGrammar do
               ]]
             ]]
           ], 
-          [:block, 
-            [:program, [
-              [:value, ["bab"]]
-            ]]
-          ]
+          [:program, [
+            [:value, ["bab"]]
+          ]]
         ]
       ]
     ]])

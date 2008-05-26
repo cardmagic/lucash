@@ -1,5 +1,6 @@
 class LucashGrammar
 	options no_result_var
+	expect 74
 	prechigh
 	    nonassoc UMINUS ';'
 	    left '*' '/' '%' '|'
@@ -8,7 +9,7 @@ class LucashGrammar
 rule
 	program: 
 		  program program { [:program, val[0][1] + val[1][1]] }
-    | '{' program '}' { [:block, val[1]] }
+    | '{' program '}' { val[1] }
 		| line { [:program, [val[0]]] }
 		| '\n' { [:program, []] }
 		| ';' { [:program, []] }
@@ -40,7 +41,7 @@ rule
 	    parens { val[0] }
 	  | parens '(' ')' { val[0] }
 	  | parens '(' basic_result ')' { [:args, val[0], val[2]] }
-	  | method_call '{' program '}' { [:yield, val[0], [:block, val[2]]] }
+	  | method_call '{' program '}' { [:yield, val[0], val[2]] }
 	basic_result:
 		  program { [:splat, [val[0]]] }
 		| program ',' basic_result { [:splat, [val[0], *val[2][1]]] }
