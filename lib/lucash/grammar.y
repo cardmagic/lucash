@@ -52,8 +52,8 @@ rule
     | atom { val[0] }
 	atom:
 	    NUMBER { [:number, val[0]] }
-		| IDENT { [:value, [val[0]]] }
-  	| IDENT atom { [:value, [val[0], *val[1][1]]] }
+		| IDENT { [:value, val[0]] }
+  	| IDENT atom { [:value, val[0], *val[1][1]] }
 end
 
 ---- inner

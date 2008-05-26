@@ -561,13 +561,13 @@ module_eval(<<'.,.,', 'grammar.y', 53)
 
 module_eval(<<'.,.,', 'grammar.y', 54)
   def _reduce_39(val, _values)
-     [:value, [val[0]]] 
+     [:value, val[0]] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'grammar.y', 55)
   def _reduce_40(val, _values)
-     [:value, [val[0], *val[1][1]]] 
+     [:value, val[0], *val[1][1]] 
   end
 .,.,
 

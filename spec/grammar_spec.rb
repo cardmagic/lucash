@@ -18,7 +18,7 @@ describe LucashGrammar do
 
   it "should return an AST for variables" do
     "foo".parse.should eql([:program, [
-      [:value, ["foo"]]
+      [:value, "foo"]
     ]])
 
     "()".parse.should eql([:program, [
@@ -26,7 +26,7 @@ describe LucashGrammar do
     ]])
 
     "ls -la".parse.should eql([:program, [
-      [:value, ["ls", "-la"]]
+      [:value, "ls", "-la"]
     ]])
 
     "\"ls -l'a(}\"".parse.should eql([:program, [
@@ -38,7 +38,7 @@ describe LucashGrammar do
     ]])
 
     "ls -la &".parse.should eql([:program, [
-      [:background, [:value, ["ls", "-la"]]]
+      [:background, [:value, "ls", "-la"]]
     ]])
   end
     
@@ -58,8 +58,8 @@ describe LucashGrammar do
     
     "foo + bar".parse.should eql([:program, [
       [:add, 
-        [:value, ["foo"]],
-        [:value, ["bar"]]
+        [:value, "foo"],
+        [:value, "bar"]
       ]
     ]])
     
@@ -68,11 +68,11 @@ describe LucashGrammar do
         [:add, 
           [:number, 5],
           [:multiply,
-            [:value, ["x"]],
+            [:value, "x"],
             [:number, 10]
           ]
         ],
-        [:value, ["y"]]
+        [:value, "y"]
       ]
     ]])
 
@@ -81,13 +81,13 @@ describe LucashGrammar do
         [:program, [
           [:add, 
             [:number, 5], 
-            [:value, ["x"]]
+            [:value, "x"]
           ]
         ]], 
         [:program, [
           [:subtract, 
             [:number, 10], 
-            [:value, ["y"]]
+            [:value, "y"]
           ]
         ]]
       ]
@@ -97,18 +97,18 @@ describe LucashGrammar do
   it "should return an AST for conditionals" do
     "if true; cd foobar; end".parse.should eql([:program, [
       [:if, 
-        [:value, ["true"]],
+        [:value, "true"],
         [:program, [
-          [:value, ["cd", "foobar"]]
+          [:value, "cd", "foobar"]
         ]]
       ]
     ]])
 
     "if true\n cd foobar\n end".parse.should eql([:program, [
       [:if, 
-        [:value, ["true"]],
+        [:value, "true"],
         [:program, [
-          [:value, ["cd", "foobar"]]
+          [:value, "cd", "foobar"]
         ]]
       ]
     ]])
@@ -116,20 +116,20 @@ describe LucashGrammar do
     "if (cd; true); cd foobar; end".parse.should eql([:program, [
       [:if, 
         [:program, [
-          [:value, ["cd"]],
-          [:value, ["true"]]
+          [:value, "cd"],
+          [:value, "true"]
         ]],
         [:program, [
-          [:value, ["cd", "foobar"]]
+          [:value, "cd", "foobar"]
         ]]
       ]
     ]])
 
     "if true; cd foobar\nelse; 123; end".parse.should eql([:program, [
       [:if, 
-        [:value, ["true"]],
+        [:value, "true"],
         [:program, [
-          [:value, ["cd", "foobar"]]
+          [:value, "cd", "foobar"]
         ]],
         [:program, [
           [:number, 123]
@@ -139,9 +139,9 @@ describe LucashGrammar do
     
     "if true; cd foobar; else 123; end".parse.should eql([:program, [
       [:if, 
-        [:value, ["true"]],
+        [:value, "true"],
         [:program, [
-          [:value, ["cd", "foobar"]]
+          [:value, "cd", "foobar"]
         ]],
         [:program, [
           [:number, 123]
@@ -153,14 +153,14 @@ describe LucashGrammar do
   it "should return an AST for assignment" do
     "foo = 3".parse.should eql([:program, [
       [:assignment,
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:number, 3]
       ]
     ]])
 
     "foo = 3 / 4".parse.should eql([:program, [
       [:assignment,
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:divide,
           [:number, 3],
           [:number, 4]
@@ -170,37 +170,37 @@ describe LucashGrammar do
     
     "foo <- 3".parse.should eql([:program, [
       [:functional_assignment,
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:number, 3]
       ]
     ]])
 
     "foo <-(x) 3 + x".parse.should eql([:program, [
       [:functional_assignment,
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:splat, [
           [:program, [
-            [:value, ["x"]]
+            [:value, "x"]
           ]]
         ]],
         [:add,
           [:number, 3],
-          [:value, ["x"]]
+          [:value, "x"]
         ]
       ]
     ]])
 
     "foo <- (x) 3 + x".parse.should eql([:program, [
       [:functional_assignment,
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:splat, [
           [:program, [
-            [:value, ["x"]]
+            [:value, "x"]
           ]]
         ]],
         [:add,
           [:number, 3],
-          [:value, ["x"]]
+          [:value, "x"]
         ]
       ]
     ]])
@@ -209,15 +209,15 @@ describe LucashGrammar do
   it "should return an AST for or's and and's" do
     "foo || bar".parse.should eql([:program, [
       [:or, 
-        [:value, ["foo"]], 
-        [:value, ["bar"]]
+        [:value, "foo"], 
+        [:value, "bar"]
       ]
     ]])
 
     "foo && bar".parse.should eql([:program, [
       [:and, 
-        [:value, ["foo"]], 
-        [:value, ["bar"]]
+        [:value, "foo"], 
+        [:value, "bar"]
       ]
     ]])
   end
@@ -226,8 +226,8 @@ describe LucashGrammar do
   it "should return an AST for pipes" do
     "foo | bar".parse.should eql([:program, [
       [:pipe, 
-        [:value, ["foo"]], 
-        [:value, ["bar"]]
+        [:value, "foo"], 
+        [:value, "bar"]
       ]
     ]])
   end
@@ -236,18 +236,18 @@ describe LucashGrammar do
   it "should return an AST for method calls" do
     "foo.bar".parse.should eql([:program, [
       [:method,
-        [:value, ["foo"]], 
-        [:value, ["bar"]]
+        [:value, "foo"], 
+        [:value, "bar"]
       ]
     ]])
 
     "foo.bar { baz }".parse.should eql([:program, [
       [:method,
-        [:value, ["foo"]], 
+        [:value, "foo"], 
         [:yield,
-          [:value, ["bar"]],
+          [:value, "bar"],
           [:program, [
-            [:value, ["baz"]]
+            [:value, "baz"]
           ]]
         ]
       ]
@@ -255,19 +255,19 @@ describe LucashGrammar do
     
     "foo.bar()".parse.should eql([:program, [
       [:method,
-        [:value, ["foo"]],
-        [:value, ["bar"]]
+        [:value, "foo"],
+        [:value, "bar"]
       ]
     ]])
 
     "foo.bar(baz)".parse.should eql([:program, [
       [:method, 
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:args,
-          [:value, ["bar"]], 
+          [:value, "bar"], 
           [:splat, [
             [:program, [
-              [:value, ["baz"]]
+              [:value, "baz"]
             ]]
           ]]
         ]
@@ -276,16 +276,16 @@ describe LucashGrammar do
 
     "foo.bar(baz, aba)".parse.should eql([:program, [
       [:method, 
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:args,
-          [:value, ["bar"]], 
+          [:value, "bar"], 
           [:splat, 
             [
               [:program, [
-                [:value, ["baz"]]
+                [:value, "baz"]
               ]],
               [:program, [
-                [:value, ["aba"]]
+                [:value, "aba"]
               ]]
             ]
           ]
@@ -295,21 +295,21 @@ describe LucashGrammar do
 
     "foo.bar(baz, aba) { bab }".parse.should eql([:program, [
       [:method, 
-        [:value, ["foo"]], 
+        [:value, "foo"], 
         [:yield, 
           [:args, 
-            [:value, ["bar"]], 
+            [:value, "bar"], 
             [:splat, [
               [:program, [
-                [:value, ["baz"]]
+                [:value, "baz"]
               ]], 
               [:program, [
-                [:value, ["aba"]]
+                [:value, "aba"]
               ]]
             ]]
           ], 
           [:program, [
-            [:value, ["bab"]]
+            [:value, "bab"]
           ]]
         ]
       ]
@@ -320,16 +320,16 @@ describe LucashGrammar do
     "foo.bar(baz, aba) + 1".parse.should eql([:program, [
       [:add,
         [:method, 
-          [:value, ["foo"]],
+          [:value, "foo"],
           [:args,
-            [:value, ["bar"]], 
+            [:value, "bar"], 
             [:splat, 
               [
                 [:program, [
-                  [:value, ["baz"]],
+                  [:value, "baz"],
                 ]],
                 [:program, [
-                  [:value, ["aba"]],
+                  [:value, "aba"],
                 ]]
               ]
             ]
@@ -342,8 +342,8 @@ describe LucashGrammar do
     "foo.bar + 1".parse.should eql([:program, [
       [:add,
         [:method,
-          [:value, ["foo"]], 
-          [:value, ["bar"]]
+          [:value, "foo"], 
+          [:value, "bar"]
         ],
         [:number, 1]
       ]
@@ -352,8 +352,8 @@ describe LucashGrammar do
     "foo.bar && 1".parse.should eql([:program, [
       [:and,
         [:method,
-          [:value, ["foo"]], 
-          [:value, ["bar"]]
+          [:value, "foo"], 
+          [:value, "bar"]
         ],
         [:number, 1]
       ]
@@ -361,10 +361,10 @@ describe LucashGrammar do
 
     "foo.(bar + 1)".parse.should eql([:program, [
       [:method,
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:program, [
           [:add,
-            [:value, ["bar"]],
+            [:value, "bar"],
             [:number, 1]
           ]
         ]]
@@ -373,7 +373,7 @@ describe LucashGrammar do
 
     "foo(3)".parse.should eql([:program, [
       [:args, 
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:splat, [
           [:program, [
             [:number, 3]
@@ -384,11 +384,11 @@ describe LucashGrammar do
 
     "foo.(bar + 1)(3)".parse.should eql([:program, [
       [:method,
-        [:value, ["foo"]],
+        [:value, "foo"],
         [:args,
           [:program, [
             [:add,
-              [:value, ["bar"]],
+              [:value, "bar"],
               [:number, 1]
             ]
           ]],
@@ -404,11 +404,11 @@ describe LucashGrammar do
     "foo.(bar + 1)(3) + 1".parse.should eql([:program, [
       [:add,
         [:method,
-          [:value, ["foo"]],
+          [:value, "foo"],
           [:args,
             [:program, [
               [:add,
-                [:value, ["bar"]],
+                [:value, "bar"],
                 [:number, 1]
               ]
             ]],
