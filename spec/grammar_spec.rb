@@ -12,6 +12,7 @@ describe LucashGrammar do
     lambda { "(((".parse }.should raise_error(ParseError)
     lambda { "end".parse }.should raise_error(ParseError)
     lambda { "if".parse }.should raise_error(ParseError)
+    lambda { "}".parse }.should raise_error(ParseError)
   end
 
   it "should return an AST with good input" do
@@ -44,7 +45,7 @@ describe LucashGrammar do
     
     "foo = 3".parse.should eql([:program, [
       [:assignment,
-        "foo",
+        [:value, ["foo"]],
         [:line,
           [:number, 3]
         ]
@@ -53,7 +54,7 @@ describe LucashGrammar do
     
     "foo <- 3".parse.should eql([:program, [
       [:functional_assignment,
-        "foo",
+        [:value, ["foo"]],
         [:line,
           [:number, 3]
         ]
@@ -115,7 +116,8 @@ describe LucashGrammar do
           [:value, ["foo"]]
         ], 
         [:method_call,
-          [:value, ["bar"]]
+          [:value, ["bar"]],
+          [:empty_parens]
         ]
       ]
     ]])
@@ -125,15 +127,17 @@ describe LucashGrammar do
         [:line, 
           [:value, ["foo"]]
         ], 
-        [:method_call_with_args,
+        [:method_call,
           [:value, ["bar"]], 
-          [:splat, [
-            [:program, [
-              [:line, 
-                [:value, ["baz"]]
-              ]
+          [:line,
+            [:splat, [
+              [:program, [
+                [:line, 
+                  [:value, ["baz"]]
+                ]
+              ]]
             ]]
-          ]]
+          ]
         ]
       ]
     ]])
@@ -143,22 +147,24 @@ describe LucashGrammar do
         [:line, 
           [:value, ["foo"]]
         ], 
-        [:method_call_with_args,
+        [:method_call,
           [:value, ["bar"]], 
-          [:splat, 
-            [
-              [:program, [
-                [:line, 
-                  [:value, ["baz"]]
-                ]
-              ]],
-              [:program, [
-                [:line, 
-                  [:value, ["aba"]]
-                ]
-              ]]
+          [:line,
+            [:splat, 
+              [
+                [:program, [
+                  [:line, 
+                    [:value, ["baz"]]
+                  ]
+                ]],
+                [:program, [
+                  [:line, 
+                    [:value, ["aba"]]
+                  ]
+                ]]
+              ]
             ]
-          ],
+          ]
         ]
       ]
     ]])
