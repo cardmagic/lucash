@@ -238,7 +238,7 @@ describe LucashGrammar do
             ]], 
             [:program, [
               [:if, 
-                [:equality, 
+                [:==, 
                   [:value, "n"], 
                   [:number, 0]
                 ], 

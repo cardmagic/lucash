@@ -436,7 +436,7 @@ module_eval(<<'.,.,', 'grammar.y', 26)
 
 module_eval(<<'.,.,', 'grammar.y', 27)
   def _reduce_17(val, _values)
-     [:equality, val[0], val[2]] 
+     [:==, val[0], val[2]] 
   end
 .,.,
 

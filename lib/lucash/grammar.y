@@ -25,7 +25,7 @@ rule
 		| line '|' line { [:pipe, val[0], val[2]] }
 	  | line '||' line { [:or, val[0], val[2]] }
 		| line '.' method_call { [:method, val[0], val[2]] }
-		| line '==' line { [:equality, val[0], val[2]] }
+		| line '==' line { [:==, val[0], val[2]] }
 		| expr '=' line { [:assignment, val[0], val[2]] }
 		| expr '<-' line { [:functional_assignment, val[0], val[2]] }
 		| expr '<-(' splat ')' line { [:functional_assignment, val[0], val[2], val[4]] }
