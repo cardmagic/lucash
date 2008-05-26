@@ -27,14 +27,6 @@ rule
 		| line '.' method_call { [:method, val[0], val[2]] }
 		| expr '=' line { [:assignment, val[0], val[2]] }
 		| expr '<-' line { [:functional_assignment, val[0], val[2]] }
-	method_call:
-	    atom { [:method_call, val[0]] }
-	  | atom '(' ')' { [:method_call, val[0]] }
-	  | atom '(' basic_result ')' { [:method_call, val[0], val[2]] }
-	  | '(' expr ')' { [:method_call, val[1]] }
-	  | '(' expr ')' '(' ')' { [:method_call, val[1]] }
-	  | '(' expr ')' '(' basic_result ')' { [:method_call, val[1], val[4]] }
-	  | method_call '{' program '}' { [:yield, val[0], [:block, val[2]]] }
 	expr: 
 		  line '+' line { [:add, val[0], val[2]] }
 		| line '-' line { [:subtract, val[0], val[2]] }
@@ -43,7 +35,12 @@ rule
 		| line '%' line { [:mod, val[0], val[2]] }
 		| '[' basic_result ']'	{ [:array, val[1]] }
     | '[' ']'		 		        { [:empty_array] }
-		| parens { val[0] }
+		| method_call { val[0] }
+	method_call:
+	    parens { val[0] }
+	  | parens '(' ')' { val[0] }
+	  | parens '(' basic_result ')' { [:args, val[0], val[2]] }
+	  | method_call '{' program '}' { [:yield, val[0], [:block, val[2]]] }
 	basic_result:
 		  program { [:splat, [val[0]]] }
 		| program ',' basic_result { [:splat, [val[0], *val[2][1]]] }
