@@ -16,13 +16,15 @@ describe LucashGrammar do
     lambda { "}".parse }.should raise_error(ParseError)
   end
 
-  it "should return an AST with good input" do
+  it "should return an AST for variables" do
     "foo".parse.should eql([:program, [
       [:line, 
         [:value, ["foo"]]
       ]
     ]])
+  end
     
+  it "should return an AST for addition" do
     "1 + 3.0\n      \n \n".parse.should eql([:program, [
       [:line, 
         [:add, 
@@ -40,6 +42,17 @@ describe LucashGrammar do
       [:line, [:number, 1]]
     ]])
     
+    "foo + bar".parse.should eql([:program, [
+      [:line, 
+        [:add, 
+          [:line, [:value, ["foo"]]], 
+          [:line, [:value, ["bar"]]]
+        ]
+      ]
+    ]])
+  end
+  
+  it "should return an AST for conditionals" do
     "if true; cd foobar; end".parse.should eql([:program, [
       [:if, 
         [:line, 
@@ -54,7 +67,7 @@ describe LucashGrammar do
     ]])
 
     "if true; cd foobar; else; 123; end".parse.should eql([:program, [
-      [:if_else, 
+      [:if, 
         [:line, 
           [:value, ["true"]]
         ],
@@ -72,7 +85,7 @@ describe LucashGrammar do
     ]])
     
     "if true; cd foobar; else 123; end".parse.should eql([:program, [
-      [:if_else, 
+      [:if, 
         [:line, 
           [:value, ["true"]]
         ],
@@ -88,12 +101,26 @@ describe LucashGrammar do
         ]]
       ]
     ]])
-    
+  end
+  
+  it "should return an AST for assignment" do
     "foo = 3".parse.should eql([:program, [
       [:assignment,
         [:value, ["foo"]],
         [:line,
           [:number, 3]
+        ]
+      ]
+    ]])
+
+    "foo = 3 / 4".parse.should eql([:program, [
+      [:assignment,
+        [:value, ["foo"]],
+        [:line,
+          [:divide,
+            [:line, [:number, 3]],
+            [:line, [:number, 4]]
+          ]
         ]
       ]
     ]])
@@ -106,7 +133,9 @@ describe LucashGrammar do
         ]
       ]
     ]])
-    
+  end
+  
+  it "should return an AST for or's and and's" do
     "foo || bar".parse.should eql([:program, [
       [:or, 
         [:value, ["foo"]], 
@@ -124,23 +153,20 @@ describe LucashGrammar do
         ]
       ]
     ]])
-    
-    "foo + bar".parse.should eql([:program, [
-      [:line, 
-        [:add, 
-          [:line, [:value, ["foo"]]], 
-          [:line, [:value, ["bar"]]]
-        ]
-      ]
-    ]])
-    
+  end
+  
+  
+  it "should return an AST for pipes" do
     "foo | bar".parse.should eql([:program, [
       [:pipe, 
         [:line, [:value, ["foo"]]], 
         [:line, [:value, ["bar"]]]
       ]
     ]])
+  end
+  
 
+  it "should return an AST for method calls" do
     "foo.bar".parse.should eql([:program, [
       [:method,
         [:line, [:value, ["foo"]]], 
@@ -261,6 +287,5 @@ describe LucashGrammar do
         ]
       ]
     ]])
-    
   end
 end

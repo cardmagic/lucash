@@ -19,7 +19,7 @@ rule
 		| expr ';' { [:line, val[0]] } 
 		| expr '\n' { [:line, val[0]] } 
 		| 'if' line program 'end' { [:if, val[1], val[2]] }
-		| 'if' line program 'else' program 'end' { [:if_else, val[1], val[2], val[4]] }
+		| 'if' line program 'else' program 'end' { [:if, val[1], val[2], val[4]] }
 	  | expr '&&' line { [:and, val[0], val[2]] }
 		| expr '|' line { [:pipe, [:line, val[0]], val[2]] }
 	  | expr '||' line { [:or, val[0], val[2]] }
