@@ -71,7 +71,7 @@ class Lucash
       when :number
         ast[1]
       else
-        raise InvalidAST
+        raise InvalidAST, ast
       end
     end
   end

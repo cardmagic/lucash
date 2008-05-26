@@ -116,8 +116,7 @@ describe LucashGrammar do
           [:value, ["foo"]]
         ], 
         [:method_call,
-          [:value, ["bar"]],
-          [:empty_parens]
+          [:value, ["bar"]]
         ]
       ]
     ]])
@@ -129,15 +128,13 @@ describe LucashGrammar do
         ], 
         [:method_call,
           [:value, ["bar"]], 
-          [:line,
-            [:splat, [
-              [:program, [
-                [:line, 
-                  [:value, ["baz"]]
-                ]
-              ]]
+          [:splat, [
+            [:program, [
+              [:line, 
+                [:value, ["baz"]]
+              ]
             ]]
-          ]
+          ]]
         ]
       ]
     ]])
@@ -149,20 +146,18 @@ describe LucashGrammar do
         ], 
         [:method_call,
           [:value, ["bar"]], 
-          [:line,
-            [:splat, 
-              [
-                [:program, [
-                  [:line, 
-                    [:value, ["baz"]]
-                  ]
-                ]],
-                [:program, [
-                  [:line, 
-                    [:value, ["aba"]]
-                  ]
-                ]]
-              ]
+          [:splat, 
+            [
+              [:program, [
+                [:line, 
+                  [:value, ["baz"]]
+                ]
+              ]],
+              [:program, [
+                [:line, 
+                  [:value, ["aba"]]
+                ]
+              ]]
             ]
           ]
         ]

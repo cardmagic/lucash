@@ -12,6 +12,8 @@ rule
 		| line { [:program, [val[0]]] }
 		| '\n' { [:program, []] }
 		| ';' { [:program, []] }
+	  | '(' line ')' { [:line, val[1]] }
+    | '(' ')' { [:empty_parens] }
 	line: 
 	    expr { [:line, val[0]] } 
 		| expr ';' { [:line, val[0]] } 
@@ -26,15 +28,14 @@ rule
 		| expr '<-' line { [:functional_assignment, val[0], val[2]] }
 	method_call:
 	    expr { [:method_call, val[0]] }
-	  | expr expr { [:method_call, val[0], val[1]] }
+	  | expr '(' ')' { [:method_call, val[0]] }
+	  | expr '(' basic_result ')' { [:method_call, val[0], val[2]] }
 	expr: 
 		  expr '+' atom { [:add, val[0], val[2]] }
 		| expr '-' atom { [:subtract, val[0], val[2]] }
 		| expr '*' atom { [:multiply, val[0], val[2]] }
 		| expr '/' atom { [:divide, val[0], val[2]] }
 		| expr '%' atom { [:mod, val[0], val[2]] }
-		| '(' basic_result ')' { [:line, val[1]] }
-    | '(' ')' { [:empty_parens] }
 		| '[' basic_result ']'	{ [:array, val[1]] }
     | '[' ']'		 		        { [:empty_array] }
 		| atom	{ val[0] }
