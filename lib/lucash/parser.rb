@@ -4,10 +4,14 @@ class Lucash
       @q = []
       until str.empty?
         case str
-        when /\A["']([^\"]*)["']/
+        when /\A"([^"]*)"/
           @q.push ['"', '"']
           @q.push [:IDENT, $1]
           @q.push ['"', '"']
+        when /\A'([^']*)'/
+          @q.push ["'", "'"]
+          @q.push [:IDENT, $1]
+          @q.push ["'", "'"]
         when /\A\-\s+/
           @q.push ['-', '-']
         when /\A\s(\.\.*)/

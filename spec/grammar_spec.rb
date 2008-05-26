@@ -30,7 +30,7 @@ describe LucashGrammar do
     ]])
 
     "\"ls -la(}\"".parse.should eql([:program, [
-      [:string, "ls -la(}"]
+      [:eval_string, "ls -la(}"]
     ]])
 
     "'ls -la(}'".parse.should eql([:program, [
