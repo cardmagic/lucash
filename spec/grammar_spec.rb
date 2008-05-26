@@ -33,6 +33,10 @@ describe LucashGrammar do
       [:string, "ls -la(}"]
     ]])
 
+    "'ls -la(}'".parse.should eql([:program, [
+      [:string, "ls -la(}"]
+    ]])
+
     "ls -la &".parse.should eql([:program, [
       [:background, [:value, ["ls", "-la"]]]
     ]])
