@@ -21,6 +21,10 @@ describe LucashGrammar do
       [:value, ["foo"]]
     ]])
 
+    "()".parse.should eql([:program, [
+      [:empty_parens]
+    ]])
+
     "ls -la".parse.should eql([:program, [
       [:value, ["ls", "-la"]]
     ]])
@@ -59,12 +63,41 @@ describe LucashGrammar do
         [:value, ["y"]]
       ]
     ]])
+
+    "(5 + x) * (10 - y)".parse.should eql([:program, [
+      [:multiply, 
+        [:program, [
+          [:add, 
+            [:number, 5], 
+            [:value, ["x"]]
+          ]
+        ]], 
+        [:program, [
+          [:subtract, 
+            [:number, 10], 
+            [:value, ["y"]]
+          ]
+        ]]
+      ]
+    ]])
   end
   
   it "should return an AST for conditionals" do
     "if true; cd foobar; end".parse.should eql([:program, [
       [:if, 
         [:value, ["true"]],
+        [:program, [
+          [:value, ["cd", "foobar"]]
+        ]]
+      ]
+    ]])
+
+    "if (cd; true); cd foobar; end".parse.should eql([:program, [
+      [:if, 
+        [:program, [
+          [:value, ["cd"]],
+          [:value, ["true"]]
+        ]],
         [:program, [
           [:value, ["cd", "foobar"]]
         ]]

@@ -12,8 +12,6 @@ rule
 		| line { [:program, [val[0]]] }
 		| '\n' { [:program, []] }
 		| ';' { [:program, []] }
-	  | '(' line ')' { val[1] }
-    | '(' ')' { [:empty_parens] }
 	line: 
 	    expr { val[0] } 
 		| expr ';' { val[0] } 
@@ -42,10 +40,14 @@ rule
 		| line '%' line { [:mod, val[0], val[2]] }
 		| '[' basic_result ']'	{ [:array, val[1]] }
     | '[' ']'		 		        { [:empty_array] }
-		| atom	{ val[0] }
+		| parens { val[0] }
 	basic_result:
 		  program { [:splat, [val[0]]] }
 		| program ',' basic_result { [:splat, [val[0], *val[2][1]]] }
+	parens: 
+  	  '(' program ')' { val[1] }
+    | '(' ')' { [:empty_parens] }
+    | atom { val[0] }
 	atom:
 	    NUMBER { [:number, val[0]] }
 		| IDENT { [:value, [val[0]]] }
