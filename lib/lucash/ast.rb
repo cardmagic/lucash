@@ -23,11 +23,7 @@ class Lucash
       when :if
         if lucash_eval(ast[1])
           lucash_eval(ast[2])
-        end
-      when :if_else
-        if lucash_eval(ast[1])
-          lucash_eval(ast[2])
-        else
+        elsif ast[3]
           lucash_eval(ast[3])
         end
       when :for
