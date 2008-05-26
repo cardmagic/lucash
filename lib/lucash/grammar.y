@@ -33,6 +33,7 @@ rule
 	  | '(' expr ')' { [:method_call, val[1]] }
 	  | '(' expr ')' '(' ')' { [:method_call, val[1]] }
 	  | '(' expr ')' '(' basic_result ')' { [:method_call, val[1], val[4]] }
+	  | method_call '{' program '}' { [:yield, val[0], [:block, val[2]]] }
 	expr: 
 		  line '+' line { [:add, val[0], val[2]] }
 		| line '-' line { [:subtract, val[0], val[2]] }

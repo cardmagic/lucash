@@ -141,6 +141,22 @@ describe LucashGrammar do
         ]
       ]
     ]])
+
+    "foo.bar { baz }".parse.should eql([:program, [
+      [:method,
+        [:value, ["foo"]], 
+        [:yield,
+          [:method_call,
+            [:value, ["bar"]]
+          ],
+          [:block,
+            [:program, [
+              [:value, ["baz"]]
+            ]]
+          ]
+        ]
+      ]
+    ]])
     
     "foo.bar()".parse.should eql([:program, [
       [:method,

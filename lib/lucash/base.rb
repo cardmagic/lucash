@@ -24,7 +24,7 @@ class Lucash
         rescue ParseError
           puts $!
         rescue InvalidAST
-          puts "Invalid AST (#{$!.message.inspect})"
+          puts "Invalid AST (#{$!.message})"
         end
       else
         exit
