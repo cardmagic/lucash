@@ -37,7 +37,7 @@ rule
 	expr: 
 		  line '+' line { [:add, val[0], val[2]] }
 		| line '-' line { [:subtract, val[0], val[2]] }
-		| line '*' line { [:multiply, val[0], val[2]] }
+	  | line '*' line { [:multiply, val[0], val[2]] }
 		| line '/' line { [:divide, val[0], val[2]] }
 		| line '%' line { [:mod, val[0], val[2]] }
 		| '[' basic_result ']'	{ [:array, val[1]] }

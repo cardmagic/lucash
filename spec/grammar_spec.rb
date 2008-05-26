@@ -20,9 +20,13 @@ describe LucashGrammar do
     "foo".parse.should eql([:program, [
       [:value, ["foo"]]
     ]])
+
+    "ls -la".parse.should eql([:program, [
+      [:value, ["ls", "-la"]]
+    ]])
   end
     
-  it "should return an AST for addition" do
+  it "should return an AST for math" do
     "1 + 3.0\n      \n \n".parse.should eql([:program, [
       [:add, 
         [:number, 1], [:number, 3.0]
@@ -40,6 +44,19 @@ describe LucashGrammar do
       [:add, 
         [:value, ["foo"]],
         [:value, ["bar"]]
+      ]
+    ]])
+    
+    "5 + x * 10 - y".parse.should eql([:program, [
+      [:subtract,
+        [:add, 
+          [:number, 5],
+          [:multiply,
+            [:value, ["x"]],
+            [:number, 10]
+          ]
+        ],
+        [:value, ["y"]]
       ]
     ]])
   end
