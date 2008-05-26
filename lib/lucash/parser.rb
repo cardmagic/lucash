@@ -23,6 +23,8 @@ class Lucash
     	    @q.push ['\n', '\n']
         when /\A(&&|\|\||\|)/
     	    @q.push [$&, $&]
+        when /\A<-\s*\(/
+    	    @q.push ['<-(', '<-(']
         when /\A<-/
     	    @q.push [$&, $&]
         when /\A\-?\d+\.\d+/

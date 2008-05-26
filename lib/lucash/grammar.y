@@ -1,6 +1,6 @@
 class LucashGrammar
 	options no_result_var
-	expect 74
+	expect 84
 	prechigh
 	    nonassoc UMINUS ';'
 	    left '*' '/' '%' '|'
@@ -28,23 +28,24 @@ rule
 		| line '.' method_call { [:method, val[0], val[2]] }
 		| expr '=' line { [:assignment, val[0], val[2]] }
 		| expr '<-' line { [:functional_assignment, val[0], val[2]] }
+		| expr '<-(' splat ')' line { [:functional_assignment, val[0], val[2], val[4]] }
 	expr: 
 		  line '+' line { [:add, val[0], val[2]] }
 		| line '-' line { [:subtract, val[0], val[2]] }
 	  | line '*' line { [:multiply, val[0], val[2]] }
 		| line '/' line { [:divide, val[0], val[2]] }
 		| line '%' line { [:mod, val[0], val[2]] }
-		| '[' basic_result ']'	{ [:array, val[1]] }
+		| '[' splat ']'	{ [:array, val[1]] }
     | '[' ']'		 		        { [:empty_array] }
 		| method_call { val[0] }
 	method_call:
 	    parens { val[0] }
 	  | parens '(' ')' { val[0] }
-	  | parens '(' basic_result ')' { [:args, val[0], val[2]] }
+	  | parens '(' splat ')' { [:args, val[0], val[2]] }
 	  | method_call '{' program '}' { [:yield, val[0], val[2]] }
-	basic_result:
+	splat:
 		  program { [:splat, [val[0]]] }
-		| program ',' basic_result { [:splat, [val[0], *val[2][1]]] }
+		| program ',' splat { [:splat, [val[0], *val[2][1]]] }
 	parens: 
   	  '(' program ')' { val[1] }
     | '(' ')' { [:empty_parens] }

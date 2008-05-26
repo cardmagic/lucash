@@ -125,7 +125,7 @@ describe LucashGrammar do
       ]
     ]])
 
-    "if true; cd foobar; else; 123; end".parse.should eql([:program, [
+    "if true; cd foobar\nelse; 123; end".parse.should eql([:program, [
       [:if, 
         [:value, ["true"]],
         [:program, [
@@ -172,6 +172,36 @@ describe LucashGrammar do
       [:functional_assignment,
         [:value, ["foo"]],
         [:number, 3]
+      ]
+    ]])
+
+    "foo <-(x) 3 + x".parse.should eql([:program, [
+      [:functional_assignment,
+        [:value, ["foo"]],
+        [:splat, [
+          [:program, [
+            [:value, ["x"]]
+          ]]
+        ]],
+        [:add,
+          [:number, 3],
+          [:value, ["x"]]
+        ]
+      ]
+    ]])
+
+    "foo <- (x) 3 + x".parse.should eql([:program, [
+      [:functional_assignment,
+        [:value, ["foo"]],
+        [:splat, [
+          [:program, [
+            [:value, ["x"]]
+          ]]
+        ]],
+        [:add,
+          [:number, 3],
+          [:value, ["x"]]
+        ]
       ]
     ]])
   end
