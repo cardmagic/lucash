@@ -17,6 +17,7 @@ rule
 		| expr ';' { val[0] } 
 		| expr '\n' { val[0] } 
 		| expr '&' { [:background, val[0]] } 
+		| '"' IDENT '"' { [:string, val[1]] } 
 		| 'if' line program 'end' { [:if, val[1], val[2]] }
 		| 'if' line program 'else' program 'end' { [:if, val[1], val[2], val[4]] }
 	  | expr '&&' line { [:and, val[0], val[2]] }
