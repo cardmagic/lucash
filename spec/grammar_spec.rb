@@ -163,5 +163,19 @@ describe LucashGrammar do
         ]
       ]
     ]])
+    
+    "foo.bar + 1".parse.should eql([:program, [
+      [:add,
+        [:method,
+          [:line, 
+            [:value, ["foo"]]
+          ], 
+          [:method_call,
+            [:value, ["bar"]]
+          ]
+        ],
+        [:number, 1]
+      ]
+    ]])
   end
 end
