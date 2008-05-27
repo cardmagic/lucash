@@ -168,7 +168,7 @@ describe LucashGrammar do
       ]
     ]])
     
-    "foo = -> { 3 }".parse.should eql([:program, [
+    "def foo; 3; end".parse.should eql([:program, [
       [:assignment, 
         [:value, "foo"], 
         [:lambda, 
@@ -199,8 +199,26 @@ describe LucashGrammar do
       ]
     ]])
 
+    "def foo(x) 3 + x end".parse.should eql([:program, [
+      [:assignment,
+        [:value, "foo"],
+        [:lambda, 
+          [:splat, [
+            [:program, [
+              [:value, "x"]
+            ]]
+          ]],
+          [:program, [
+            [:add,
+              [:number, 3],
+              [:value, "x"]
+            ]
+          ]]
+        ]
+      ]
+    ]])
 
-    "factorial = -> (n) {
+    "def factorial(n)
       -> (n, acc) {
         if n == 0
           acc
@@ -208,7 +226,7 @@ describe LucashGrammar do
           retry(n - 1, acc * n)
         end
       } (n, 1)
-    }".parse.should eql([:program, [
+    end".parse.should eql([:program, [
       [:assignment, 
         [:value, "factorial"], 
         [:lambda, 

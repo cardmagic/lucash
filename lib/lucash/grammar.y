@@ -1,6 +1,6 @@
 class LucashGrammar
 	options no_result_var
-	expect 86
+	expect 88
 	prechigh
 	    nonassoc UMINUS ';'
 	    left '*' '/' '%' '|'
@@ -11,8 +11,7 @@ rule
 		  program program { [:program, val[0][1] + val[1][1]] }
     | '{' program '}' { val[1] }
 		| line { [:program, [val[0]]] }
-		| '\n' { [:program, []] }
-		| ';' { [:program, []] }
+		| endline { val[0] }
 	line: 
 	    expr { val[0] } 
 		| expr ';' { val[0] } 
@@ -28,9 +27,14 @@ rule
 		| line '.' method_call { [:method, val[0], val[2]] }
 		| line '==' line { [:==, val[0], val[2]] }
 		| expr '=' line { [:assignment, val[0], val[2]] }
+		| 'defn' atom '(' splat ')' program 'end' { [:assignment, val[1], [:lambda, val[3], val[5]]] }
+		| 'def' atom program 'end' { [:assignment, val[1], [:lambda, nil, val[2]]] }
 		| '->' '{' program '}' { [:lambda, nil, val[2]] }
 		| '->(' splat ')' '{' program '}' { [:lambda, val[1], val[4]] }
 		| '->(' splat ')' '{' program '}' '(' splat ')' { [:args, [:lambda, val[1], val[4]], val[7]] }
+	endline:
+	    '\n' { [:newline, []] }
+	  | ';' { [:newline, []] }
 	expr: 
 		  line '+' line { [:add, val[0], val[2]] }
 		| line '-' line { [:subtract, val[0], val[2]] }
