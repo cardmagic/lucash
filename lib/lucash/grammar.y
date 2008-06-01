@@ -36,11 +36,11 @@ rule
 	    '\n' { [:newline, []] }
 	  | ';' { [:newline, []] }
 	expr: 
-		  line '+' line { [:add, val[0], val[2]] }
-		| line '-' line { [:subtract, val[0], val[2]] }
-	  | line '*' line { [:multiply, val[0], val[2]] }
-		| line '/' line { [:divide, val[0], val[2]] }
-		| line '%' line { [:mod, val[0], val[2]] }
+		  line '+' line { [:+, val[0], val[2]] }
+		| line '-' line { [:-, val[0], val[2]] }
+	  | line '*' line { [:*, val[0], val[2]] }
+		| line '/' line { [:slash, val[0], val[2]] }
+		| line '%' line { [:%, val[0], val[2]] }
 		| '[' splat ']'	{ [:array, val[1]] }
     | '[' ']'		 		        { [:empty_array] }
 		| method_call { val[0] }

@@ -585,31 +585,31 @@ module_eval(<<'.,.,', 'grammar.y', 36)
 
 module_eval(<<'.,.,', 'grammar.y', 38)
   def _reduce_26(val, _values)
-     [:add, val[0], val[2]] 
+     [:+, val[0], val[2]] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'grammar.y', 39)
   def _reduce_27(val, _values)
-     [:subtract, val[0], val[2]] 
+     [:-, val[0], val[2]] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'grammar.y', 40)
   def _reduce_28(val, _values)
-     [:multiply, val[0], val[2]] 
+     [:*, val[0], val[2]] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'grammar.y', 41)
   def _reduce_29(val, _values)
-     [:divide, val[0], val[2]] 
+     [:slash, val[0], val[2]] 
   end
 .,.,
 
 module_eval(<<'.,.,', 'grammar.y', 42)
   def _reduce_30(val, _values)
-     [:mod, val[0], val[2]] 
+     [:%, val[0], val[2]] 
   end
 .,.,
 

@@ -35,17 +35,17 @@ class Lucash
         @vars[ast[1]] = lucash_eval(ast[2])
       when :functional_assignment
         @vars[ast[1]] = ast[2]
-      when :add
-        lucash_eval(ast[1]) + lucash_eval(ast[2])
       when :block
         lucash_eval(ast[1])
-      when :subtract
+      when :+
+        lucash_eval(ast[1]) + lucash_eval(ast[2])
+      when :-
         lucash_eval(ast[1]) - lucash_eval(ast[2])
-      when :multiply
+      when :*
         lucash_eval(ast[1]) * lucash_eval(ast[2])
-      when :divide
+      when :slash
         lucash_eval(ast[1]) / lucash_eval(ast[2])
-      when :mod
+      when :%
         lucash_eval(ast[1]) % lucash_eval(ast[2])
       when :array
         lucash_eval(ast[1])

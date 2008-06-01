@@ -44,30 +44,30 @@ describe LucashGrammar do
     
   it "should return an AST for math" do
     "1 + 3.0\n      \n \n".parse.should eql([:program, [
-      [:add, 
+      [:+, 
         [:number, 1], [:number, 3.0]
       ]
     ]])
     
     "1 + 3.0\n      \n 1\n".parse.should eql([:program, [
-      [:add, 
+      [:+, 
         [:number, 1], [:number, 3.0]
       ],
       [:number, 1]
     ]])
     
     "foo + bar".parse.should eql([:program, [
-      [:add, 
+      [:+, 
         [:value, "foo"],
         [:value, "bar"]
       ]
     ]])
     
     "5 + x * 10 - y".parse.should eql([:program, [
-      [:subtract,
-        [:add, 
+      [:-,
+        [:+, 
           [:number, 5],
-          [:multiply,
+          [:*,
             [:value, "x"],
             [:number, 10]
           ]
@@ -77,15 +77,15 @@ describe LucashGrammar do
     ]])
 
     "(5 + x) * (10 - y)".parse.should eql([:program, [
-      [:multiply, 
+      [:*, 
         [:program, [
-          [:add, 
+          [:+, 
             [:number, 5], 
             [:value, "x"]
           ]
         ]], 
         [:program, [
-          [:subtract, 
+          [:-, 
             [:number, 10], 
             [:value, "y"]
           ]
@@ -161,7 +161,7 @@ describe LucashGrammar do
     "foo = 3 / 4".parse.should eql([:program, [
       [:assignment,
         [:value, "foo"],
-        [:divide,
+        [:slash,
           [:number, 3],
           [:number, 4]
         ]
@@ -190,7 +190,7 @@ describe LucashGrammar do
             ]]
           ]],
           [:program, [
-            [:add,
+            [:+,
               [:number, 3],
               [:value, "x"]
             ]
@@ -209,7 +209,7 @@ describe LucashGrammar do
             ]]
           ]],
           [:program, [
-            [:add,
+            [:+,
               [:number, 3],
               [:value, "x"]
             ]
@@ -260,13 +260,13 @@ describe LucashGrammar do
                         [:value, "retry"], 
                         [:splat, [
                           [:program, [
-                            [:subtract, 
+                            [:-, 
                               [:value, "n"], 
                               [:number, 1]
                             ]
                           ]], 
                           [:program, [
-                            [:multiply, 
+                            [:*, 
                               [:value, "acc"], 
                               [:value, "n"]
                             ]
@@ -403,7 +403,7 @@ describe LucashGrammar do
     
 
     "foo.bar(baz, aba) + 1".parse.should eql([:program, [
-      [:add,
+      [:+,
         [:method, 
           [:value, "foo"],
           [:args,
@@ -425,7 +425,7 @@ describe LucashGrammar do
     ]])
 
     "foo.bar + 1".parse.should eql([:program, [
-      [:add,
+      [:+,
         [:method,
           [:value, "foo"], 
           [:value, "bar"]
@@ -448,7 +448,7 @@ describe LucashGrammar do
       [:method,
         [:value, "foo"],
         [:program, [
-          [:add,
+          [:+,
             [:value, "bar"],
             [:number, 1]
           ]
@@ -472,7 +472,7 @@ describe LucashGrammar do
         [:value, "foo"],
         [:args,
           [:program, [
-            [:add,
+            [:+,
               [:value, "bar"],
               [:number, 1]
             ]
@@ -487,12 +487,12 @@ describe LucashGrammar do
     ]])
 
     "foo.(bar + 1)(3) + 1".parse.should eql([:program, [
-      [:add,
+      [:+,
         [:method,
           [:value, "foo"],
           [:args,
             [:program, [
-              [:add,
+              [:+,
                 [:value, "bar"],
                 [:number, 1]
               ]
