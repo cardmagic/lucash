@@ -54,14 +54,7 @@ class Lucash
       when :string
         ast[1]
       when :value
-        case ast[1][0]
-        when "false"
-          false
-        when "true"
-          true
-        else
-          ast[1]
-        end
+        Lucash::Variable.new(ast[1][0])
       when :number
         ast[1]
       else
