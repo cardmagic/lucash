@@ -35,5 +35,6 @@ end
 
 require 'lucash/grammar'
 require 'lucash/shell'
+require 'lucash/lambda'
 require 'lucash/variable'
 require 'lucash/ast'

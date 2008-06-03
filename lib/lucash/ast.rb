@@ -3,7 +3,6 @@ class Lucash
     attr_accessor :ast
     
     def initialize(ast=nil)
-      @vars = {}
       @ast = ast
     end
     
@@ -13,50 +12,65 @@ class Lucash
     end
     
     def lucash_eval(ast)
-      case ast[0]
+      case ast.shift
       when :program
-        ast[1].map {|stmt| lucash_eval(stmt)}.last
+        Lucash::Variable.push_scope
+        ast[0].map {|stmt| lucash_eval(stmt)}.last
+        Lucash::Variable.pop_scope
+      when :lambda
+        Lucash::Lambda.new(lucash_eval(ast[0]), ast[1])
+      when :method
+        
+      when :args
+        lambda = lucash_eval(ast[0])
+        args = lucash_eval(ast[1])
+        if lambda.is_a?(Lucash::Lambda)
+          Lucash::Variable.push_scope
+          lambda.arg_names.each_with_index do |arg_name, i|
+            Lucash::Variable.set(arg_name, args[i])
+          end
+          lucash_eval(lambda.ast)
+          Lucash::Variable.pop_scope
+        end
       when :and
-        if lucash_eval(ast[1])
-          lucash_eval(ast[2])
+        if lucash_eval(ast[0])
+          lucash_eval(ast[1])
         end
       when :if
-        if lucash_eval(ast[1])
+        if lucash_eval(ast[0])
+          lucash_eval(ast[1])
+        elsif ast[2]
           lucash_eval(ast[2])
-        elsif ast[3]
-          lucash_eval(ast[3])
         end
       when :for
-        for i in (lucash_eval(ast[1])..lucash_eval(ast[2]))
-          @vars[ast[3]] = i
-          lucash_eval(ast[4])
+        for i in (lucash_eval(ast[0])..lucash_eval(ast[1]))
+          Lucash::Variable.set(ast[2], i)
+          lucash_eval(ast[3])
         end
       when :assignment
-        @vars[ast[1]] = lucash_eval(ast[2])
-      when :functional_assignment
-        @vars[ast[1]] = ast[2]
-      when :block
-        lucash_eval(ast[1])
+        Lucash::Variable.set(ast[0], lucash_eval(ast[1]))
+      when :==
+        lucash_eval(ast[0]) == lucash_eval(ast[1])
       when :+
-        lucash_eval(ast[1]) + lucash_eval(ast[2])
+        lucash_eval(ast[0]) + lucash_eval(ast[1])
       when :-
-        lucash_eval(ast[1]) - lucash_eval(ast[2])
+        lucash_eval(ast[0]) - lucash_eval(ast[1])
       when :*
-        lucash_eval(ast[1]) * lucash_eval(ast[2])
+        lucash_eval(ast[0]) * lucash_eval(ast[1])
       when :slash
-        lucash_eval(ast[1]) / lucash_eval(ast[2])
+        lucash_eval(ast[0]) / lucash_eval(ast[1])
       when :%
-        lucash_eval(ast[1]) % lucash_eval(ast[2])
+        lucash_eval(ast[0]) % lucash_eval(ast[1])
       when :array
-        lucash_eval(ast[1])
+        lucash_eval(ast[0])
       when :splat
-        ast[1].map{|a| lucash_eval(a)}
-      when :string
-        ast[1]
+        ast[0].map{|a| lucash_eval(a)}
+      when :string, :embedded_string
+        ast[0]
       when :value
-        Lucash::Variable.new(ast[1][0])
+        Lucash::Variable.new(ast)
       when :number
-        ast[1]
+        ast[0]
       else
         raise InvalidAST, ast.inspect
       end
