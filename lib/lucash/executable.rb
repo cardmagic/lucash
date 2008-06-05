@@ -16,8 +16,10 @@ class Lucash
     	p = Open4::popen4("#{@path} #{args}") do |pid, stdin, stdout, stderr|
     		er_t = Thread.new do
     			loop do
-    				$stderr.print stderr.read(stderr.stat.size)
-    				$stderr.flush
+    			  if stderr.stat.size > 0
+      				$stderr.print stderr.read(stderr.stat.size)
+      				$stderr.flush
+    				end
     			end
     		end
 
@@ -30,16 +32,20 @@ class Lucash
 	
     		o_t = Thread.new do
     			loop do
-    				r << stdout.read(stdout.stat.size)
+    			  if stdout.stat.size > 0
+      				r << stdout.read(stdout.stat.size)
+    				end
     			end
     		end
     		
     		r << stdout.read unless stdout.eof?
     		unless stderr.eof?
       		$stderr.print stderr.read
-      		$stderr.flush
+      		$stderr.flush if $stderr.stat.size > 0
     		end
     	end
+    	
+    	$stdout.flush
     	er_t.kill
     	in_t.kill
     	o_t.kill
