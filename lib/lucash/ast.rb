@@ -26,8 +26,9 @@ class Lucash
         if lambda.is_a?(Lucash::Lambda)
           in_scope do
             lambda.arg_names.each_with_index do |arg_name, i|
-              Variable.set(arg_name, args[i])
+              Variable.set([:value, arg_name], args[i])
             end
+            puts lambda.ast.inspect if ENV['DEBUG']
             eval(lambda.ast)
           end
         end
