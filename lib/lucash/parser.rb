@@ -4,16 +4,32 @@ class Lucash
       @q = []
       until str.empty?
         case str
+        when /\A"([^"]*)"/
+          @q.push ['"', '"']
+          @q.push [:IDENT, $1]
+          @q.push ['"', '"']
+        when /\A'([^']*)'/
+          @q.push ["'", "'"]
+          @q.push [:IDENT, $1]
+          @q.push ["'", "'"]
+        when /\A\-\s+/
+          @q.push ['-', '-']
         when /\A\s(\.\.*)/
             @q.push [:IDENT, $1]
         when /\A[ \t\r]+/
-    	  when /\A(if|else|end)/i
+    	  when /\Adef[\s]*([\w\-]+)[\s]*\(/i
+    	    @q.push ["defn", "defn"]
+    	    @q.push [:IDENT, $1]
+    	    @q.push ["(", "("]
+    	  when /\A(def|if|else|end)/i
     	    @q.push [$&, $&]
     	  when /\A\n/
     	    @q.push ['\n', '\n']
-        when /\A&&/
+        when /\A(&&|\|\||\|)/
     	    @q.push [$&, $&]
-        when /\A<-/
+        when /\A->\s*\(/
+    	    @q.push ['->(', '->(']
+        when /\A(->|==)/
     	    @q.push [$&, $&]
         when /\A\-?\d+\.\d+/
           @q.push [:NUMBER, $&.to_f]

@@ -1,40 +1,27 @@
-def do_command(command)
-	case command
-	when "true", "false"
-		return command == "true"
-	when /^cd (.*)$/
-		return Dir.chdir($1)
-	end
-
-	r = []
-	er_t = nil
-	in_t = nil
-	o_t = nil
-	p = Open4::popen4(command) do |pid, stdin, stdout, stderr|
-		er_t = Thread.new do
-			loop do
-				$stderr.print stderr.read(stderr.stat.size)
-				$stderr.flush
-			end
-		end
-
-		in_t = Thread.new do
-			loop do
-				data = gets
-				stdin.write(data)
-			end
-		end
-	
-		o_t = Thread.new do
-			loop do
-				r << stdout.read(stdout.stat.size)
-			end
-		end
-	end
-	er_t.kill
-	in_t.kill
-	o_t.kill
-	r.join("")
-rescue Errno::ENOENT, TypeError
-	command
+class Lucash
+  class Shell
+    def executables
+      @@executables
+    end
+    
+    def initialize
+      @@executables ||= {}
+      refresh_executables if @@executables == {}
+    end
+    
+    def refresh_executables
+      ENV['PATH'].split(":").each do |path|
+        load_executables(Dir["#{path}/*"])
+      end
+    end
+    
+    def load_executables(paths)
+      paths.each do |path|
+        if File.executable?(path)
+          executable = Executable.new(path)
+          @@executables[executable.name] = executable
+        end
+      end
+    end
+  end
 end
