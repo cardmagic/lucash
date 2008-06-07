@@ -39,7 +39,7 @@ end
 
 require 'lucash/grammar'
 require 'lucash/executable'
-require 'lucash/shell'
+require 'lucash/paths'
 require 'lucash/lambda'
 require 'lucash/variable'
 require 'lucash/ast'

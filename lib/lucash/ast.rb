@@ -2,7 +2,7 @@ class Lucash
   class AST    
     def self.eval(ast=nil)
       raise InvalidAST unless ast.is_a?(Array)
-      new.eval(*Array(ast))
+      new.eval(*ast)
     end
     
     def in_scope

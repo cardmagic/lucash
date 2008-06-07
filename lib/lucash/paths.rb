@@ -1,5 +1,5 @@
 class Lucash
-  class Shell
+  class Paths
     def executables
       @@executables
     end

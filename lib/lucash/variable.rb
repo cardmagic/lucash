@@ -43,10 +43,10 @@ class Lucash
         end
       end
 
-      shell = Shell.new
+      paths = Paths.new
 
-      if shell.executables[var]
-        return shell.executables[var]
+      if paths.executables[var]
+        return paths.executables[var]
       end
       
       return var
