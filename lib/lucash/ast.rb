@@ -1,5 +1,7 @@
 class Lucash
-  class AST    
+  class AST
+    NEW_LINE = "\n"
+    
     def self.eval(ast=nil)
       raise InvalidAST unless ast.is_a?(Array)
       new.eval(*ast)
@@ -72,6 +74,8 @@ class Lucash
         variable.value
       when :number
         cdr[0]
+      when :empty_parens
+        nil
       else
         raise InvalidAST, [car, *cdr].inspect
       end

@@ -3,8 +3,15 @@ class Lucash
     @@scopes = [{}]
     
     def initialize(val, *arguments)
-      @value = self.class.find_through_scopes(val)
-      @arguments = arguments
+      case val
+      when "true"
+        @value = true
+      when "false"
+        value = false
+      else
+        @value = self.class.find_through_scopes(val)
+        @arguments = arguments
+      end
     end
     
     def value

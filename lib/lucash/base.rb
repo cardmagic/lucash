@@ -5,7 +5,7 @@ class Lucash
     @grammar = LucashGrammar.new
   end
   
-  def parse(str)
+  def eval(str)
     ast = @grammar.parse(str)
     puts ast.inspect if ENV['DEBUG']
     Lucash::AST.eval(ast)
@@ -18,7 +18,7 @@ class Lucash
       if str = gets
         break if /q/i =~ str
         begin
-          r = parse(str)
+          r = eval(str)
           case r
           when String
             puts r
