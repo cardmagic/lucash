@@ -2,10 +2,9 @@ class Lucash
   class Variable
     @@scopes = [{}]
     
-    def initialize(var)
-      val = var.shift
+    def initialize(val, *arguments)
       @value = self.class.find_through_scopes(val)
-      @arguments = var
+      @arguments = arguments
     end
     
     def value
