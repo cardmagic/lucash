@@ -2,10 +2,16 @@ class Lucash
   class Variable
     @@scopes = [{}]
     
-    def initialize(var)
-      val = var.shift
-      @value = self.class.find_through_scopes(val)
-      @arguments = var
+    def initialize(val, *arguments)
+      case val
+      when "true"
+        @value = true
+      when "false"
+        value = false
+      else
+        @value = self.class.find_through_scopes(val)
+        @arguments = arguments
+      end
     end
     
     def value
@@ -44,10 +50,10 @@ class Lucash
         end
       end
 
-      shell = Shell.new
+      paths = Paths.new
 
-      if shell.executables[var]
-        return shell.executables[var]
+      if paths.executables[var]
+        return paths.executables[var]
       end
       
       return var
