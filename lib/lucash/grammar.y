@@ -27,6 +27,7 @@ rule
 		| line '.' method_call { [:method, val[0], val[2]] }
 		| line '==' line { [:==, val[0], val[2]] }
 		| expr '=' line { [:assignment, val[0], val[2]] }
+		| 'defn' atom '(' ')' program 'end' { [:assignment, val[1], [:lambda, nil, val[4]]] }
 		| 'defn' atom '(' splat ')' program 'end' { [:assignment, val[1], [:lambda, val[3], val[5]]] }
 		| 'def' atom program 'end' { [:assignment, val[1], [:lambda, nil, val[2]]] }
 		| '->' '{' program '}' { [:lambda, nil, val[2]] }

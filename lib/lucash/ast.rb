@@ -35,7 +35,15 @@ class Lucash
           end
         end
       when :and
-        if eval(*cdr[0])
+        if r = eval(*cdr[0])
+          eval(*cdr[1])
+        else
+          r
+        end
+      when :or
+        if r = eval(*cdr[0])
+          r
+        else
           eval(*cdr[1])
         end
       when :if
